@@ -1,0 +1,12 @@
+# Stack
+
+The stack choices that every product follows. Each line gives the exact version that a test installed and checked, the test project of 2026-10-13 unless the line names another test, and links the decision record that explains the choice.
+
+The stack choices bind every web app and the admin area of a website. The public pages of a website choose their own stack, as they get their own design. When a website runs its public pages and its admin as two apps, only the admin app imports the CSS of STACK. The platform is not a stack choice. For both apps, [`architecture/cloudflare.md`](architecture/cloudflare.md) recommends a Worker for the public site and a Worker for the admin, and each rule carries its tier. The parts of [`operations/monitoring.md`](operations/monitoring.md) with "(public site)" in their heading apply to the public app. The sign-in page, each page that a signed link opens and each page of a read-only link belong to the admin area, also when Access does not cover them. So they take the stack choices, and they follow "Pages with no session" in [`architecture/web-app.md`](architecture/web-app.md).
+
+- Svelte 5.57.2 in SvelteKit 3.0.1, on Node 22.17 or later. Record: [0001](decisions/0001-svelte-5.md).
+- Tailwind CSS 4.3.3, through `@tailwindcss/vite` 4.3.3. Record: [0002](decisions/0002-tailwind-4.md).
+- shadcn-svelte 1.7.0 in the nova style on Bits UI 2.19.5, as the component files that each release ships in `preview/src/lib/components/ui/`. `preview/components.lock.json` gives the exact version of each package that the files need, and a product installs them with `npm install -E`. The test of 2026-10-26 checked the copy step. Records: [0003](decisions/0003-shadcn-svelte-and-bits-ui.md), [0006](decisions/0006-where-a-product-gets-the-component-files.md).
+- LayerChart 2.7.0 on its SVG layer, pinned exactly together with its four prerelease `@layerstack` packages. Record: [0004](decisions/0004-layerchart-svg-layer.md).
+- CodeMirror 6 for a code editor: `@codemirror/state` 6.7.6, `@codemirror/view` 6.43.15 and `@codemirror/commands` 6.11.1, pinned exactly, in a small component of the product. The test of 2026-10-23 checked them in the preview. Record: [0005](decisions/0005-codemirror-6.md).
+- lean-qr 2.7.4 for a QR code, pinned exactly: it computes the modules, and a small component of the product draws them as SVG. The test of 2026-10-26 checked it in the preview. Record: [0007](decisions/0007-lean-qr.md).

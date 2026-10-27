@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="text-scale" content="scale" />
+		<script>
+			// The theme and the mode before the first paint, with the script of "Pick a theme" in
+			// README.md: the stored choice, else the theme "default" and the system setting. The route
+			// src/routes/themes/[name].css serves each file of themes/ at /themes/<name>.css, and the
+			// theme switch in view.svelte.ts changes the href of #stack-theme. The list holds the name
+			// of each file in themes/, and "npm run theme -- --check" fails when the two disagree.
+			(function () {
+				var themes = ['default', 'graphite'];
+				var t = localStorage.getItem('stack-preview-theme');
+				if (themes.indexOf(t) < 0) t = 'default';
+				var href = '/themes/' + t + '.css';
+				var l = document.createElement('link');
+				if (l.blocking && l.blocking.supports && l.blocking.supports('render')) {
+					l.rel = 'stylesheet'; l.id = 'stack-theme'; l.setAttribute('blocking', 'render'); l.href = href;
+					document.head.appendChild(l);
+				} else {
+					document.write('<link rel="stylesheet" id="stack-theme" href="' + href + '">');
+				}
+				var root = document.documentElement;
+				root.setAttribute('data-theme', t);
+				var m = localStorage.getItem('stack-preview-mode');
+				var dark = m === 'dark' || (m !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+				root.classList.toggle('dark', dark);
+				root.style.colorScheme = dark ? 'dark' : 'light';
+			})();
+		</script>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

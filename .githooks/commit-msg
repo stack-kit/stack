@@ -1,0 +1,10 @@
+#!/bin/sh
+# The message guard. It runs the names check on the commit message.
+set -u
+f="${1:-}"
+[ -n "$f" ] && [ -f "$f" ] || exit 0
+case "$f" in /*) ;; *) f="$PWD/$f" ;; esac
+root=$(git rev-parse --show-toplevel) || exit 1
+PATH="/opt/homebrew/bin:$PATH"; export PATH
+command -v node >/dev/null 2>&1 || { printf 'commit-msg: node is not on PATH.\n' >&2; exit 1; }
+cd "$root" && node scripts/names.mjs --message "$f"

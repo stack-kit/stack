@@ -1,0 +1,6 @@
+node_modules/
+preview/.svelte-kit/
+preview/build/
+.DS_Store
+_scratch/
+_worktree/

@@ -1,0 +1,4 @@
+# One line per name: a flag and the SHA-256 of the lower-case name, words joined by one space.
+# "any" matches in every case. "cap" matches a capitalized word, or any case inside a URL or a host name.
+# Add a name with: printf %s '<name>' | node scripts/names.mjs --hash cap|any >> scripts/names.list
+# This list holds no name yet.

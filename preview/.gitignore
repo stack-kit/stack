@@ -1,0 +1,2 @@
+# The output of `npm run build:static`.
+/dist-static/

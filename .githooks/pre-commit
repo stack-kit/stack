@@ -1,0 +1,20 @@
+#!/bin/sh
+# The commit guard. It refuses a staged path with a part that starts with an underscore, such as
+# _scratch/, and an embedded repository. Then it runs scripts/hooks/stack-checks.sh.
+# Turn the hooks on with: git config core.hooksPath .githooks
+set -u
+fail=0
+junk=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)_' || true)
+if [ -n "$junk" ]; then
+  printf 'junk guard: these paths start with an underscore and are not source:\n%s\n' "$junk" >&2
+  fail=1
+fi
+embedded=$(git diff --cached --raw | awk '$2 == "160000" { sub(/^[^\t]*\t/, ""); print }')
+if [ -n "$embedded" ]; then
+  printf 'junk guard: an embedded repository is staged (mode 160000):\n%s\n' "$embedded" >&2
+  fail=1
+fi
+root=$(git rev-parse --show-toplevel) || exit 1
+( cd "$root" && sh scripts/hooks/stack-checks.sh ) || fail=1
+[ "$fail" -eq 0 ] || printf 'nothing was committed. stage what you meant to stage.\n' >&2
+exit "$fail"

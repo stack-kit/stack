@@ -1,0 +1,58 @@
+{
+  "name": "@stack-kit/stack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The shared design file, its themes and its checks.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stack-kit/stack.git"
+  },
+  "type": "module",
+  "bin": {
+    "stack-contrast": "scripts/contrast.mjs"
+  },
+  "files": [
+    "DESIGN.md",
+    "DESIGN.index.md",
+    "STACK.md",
+    "CHANGELOG.md",
+    "stack.css",
+    "stack-plain.css",
+    "chart-patterns.svg",
+    "themes/",
+    "architecture/",
+    "decisions/",
+    "operations/",
+    "providers/",
+    "examples/",
+    "preview/components.lock.json",
+    "preview/src/lib/components/ui/",
+    "preview/src/lib/hooks/",
+    "preview/src/lib/utils.ts",
+    "scripts/contrast.mjs",
+    "scripts/lib/color.mjs",
+    "scripts/lib/design.mjs",
+    "scripts/lib/email-roles.mjs",
+    "scripts/lib/pairs.mjs"
+  ],
+  "scripts": {
+    "lint": "node scripts/lint.mjs",
+    "theme": "node scripts/theme.mjs",
+    "contrast": "node scripts/contrast.mjs",
+    "contrast:examples": "node scripts/contrast-examples.mjs",
+    "names": "node scripts/names.mjs",
+    "markers": "node scripts/markers.mjs",
+    "components": "node scripts/components.mjs",
+    "lock": "node scripts/component-lock.mjs",
+    "keys": "node scripts/keys.mjs",
+    "generate": "node scripts/generate.mjs",
+    "index": "node scripts/index.mjs",
+    "version": "node scripts/index.mjs && node scripts/component-lock.mjs && git add DESIGN.index.md preview/components.lock.json",
+    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run"
+  },
+  "devDependencies": {
+    "@google/design.md": "0.4.0",
+    "yaml": "2.9.1"
+  }
+}

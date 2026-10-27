@@ -1,0 +1,7 @@
+# A proposal comes as a pull request, not as an issue (CONTRIBUTING.md).
+# GitHub still shows a blank issue to a collaborator with write access, as "Maintainers only".
+blank_issues_enabled: false
+contact_links:
+  - name: Propose a change as a pull request
+    url: https://github.com/stack-kit/stack/blob/main/CONTRIBUTING.md
+    about: Open a pull request into main from a branch proposal/<topic> of your fork, as CONTRIBUTING.md describes.

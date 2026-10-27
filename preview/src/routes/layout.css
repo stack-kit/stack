@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '../lib/components/ui/shadcn-svelte.css';
+@import '@fontsource-variable/inter';
+@import '../../../stack.css';
+/* The aliases of the product layers of the examples, and no value. */
+@import '../lib/examples/index.css';
