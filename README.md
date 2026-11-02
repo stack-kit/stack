@@ -49,6 +49,27 @@ The npm package carries the files that the `files` list of `package.json` names.
 
 Each release is a git tag of the form `vX.Y.Z`. The only source is the public GitHub repository [stack-kit/stack](https://github.com/stack-kit/stack), branch `main`. Every host reads it over https with the same URL, `https://github.com/stack-kit/stack`. The package name is `@stack-kit/stack`.
 
+### Give the agent of a product its prompt
+
+Paste this prompt once, as the first message to the coding agent of a product that starts to use STACK, or that moves to the package from copies. Start the agent in the root folder of the product. The prompt names no release. The agent finds the newest tag, pins it, and reads the README and the change log of that tag, so the same prompt works for each later release. Each step of the prompt names the section of this README that it follows.
+
+```text
+This product uses STACK for the design of its web app, or of the admin area of its website. STACK is the public repository https://github.com/stack-kit/stack, and its npm package is @stack-kit/stack. Each release of STACK is a git tag of the form vX.Y.Z. This product imports each component and each part of STACK from the package, and it holds no copy of a file of STACK. Each step below names the section of the README of STACK that it follows. Follow that section, and take no step that the README does not give.
+1. Find the newest tag with `git ls-remote --tags --refs --sort=-v:refname https://github.com/stack-kit/stack 'v*' | head -1`, as "Pin a release with npm" says. The tag is at the end of the line. Put it in place of vX.Y.Z in each step below. Get README.md and CHANGELOG.md of the tag with `curl -fsSL https://raw.githubusercontent.com/stack-kit/stack/vX.Y.Z/README.md` and `curl -fsSL https://raw.githubusercontent.com/stack-kit/stack/vX.Y.Z/CHANGELOG.md`. Read the entry of the tag in CHANGELOG.md.
+2. Compare the stack of this product with "Stack choices" in the README. If this product uses another stack, stop and ask the developer.
+3. Pin the tag, never main, and install it, as "Pin a release with npm" says.
+4. Read these sections of the README: "Use a release in a product", "Follow the rules for a product", "Pick a theme", "Update a product to a new release" and "Contribute from a product". Then read STACK.md, architecture/README.md and the file in architecture/ for the platform of this product, if one exists, as "What the repository holds" says. Read architecture/web-app.md for the behavior of a screen, as "Read the files" says.
+5. Never read DESIGN.md whole. Before each UI task, find the sections that the task needs in DESIGN.index.md, and read only those lines of DESIGN.md, as "Read the files" says.
+6. In the global CSS file, import the files in the order of "Import the CSS", and take the theme as "Pick a theme" says. Make a theme of this product only when the developer asks for one, as "Make a theme with the generator" says. A token of this product goes into the layer of this product, after the theme, with a name that starts with --product-. Never copy a value of STACK, and never redefine a token of STACK, as "Follow the rules for a product" says. After each change to a color of the product layer, check it, as "Check the contrast of the product layer" says.
+7. Import each component and each part from its export path in the package, as "Import a part" says, and keep no copy. Never run `shadcn-svelte add` or `shadcn-svelte update`.
+8. Install the packages of each export path that this product imports, as "Install the packages" says. Run that command again after each new import of an export path. When this product holds copies of files of STACK, delete them after the install, as "Delete the copies" says.
+9. Set up the root layout and the frame, as "Set up the root layout" says. The frame is code of this product.
+10. Give a part of STACK only a class that places it. Never edit a file of the package, and never copy a class of STACK into a page. A part of this product composes STACK parts, as "Extend a part" says.
+11. Write the line of "Follow the rules for a product" into the AGENTS.md of this product, with the tag in place of vX.Y.Z. With that line, the agent of this product checks for a newer tag at the start of each UI task.
+12. To move to a newer tag, follow "Update a product to a new release". Then change the tag in the line of AGENTS.md.
+13. When STACK lacks a rule, a token, a prop or a snippet that this product needs, propose it, as "Contribute from a product" says. Do the same for a rule that conflicts with this product, and for a defect. Until a release ships the change, keep a stopgap in this product, marked with the number of the pull request. Never push to main of STACK, and never make a tag there.
+```
+
 ### Check the GitHub key
 
 A read of a release needs no GitHub login and no key, because the repository is public. So a build host with no key installs a pin and clones a tag. A proposal needs a `gh` login, as "Contribute from a product" says. The push of its branch needs an SSH key that GitHub accepts, or https as the git protocol of `gh`. To test a `gh` login, run `gh auth status`. To test an SSH key:
@@ -209,6 +230,8 @@ The root layout of the product sets up the parts once:
 ```
 
 The frame stays code of the product: the sidebar, the top bar and the phone tab bar. The frame wraps the content of its top bar in `<FramePlace name="top-bar">`, and the content of its phone header in `<FramePlace name="phone-header">`, from `@stack-kit/stack/parts/FramePlace`. A part such as the selection bar then takes that place while it shows. With no `FramePlace`, the selection bar shows where the page puts it.
+
+The frame gives each page a column that is as high as the window, such as a column with `h-svh`, which holds the top bar and the `main` element. On a page with ListSplit or PageColumns, `main` and each box between it and the part take `flex min-h-0 flex-1 flex-col`. Then each column of the part scrolls on its own, and the document does not scroll.
 
 ### Extend a part
 

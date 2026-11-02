@@ -17,6 +17,56 @@ minor version. A fix that keeps the contract and the documented behaviour is
 a patch. The release step writes each entry from the commits since the last
 tag.
 
+## v2.1.0 - 2026-11-02
+
+### Breaking
+
+- None. A product changes no code at this update. It moves the pin, and
+  it runs the install line of "Install the packages" in `README.md`
+  again.
+
+### Behaviour
+
+- ListSplit: a wheel over a short list no longer scrolls the whole
+  page. Before, an absolute box in a column, such as a line for a screen
+  reader (`sr-only`) under a long item, got out of its column, so the
+  page became higher than the window, and the top bar, the list and the
+  item went out of view. Now each column (`relative`) is the containing
+  block of each absolute box in it that has no positioned box nearer to
+  it. The wrapper of the two columns never scrolls, and the document
+  does not scroll on a page with a list split. On a test page at 1440
+  by 900 px, the page was 1,125 px higher than the window before, and
+  0 px now (`### Detail pane`, Scroll, in `DESIGN.md`).
+- PageColumns: the same fix. The root and each column are the
+  containing block of their absolute boxes. On a test page at 1440 by
+  900 px, the page was 1,093 px higher than the window before, and 0 px
+  now. Below 1280 px the root scrolls, and the columns stack, as before
+  (`### Side column`, Scroll, in `DESIGN.md`).
+- A wheel at the end of a column now stops there
+  (`overscroll-behavior: contain`): from 768 px on each column of
+  ListSplit and on the root of PageColumns, and from 1280 px on each
+  column of PageColumns. Below 768 px the list and the root keep the
+  overscroll of the browser, such as the pull to refresh of a phone.
+- An absolute box that a page puts in a column of ListSplit or
+  PageColumns, with no positioned box of its own around it, now takes
+  the column as its containing block, and not the wrapper of the
+  columns. So an overlay with `absolute inset-0` in the list covers the
+  list column only. No part of STACK puts such a box there.
+
+### Added
+
+- `README.md`: "Give the agent of a product its prompt" gives the first
+  message for the coding agent of a product. The agent finds the newest
+  tag, pins it, and follows a named section of the README in each step.
+- `README.md`, "Set up the root layout": the frame gives each page a
+  column as high as the window, and on a page with ListSplit or
+  PageColumns `main` takes `flex min-h-0 flex-1 flex-col`. Each part
+  always needed this. The text now says it.
+
+### Fixed
+
+- The two scroll defects of Behaviour, which were there since v1.0.0.
+
 ## v2.0.0 - 2026-11-02
 
 ### Breaking

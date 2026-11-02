@@ -57,11 +57,17 @@
 	// From 768 to 1023 px the list takes the whole width, and the item lies over its right side at
 	// 420 px, on popover with shadow-lg, as the pane of the table form does. While the item column is
 	// closed, the list takes the whole width in every band. Each column scrolls on its own and keeps
-	// the bottom safe area. When only the item changes, the list keeps its scroll position, and the
-	// item column scrolls to its top. The scroll boxes are list-split-list and list-split-item, so a
-	// frame can bring the list back to its top on another page or view. Below 768 px the list takes
-	// the whole screen, the item column does not show, and the keys of the list do nothing: a page
-	// gives the item its own screen there. The head spans both columns.
+	// the bottom safe area. Each column is also the containing block of the absolute boxes in it
+	// (relative), so such a box, such as a line for a screen reader under a long item, scrolls with its
+	// column. A static column let that box out to the wrapper, which made the document higher than
+	// the window, and a wheel over a short list then scrolled the document. From 768 px a wheel at the
+	// end of a column stops there (overscroll-contain), and the wrapper of the two columns never
+	// scrolls.
+	// When only the item changes, the list keeps its scroll position, and the item column scrolls to
+	// its top. The scroll boxes are list-split-list and list-split-item, so a frame can bring the list
+	// back to its top on another page or view. Below 768 px the list takes the whole screen, the item
+	// column does not show, the list keeps the overscroll of the browser, and the keys of the list do
+	// nothing: a page gives the item its own screen there. The head spans both columns.
 	//
 	// With address, the rows inside the list take the open item, the focus and the read state from
 	// the address (behaviour/item). Esc closes the item column after an open layer and the selection,
@@ -144,7 +150,7 @@
 		<section
 			data-slot="list-split-list"
 			aria-labelledby="{uid}-list"
-			class={['safe-bottom flex min-h-0 min-w-0 flex-col overflow-y-auto', shows ? 'flex-1 lg:w-85 lg:flex-none xl:w-100' : 'flex-1']}
+			class={['safe-bottom relative flex min-h-0 min-w-0 flex-col overflow-y-auto md:overscroll-contain', shows ? 'flex-1 lg:w-85 lg:flex-none xl:w-100' : 'flex-1']}
 		>
 			<h2 id="{uid}-list" class="sr-only">{listLabel}</h2>
 			{@render list()}
@@ -154,7 +160,7 @@
 				bind:this={column}
 				data-slot="list-split-item"
 				aria-label={itemLabel}
-				class="safe-bottom absolute inset-y-0 right-0 z-30 w-105 overflow-y-auto border-l border-border bg-popover shadow-lg max-md:hidden lg:static lg:z-auto lg:w-auto lg:min-w-0 lg:flex-1 lg:bg-background lg:shadow-none print:max-lg:hidden"
+				class="safe-bottom absolute inset-y-0 right-0 z-30 w-105 overflow-y-auto overscroll-contain border-l border-border bg-popover shadow-lg max-md:hidden lg:relative lg:z-auto lg:w-auto lg:min-w-0 lg:flex-1 lg:bg-background lg:shadow-none print:max-lg:hidden"
 			>
 				{@render item(itemDocks.current ? 'item' : 'pane')}
 			</aside>

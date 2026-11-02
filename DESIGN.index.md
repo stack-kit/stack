@@ -1,6 +1,6 @@
 # Index of DESIGN.md
 
-This index was written at version 2.0.0 of `package.json`, from a `DESIGN.md` whose SHA-256 starts with `7ea89cd344fa`. When the hash differs, run `npm run index` to write it again.
+This index was written at version 2.1.0 of `package.json`, from a `DESIGN.md` whose SHA-256 starts with `1f422afe96c5`. When the hash differs, run `npm run index` to write it again.
 
 - 1-1427 front matter
   - 2-2 `version`

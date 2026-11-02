@@ -1,5 +1,5 @@
 {
-	"stack": "2.0.0",
+	"stack": "2.1.0",
 	"packages": {
 		"@codemirror/commands": "6.11.1",
 		"@codemirror/state": "6.7.6",
