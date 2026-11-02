@@ -2,7 +2,7 @@
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import { Kbd } from '#lib/components/ui/kbd/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 
 	const sides = ['top', 'right', 'bottom', 'left'] as const;
 	let open = $state(forcedOpen('tooltip'));

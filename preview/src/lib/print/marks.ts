@@ -15,12 +15,14 @@ export type Mark =
 /** The bounds of a box in the turned space of a pattern: the box turned by -angle about the origin. */
 function turnedBounds(box: Box, angle: number) {
 	const a = (-angle * Math.PI) / 180;
-	const corners = [
-		[box.x, box.y],
-		[box.x + box.width, box.y],
-		[box.x, box.y + box.height],
-		[box.x + box.width, box.y + box.height]
-	].map(([x, y]) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)]);
+	const corners = (
+		[
+			[box.x, box.y],
+			[box.x + box.width, box.y],
+			[box.x, box.y + box.height],
+			[box.x + box.width, box.y + box.height]
+		] as const
+	).map(([x, y]): [number, number] => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)]);
 	const xs = corners.map((c) => c[0]);
 	const ys = corners.map((c) => c[1]);
 	return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
@@ -55,7 +57,7 @@ export function patternMarks(p: ChartPattern, box: Box): Mark[] {
 			const x = i * p.pitch;
 			const y = j * height;
 			// The second row of a staggered tile moves by half a pitch along x.
-			const centers = p.stagger ? [[x + c, y + c], [x + c + p.pitch / 2, y + c + p.pitch]] : [[x + c, y + c]];
+			const centers: [number, number][] = p.stagger ? [[x + c, y + c], [x + c + p.pitch / 2, y + c + p.pitch]] : [[x + c, y + c]];
 			for (const [cx, cy] of centers) {
 				marks.push(
 					p.type === 'dots'

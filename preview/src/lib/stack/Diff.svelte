@@ -22,8 +22,13 @@
 	diff as `complete`, and the buttons to the previous and the next change when the diff holds two
 	changes or more. N and Shift+N do the same while the focus is in the diff. A polite live region says
 	each result. A changed word is an ins or a del element.
+
+	The root of the part (diff-wrapper) holds the box, the line of a refused copy and the live region,
+	and it takes the class, which places the part.
 -->
 <script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
+
 	export type DiffWord = { text: string; changed?: boolean };
 	export type DiffLine =
 		| {
@@ -63,11 +68,34 @@
 		fold: (n: number) => string;
 		folded: (n: number) => string;
 	};
+
+	/** @behaviour next-change:N previous-change:Shift+N */
+	export type DiffProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> & {
+		/** The root element of the part, which holds the box, the line of a refused copy and the live region. */
+		ref?: HTMLDivElement | null;
+		lines: DiffLine[];
+		kind?: 'code' | 'text';
+		/** The pick of the person. Split shows from 1024 px only. */
+		view?: 'unified' | 'split';
+		/** The unchanged lines that stay next to each change: 3 for code and 1 for text by default. */
+		context?: number;
+		/** The names of the two versions, such as a branch and a commit. */
+		oldName?: string;
+		newName?: string;
+		/** True when the product gave every line of both versions. Only then each side has a copy button. */
+		complete?: boolean;
+		/** Classes for the root, which place the part, such as a margin or a width. */
+		class?: string;
+		'aria-label'?: string;
+		'aria-labelledby'?: string;
+		/** The words of the part, in the language of the product. */
+		words?: Partial<DiffWords>;
+	};
 </script>
 
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { ScreenQuery } from '#lib/stack/screen-query.svelte.js';
+	import { bands } from '#lib/stack/behaviour/width.js';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
@@ -89,25 +117,10 @@
 		class: className,
 		'aria-label': ariaLabel,
 		'aria-labelledby': ariaLabelledby,
-		words: given = {}
-	}: {
-		lines: DiffLine[];
-		kind?: 'code' | 'text';
-		/** The pick of the person. Split shows from 1024 px only. */
-		view?: 'unified' | 'split';
-		/** The unchanged lines that stay next to each change: 3 for code and 1 for text by default. */
-		context?: number;
-		/** The names of the two versions, such as a branch and a commit. */
-		oldName?: string;
-		newName?: string;
-		/** True when the product gave every line of both versions. Only then each side has a copy button. */
-		complete?: boolean;
-		class?: string;
-		'aria-label'?: string;
-		'aria-labelledby'?: string;
-		/** The words of the part, in the language of the product. */
-		words?: Partial<DiffWords>;
-	} = $props();
+		words: given = {},
+		ref = $bindable(null),
+		...rest
+	}: DiffProps = $props();
 
 	const unit = $derived(kind === 'code' ? 'lines' : 'paragraphs');
 	const w: DiffWords = $derived({
@@ -130,8 +143,7 @@
 	});
 
 	const id = $props.id();
-	const wide = new ScreenQuery('min-width: 64rem');
-	const split = $derived(view === 'split' && wide.current);
+	const split = $derived(view === 'split' && bands.lg.current);
 	const keep = $derived(context ?? (kind === 'code' ? 3 : 1));
 	const SIGN = { same: '', added: '+', removed: '−' } as const;
 
@@ -139,7 +151,7 @@
 	type Item =
 		| { type: 'line'; line: Line; i: number }
 		| { type: 'fold'; from: number; to: number }
-		| { type: 'folded'; count: number; context?: string; i: number };
+		| { type: 'folded'; count: number; context?: string | undefined; i: number };
 
 	/** The changes: each run of added and removed lines, as the index of its first and its last line. */
 	const changes = $derived.by(() => {
@@ -162,7 +174,7 @@
 		const out: Item[] = [];
 		let i = 0;
 		while (i < lines.length) {
-			const l = lines[i];
+			const l = lines[i]!;
 			if (l.kind === 'folded') {
 				out.push({ type: 'folded', count: l.count, context: l.context, i });
 				i++;
@@ -174,11 +186,11 @@
 				continue;
 			}
 			let end = i;
-			while (end + 1 < lines.length && lines[end + 1].kind === 'same') end++;
+			while (end + 1 < lines.length && lines[end + 1]!.kind === 'same') end++;
 			// A run keeps `keep` lines next to each change around it, and folds the rest when that hides
 			// two lines or more. A diff with no change folds nothing.
-			const before = i > 0 && lines[i - 1].kind !== 'folded';
-			const after = end < lines.length - 1 && lines[end + 1].kind !== 'folded';
+			const before = i > 0 && lines[i - 1]!.kind !== 'folded';
+			const after = end < lines.length - 1 && lines[end + 1]!.kind !== 'folded';
 			const head = changes.length && before ? keep : 0;
 			const tail = changes.length && after ? keep : 0;
 			const from = i + head;
@@ -196,7 +208,7 @@
 
 	type Cell = { line: Line; i: number };
 	type Row =
-		| { type: 'line'; left?: Cell; right?: Cell; first: number; change?: number }
+		| { type: 'line'; left?: Cell | undefined; right?: Cell | undefined; first: number; change?: number | undefined }
 		| Exclude<Item, { type: 'line' }>;
 
 	/**
@@ -210,7 +222,7 @@
 			out.push({ type: 'line', left, right, first: Math.min(left?.i ?? Infinity, right?.i ?? Infinity) });
 		let k = 0;
 		while (k < items.length) {
-			const it = items[k];
+			const it = items[k]!;
 			if (it.type !== 'line') {
 				out.push(it);
 				k++;
@@ -224,7 +236,7 @@
 			const removed: Cell[] = [];
 			const added: Cell[] = [];
 			while (k < items.length) {
-				const c = items[k];
+				const c = items[k]!;
 				if (c.type !== 'line' || c.line.kind === 'same') break;
 				(c.line.kind === 'removed' ? removed : added).push(c);
 				k++;
@@ -240,20 +252,20 @@
 				const partner = removed.map((_, j) => target.indexOf(j));
 				let r = 0;
 				added.forEach((a, j) => {
-					const p = target[j];
+					const p = target[j]!;
 					if (p >= r) {
 						while (r < p) push(removed[r++]);
 						push(removed[r++], a);
 						return;
 					}
 					// The removed lines that no later added line replaces come first, as in the unified view.
-					while (r < removed.length && partner[r] < j) push(removed[r++]);
+					while (r < removed.length && partner[r]! < j) push(removed[r++]);
 					push(undefined, a);
 				});
 				while (r < removed.length) push(removed[r++]);
 			}
 			// The first row of a change takes the focus of the change keys, whichever side it starts on.
-			const head = out[start];
+			const head = out[start]!;
 			if (head.type === 'line') head.change = changeAt.get(it.i);
 		}
 		return out;
@@ -481,7 +493,9 @@
 	</Tooltip.Root>
 {/snippet}
 
-<div class="flex min-w-0 flex-col gap-1">
+<!-- The part gives its tooltips their provider, so it works on a page with none. -->
+<Tooltip.Provider>
+<div bind:this={ref} data-slot="diff-wrapper" class={cn('flex min-w-0 flex-col gap-1', className)} {...rest}>
 	<!-- N and Shift+N come from the buttons and the change lines inside the box, so the box listens for them. -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
@@ -493,7 +507,7 @@
 		aria-label={ariaLabel}
 		aria-labelledby={ariaLabelledby}
 		style:--diff-gutter={gutterWidth}
-		class={cn(kind === 'code' ? 'rounded-lg bg-muted font-mono text-xs text-foreground' : 'text-md text-foreground', className)}
+		class={kind === 'code' ? 'rounded-lg bg-muted font-mono text-xs text-foreground' : 'text-md text-foreground'}
 		{onkeydown}
 	>
 		{#if showSides}
@@ -593,3 +607,4 @@
 	{#if result?.state === 'failed'}<p aria-hidden="true" class="text-xs text-muted-foreground">{w.failed}</p>{/if}
 	<span id="{id}-said" role="status" class="sr-only">{said}</span>
 </div>
+</Tooltip.Provider>

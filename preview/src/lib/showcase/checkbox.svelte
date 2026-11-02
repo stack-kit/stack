@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
-	import { checkboxReadonly } from '#lib/stack/checkbox-readonly.js';
+	import HeldCheckbox from '#lib/stack/HeldCheckbox.svelte';
 
 	const states = [
 		{ id: 'unchecked', checked: false, indeterminate: false, disabled: false, invalid: false },
@@ -21,15 +21,18 @@
 	<div class="flex flex-wrap gap-6">
 		{#each states as s (s.id)}
 			<div class="flex items-center gap-2">
-				<Checkbox
-					id="checkbox-{s.id}"
-					checked={s.checked}
-					indeterminate={s.indeterminate}
-					disabled={s.disabled}
-					aria-invalid={s.invalid || undefined}
-					readonly={s.readonly}
-					class={s.readonly ? checkboxReadonly : undefined}
-				/>
+				{#if s.readonly}
+					<!-- A box that a rule holds is a HeldCheckbox, with its reason. -->
+					<HeldCheckbox id="checkbox-{s.id}" checked={s.checked} reason="Set by Sales. Change it in the Sales row." />
+				{:else}
+					<Checkbox
+						id="checkbox-{s.id}"
+						checked={s.checked}
+						indeterminate={s.indeterminate}
+						disabled={s.disabled}
+						aria-invalid={s.invalid || undefined}
+					/>
+				{/if}
 				<Label for="checkbox-{s.id}">{s.id}</Label>
 			</div>
 		{/each}

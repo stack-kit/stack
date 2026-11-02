@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { view } from '#lib/stack/view.svelte.js';
-	import { PAGES, addressOf, viewHref, type PageKind } from '#lib/outside/data.js';
+	import { view } from '#lib/preview/view.svelte.js';
+	import { PAGES, addressOf, viewHref, type PageKind } from '#lib/preview/samples.js';
 
 	// The pages outside the shell in their states. Each state has its own address. Each frame is
 	// an iframe, a window of its own, so the page inside reads the width of the frame: the
@@ -22,8 +22,9 @@
 	<div class="flex flex-col gap-1">
 		<h1 class="text-base font-semibold">Page outside the shell</h1>
 		<p class="text-sm text-muted-foreground">
-			A page that a person opens with no session: the page of a signed link, a read-only link, the sign-in page and the
-			recovery page, as "Page outside the shell" in DESIGN.md defines them. Every name, text and date is invented.
+			A page that a person opens with no session: the page of a signed link, a read-only link, the sign-in page, the
+			recovery page and the page of a setup link, as "Page outside the shell" in DESIGN.md defines them. Each sign-in
+			state opens after its step, with an invented answer of the server. Every name, text and date is invented.
 		</p>
 	</div>
 

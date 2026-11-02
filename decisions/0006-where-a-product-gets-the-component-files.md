@@ -1,10 +1,12 @@
 ---
-status: accepted
+status: superseded by 0008
 date: 2026-10-26
 decision-makers: the developer
 ---
 
 # Where a product gets the component files
+
+[0008](0008-a-product-imports-every-part-from-the-package.md) supersedes this record from v2.0.0. A product then imports each component from the package and copies no file. The record of the tested versions stays, with no SHA-256 of a file. This record describes the copy model of the releases before v2.0.0.
 
 ## Context and Problem Statement
 

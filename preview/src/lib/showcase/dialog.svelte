@@ -4,11 +4,16 @@
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { Textarea } from '#lib/components/ui/textarea/index.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
+	import FormDialog from '#lib/stack/FormDialog.svelte';
 
 	let open = $state(forcedOpen('dialog'));
 	let openFooterClose = $state(forcedOpen('dialog-footer-close'));
 	let openWide = $state(forcedOpen('dialog-wide'));
+	let openForm = $state(forcedOpen('dialog-form'));
+	let project = $state('');
+	let about = $state('');
 
 	// A wide dialog holds a list that the person checks before one action. Its body scrolls
 	// between the header and the footer, and the dialog is at most 11/12 of the window high.
@@ -85,5 +90,30 @@
 				</Dialog.Footer>
 			</Dialog.Content>
 		</Dialog.Root>
+		<!-- A dialog of one form: below 768 px a form screen with the actions in its header, and Cmd+Enter runs the action. -->
+		<Button variant="outline" data-open-id="dialog-form" onclick={() => (openForm = true)}>A form, with Cmd+Enter</Button>
+		<FormDialog
+			bind:open={openForm}
+			id="showcase-dialog-form"
+			title="Create project"
+			description="The name shows in the sidebar."
+			action="Create project"
+			short="Create"
+			disabled={!project.trim()}
+			runKey
+			onsubmit={(e) => {
+				e.preventDefault();
+				openForm = false;
+			}}
+		>
+			<div class="flex flex-col gap-2">
+				<Label for="dialog-form-name">Name</Label>
+				<Input id="dialog-form-name" bind:value={project} />
+			</div>
+			<div class="flex flex-col gap-2">
+				<Label for="dialog-form-about">What it is for</Label>
+				<Textarea id="dialog-form-about" bind:value={about} rows={3} />
+			</div>
+		</FormDialog>
 	</div>
 </section>

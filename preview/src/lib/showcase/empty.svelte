@@ -8,11 +8,11 @@
 <section id="showcase-empty" data-showcase="empty" class="flex flex-col gap-4 border-t border-border py-8">
 	<h2 class="font-mono text-sm font-semibold">empty</h2>
 	<div class="grid max-w-4xl gap-6 lg:grid-cols-2">
-		<Empty.Root class="border">
+		<Empty.Root>
 			<Empty.Header>
 				<Empty.Media variant="icon"><FolderIcon /></Empty.Media>
 				<Empty.Title>No projects yet</Empty.Title>
-				<Empty.Description>Media variant icon, with a border and two actions.</Empty.Description>
+				<Empty.Description>Media variant icon, with two actions.</Empty.Description>
 			</Empty.Header>
 			<Empty.Content>
 				<div class="flex gap-2">

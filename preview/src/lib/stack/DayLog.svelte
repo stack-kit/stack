@@ -1,54 +1,15 @@
 <script lang="ts" module>
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+
 	/** The time of an entry: a start, a start and an end, or a duration alone. An end of null runs now. */
 	export type DayLogTime = { start?: Date; end?: Date | null; seconds?: number };
 	/** A stretch of time that holds over several entries, such as a mode or a maintenance window. */
 	export type DayLogSpan = { from: Date; to: Date | null; label: string };
 
-	/**
-	 * The exact time of a log, in the time zone that the product names for it: the date as
-	 * YYYY-MM-DD and the time as HH:mm:ss, from the parts of one fixed locale, as "Formats" in
-	 * architecture/web-app.md says.
-	 */
-	export function exact(at: Date, timeZone: string): { date: string; time: string } {
-		const parts = new Intl.DateTimeFormat('en-US', {
-			timeZone,
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit',
-			hour: '2-digit',
-			minute: '2-digit',
-			second: '2-digit',
-			hourCycle: 'h23'
-		}).formatToParts(at);
-		const p = (type: Intl.DateTimeFormatPartTypes) => parts.find((x) => x.type === type)?.value ?? '';
-		return { date: `${p('year')}-${p('month')}-${p('day')}`, time: `${p('hour')}:${p('minute')}:${p('second')}` };
-	}
-</script>
-
-<script lang="ts" generics="T extends { id: string }">
-	import type { Snippet } from 'svelte';
-	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-
-	// A log grouped by day: the newest day first, and in each day the newest entry first. The log
-	// groups the entries itself, by the date of their start in the time zone of the log, so that a
-	// head and its entries always agree. The head of each day is the group header of a list, sticky
-	// at the top of its scroll box, with the name of the day, its date as YYYY-MM-DD, the count, and
-	// on the right the total of the times of the day. Each entry shows its exact time as HH:mm:ss,
-	// so that the head and the line give the exact time together. An entry with a start and an end
-	// shows both, and its duration on the right. A span that holds over several entries draws a 4 px
-	// bar in the gutter beside them, with its label above the newest of them.
-	let {
-		entries,
-		days = [],
-		timeZone,
-		locale,
-		now,
-		time,
-		spans = [],
-		count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`,
-		entry,
-		empty
-	}: {
+	export type DayLogProps<T extends { id: string }> = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
+		/** The root element, which holds the caption and the days. */
+		ref?: HTMLDivElement | null;
 		/**
 		 * The entries in one list. The log groups them by the date of their start and orders them by
 		 * the start, newest first. An entry with no start, such as a duration alone, stays right after
@@ -72,7 +33,80 @@
 		entry: Snippet<[T]>;
 		/** The line of a day with no entry. */
 		empty?: Snippet<[string]>;
-	} = $props();
+	};
+
+	/**
+	 * The exact time of a log, in the time zone that the product names for it: the date as
+	 * YYYY-MM-DD and the time as HH:mm:ss, from the parts of one fixed locale, as "Formats" in
+	 * architecture/web-app.md says.
+	 */
+	export function exact(at: Date, timeZone: string): { date: string; time: string } {
+		const parts = new Intl.DateTimeFormat('en-US', {
+			timeZone,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hourCycle: 'h23'
+		}).formatToParts(at);
+		const p = (type: Intl.DateTimeFormatPartTypes) => parts.find((x) => x.type === type)?.value ?? '';
+		return { date: `${p('year')}-${p('month')}-${p('day')}`, time: `${p('hour')}:${p('minute')}:${p('second')}` };
+	}
+
+	type Duration = { hours?: number; minutes?: number; seconds?: number };
+	/**
+	 * The short words of a duration, such as "1 hr, 30 min": Intl.DurationFormat, or, where the runtime
+	 * has none, such as Node 22 on the server of a product, the words from Intl.NumberFormat and
+	 * Intl.ListFormat. DurationFormat leaves out a unit whose value is 0, such as "2 hr" for 2 hours and
+	 * 0 minutes, so the other words leave it out too. Only then are the words the same (measured in
+	 * Chromium for en-GB, en-US, sr-Latn-RS and de-DE), and the text does not change at hydration.
+	 */
+	function durationWords(locale: string): { format: (d: Duration) => string } {
+		if (typeof Intl.DurationFormat === 'function') return new Intl.DurationFormat(locale, { style: 'short' });
+		const list = new Intl.ListFormat(locale, { type: 'unit', style: 'short' });
+		const unit = (u: 'hour' | 'minute' | 'second', n: number) => new Intl.NumberFormat(locale, { style: 'unit', unit: u, unitDisplay: 'short' }).format(n);
+		return {
+			format: (d) => {
+				const units: ['hour' | 'minute' | 'second', number | undefined][] = [
+					['hour', d.hours],
+					['minute', d.minutes],
+					['second', d.seconds]
+				];
+				return list.format(units.flatMap(([u, n]) => (n !== undefined && n !== 0 ? [unit(u, n)] : [])));
+			}
+		};
+	}
+</script>
+
+<script lang="ts" generics="T extends { id: string }">
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { cn } from '#lib/utils.js';
+
+	// A log grouped by day: the newest day first, and in each day the newest entry first. The log
+	// groups the entries itself, by the date of their start in the time zone of the log, so that a
+	// head and its entries always agree. The head of each day is the group header of a list, sticky
+	// at the top of its scroll box, with the name of the day, its date as YYYY-MM-DD, the count, and
+	// on the right the total of the times of the day. Each entry shows its exact time as HH:mm:ss,
+	// so that the head and the line give the exact time together. An entry with a start and an end
+	// shows both, and its duration on the right. A span that holds over several entries draws a 4 px
+	// bar in the gutter beside them, with its label above the newest of them.
+	let {
+		entries,
+		days = [],
+		timeZone,
+		locale,
+		now,
+		time,
+		spans = [],
+		count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`,
+		entry,
+		empty,
+		ref = $bindable(null),
+		class: className,
+		...rest
+	}: DayLogProps<T> = $props();
 
 	const uid = $props.id();
 	const headId = (day: string) => `${uid}-day-${day}`;
@@ -80,7 +114,7 @@
 		weekday: new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' }),
 		relative: new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }),
 		full: new Intl.DateTimeFormat(locale, { dateStyle: 'full', timeStyle: 'full', timeZone }),
-		duration: new Intl.DurationFormat(locale, { style: 'short' })
+		duration: durationWords(locale)
 	});
 	const today = $derived(exact(now, timeZone).date);
 	const DAY = 86_400_000;
@@ -154,7 +188,7 @@
 	>{/snippet}
 
 <Tooltip.Provider>
-	<div data-slot="day-log" class="flex flex-col bg-background text-sm">
+	<div bind:this={ref} data-slot="day-log" class={cn('flex flex-col bg-background text-sm', className)} {...rest}>
 		<p data-slot="day-log-caption" class="px-3 py-2 text-xs text-muted-foreground">Times in {timeZone}</p>
 		{#each grouped as d (d.day)}
 			{@const sum = total(d.entries)}

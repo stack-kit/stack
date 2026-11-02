@@ -1,4 +1,6 @@
 <script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
+
 	/** A person in the header of a mail: the name when the mail holds one, and the address. */
 	export type MailPerson = { name?: string; address: string };
 	/** A file of a mail, with its size in words, such as "182 KB". */
@@ -27,6 +29,23 @@
 		failed?: string;
 		/** True while the person has not read the message. */
 		unread?: boolean;
+	};
+
+	export type MailMessageProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
+		/** The root element, the <article> of the message. */
+		ref?: HTMLElement | null;
+		mail: Mail;
+		/** Now, for the time by its age. */
+		now: Date;
+		locale?: string;
+		timeZone: string;
+		/** True while the message shows as one line. The thread folds each read message but the last. */
+		folded?: boolean;
+		/** The level of the heading of the message: one under the heading of the thread. */
+		headingLevel?: 2 | 3 | 4;
+		onretry?: () => void;
+		/** Opens a file from the host of the content that the product did not write. */
+		onopenfile?: ((file: MailFile) => void) | undefined;
 	};
 
 	/** A time by its age, as "Formats" in architecture/web-app.md says. */
@@ -69,21 +88,11 @@
 		folded = $bindable(false),
 		headingLevel = 3,
 		onretry,
-		onopenfile
-	}: {
-		mail: Mail;
-		/** Now, for the time by its age. */
-		now: Date;
-		locale?: string;
-		timeZone: string;
-		/** True while the message shows as one line. The thread folds each read message but the last. */
-		folded?: boolean;
-		/** The level of the heading of the message: one under the heading of the thread. */
-		headingLevel?: 2 | 3 | 4;
-		onretry?: () => void;
-		/** Opens a file from the host of the content that the product did not write. */
-		onopenfile?: (file: MailFile) => void;
-	} = $props();
+		onopenfile,
+		ref = $bindable(null),
+		class: className,
+		...rest
+	}: MailMessageProps = $props();
 
 	const uid = $props.id();
 	let quoteOpen = $state(false);
@@ -128,7 +137,7 @@
 {/snippet}
 
 <Tooltip.Provider>
-	<article data-slot="mail-message" aria-labelledby="{uid}-from" class="border-b border-border text-sm last:border-b-0">
+	<article bind:this={ref} data-slot="mail-message" aria-labelledby="{uid}-from" class={cn('border-b border-border text-sm last:border-b-0', className)} {...rest}>
 		{#if folded}
 			<svelte:element this={`h${headingLevel}`} class="print:hidden">
 				<!-- The phone key of the slot makes the line 44 px high below 768 px, so the line takes no min-h class. -->

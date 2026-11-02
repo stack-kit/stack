@@ -30,17 +30,20 @@ This README has two readers. An agent or a person in a product reads the section
 | `LICENSE` | The MIT licence of STACK | Everyone who copies a file of STACK | Yes, npm always adds it |
 | `package.json` | The name `@stack-kit/stack`, the version, the licence, the repository URL, the command `stack-contrast`, the `files` list, the check scripts and two dev dependencies | npm and the maintainer | Yes, npm always adds it |
 | `package-lock.json` | The exact versions of the dev dependencies | `npm ci` | No |
-| `scripts/` | The checks, the script that writes the theme, the script that writes the index, the script that writes the lock of the component files, the theme generator, the checks of the commit hook in `hooks/`, and `names.list` | The maintainer and the commit hooks. A product runs `contrast.mjs` on its own layer, and the theme generator from a clone of a tag. | Only `contrast.mjs` and the four modules of `lib/` that it reads |
+| `scripts/` | The checks, the script that writes the theme, the script that writes the index, the script that writes the record of the tested versions, the theme generator, the checks of the commit hook in `hooks/`, and `names.list` | The maintainer and the commit hooks. A product runs `contrast.mjs` on its own layer, and the theme generator from a clone of a tag. | Only `contrast.mjs` and the four modules of `lib/` that it reads |
 | `.githooks/` | The commit hooks `pre-commit` and `commit-msg` | git | No |
 | `.github/` | The files that GitHub reads, such as the settings of the issue form. A proposal comes as a pull request, not as an issue. | GitHub | No |
-| `preview/` | A SvelteKit app that shows the components, the tokens and the charts | The maintainer and a reviewer | Only the files of the next three rows |
-| `preview/src/lib/components/ui/` | The component files that STACK tested, one folder for each of the 61 components of shadcn-svelte 1.7.0 in the nova style. `LICENSE.md` is the licence notice of shadcn-svelte. STACK changed five of the files. `shadcn-svelte.css` is the `tailwind.css` of shadcn-svelte 1.7.0. | A product, which copies a folder into its own code, as "Add a component" says, and imports `shadcn-svelte.css`, as "Import the CSS" says | Yes |
-| `preview/src/lib/utils.ts` and `preview/src/lib/hooks/` | The shared files that the component files import | A product, at its first component | Yes |
-| `preview/components.lock.json` | The lock of the component files. For each folder, it gives the files with their SHA-256, the folders that it uses, the packages that it needs and the edited files. It also gives the exact version of each package. `npm version` writes it at each release. | A product, at each add and each update of a component | Yes |
+| `preview/` | A SvelteKit app that shows the components, the tokens and the charts | The maintainer and a reviewer | Only the files of the next six rows |
+| `preview/src/lib/components/ui/` | The component files that STACK tested, one folder for each of the 61 components of shadcn-svelte 1.7.0 in the nova style. `LICENSE.md` is the licence notice of shadcn-svelte. STACK changed five of the files. `shadcn-svelte.css` is the `tailwind.css` of shadcn-svelte 1.7.0. | A product, which imports each component from the package, as "Import a part" says, and imports `shadcn-svelte.css`, as "Import the CSS" says | Yes |
+| `preview/src/lib/stack/` and `preview/src/lib/outside/` | The parts that STACK adds, the behaviour modules in `stack/behaviour/`, the chart helpers in `stack/patterns.ts`, and the pages outside the frame of a product, such as the sign-in page | A product, which imports them from the package, as "Import a part" says | Yes |
+| `preview/src/lib/print/chart-width.ts`, `pattern-fills.ts` and `marks.ts` | The print fit of a chart, which the chart parts and `behaviour/print` import | The chart parts | Yes |
+| `preview/src/lib/utils.ts` and `preview/src/lib/hooks/` | The shared files that the component files import | A product, for a part of its own | Yes |
+| `preview/components.lock.json` | The record of the tested versions. For each export path that holds code, and for `./stack.css`, it gives the other export paths that it uses, the packages that it needs and the files that STACK changed after the copy from the registry. It also gives the exact version of each package. The peers of `package.json` come from it. `npm version` writes it at each release. | A product, at the install and at each update, as "Install the packages" says | Yes |
+| `preview/contract.json` | The contract of the release: for each export path that holds code, each name that it exports. For a part, it gives the props, the callbacks, the snippets, the `data-slot` names and the documented behaviour. `npm version` writes it at each release. | The check of the version level, and a product that compares two releases | Yes |
 | `media/` | The screenshots of the preview | A reader on GitHub | No |
 | `.npmrc` | `save-exact=true`, so that npm writes each dev dependency with no range | npm | No |
 
-The npm package carries the files that the `files` list of `package.json` names. For each row of the table above, the last column says if the package carries it. npm always adds `README.md`, `LICENSE` and `package.json`. No route, example or test of the preview goes into the package. The package has no install script, so `npm install` runs no code from this repository. The package has no dependency, so a product installs no other package with it. A product installs the packages of the components that it copies, at the versions of the lock, as "Add a component" says. npm links the command `stack-contrast` into `node_modules/.bin/`, and the command runs only when a product calls it. `package.json` also sets `private: true`, so npm refuses to publish the package to a registry.
+The npm package carries the files that the `files` list of `package.json` names. For each row of the table above, the last column says if the package carries it. npm always adds `README.md`, `LICENSE` and `package.json`. No route, example or test of the preview goes into the package. The package has no install script, so `npm install` runs no code from this repository. The package has no dependency. It names each package that its files import as a peer in `peerDependencies`, with a caret range from the version of the record, and `peerDependenciesMeta` marks a peer that only some parts need as optional. A product installs the peers at the exact versions of the record, as "Install the packages" says. The `exports` map of `package.json` names each path that a product can import, and no other path of the package is public. npm links the command `stack-contrast` into `node_modules/.bin/`, and the command runs only when a product calls it. `package.json` also sets `private: true`, so npm refuses to publish the package to a registry.
 
 ## Use a release in a product
 
@@ -70,6 +73,22 @@ npm fetches the tag over https and installs the files into `node_modules/@stack-
 
 A product that pinned another URL before, such as a `git+ssh` URL or a `git+file` URL, replaces its whole line with the line above. Then it runs `npm install` again.
 
+### Install the packages
+
+The package names the packages of its files as peers, and the record `preview/components.lock.json` gives the version that STACK tested for each one. A product installs them itself, each at the exact version of the record, in `devDependencies`.
+
+Run this command in the root folder of the product, after `npm install`. Give it each export path that the product imports, such as `./ui/button` and `./parts/ListSplit`. It prints one install line for the packages of those paths, and for each peer that `package.json` does not mark as optional:
+
+```sh
+node -e 'const [dir, ...paths] = process.argv.slice(1); const pkg = require(dir + "/package.json"); const rec = require(dir + "/preview/components.lock.json"); const names = new Set(Object.keys(pkg.peerDependencies).filter((n) => !pkg.peerDependenciesMeta[n]?.optional)); for (const a of paths) { const p = a.replace(/^@stack-kit\/stack\//, "./"); if (!rec.components[p]) throw new Error(a + " has no entry in the record. Give an export path that holds code, such as ./ui/button."); rec.components[p].packages.forEach((n) => names.add(n)); } console.log("npm install -D -E " + [...names].sort().map((n) => n + "@" + rec.packages[n]).join(" "));' "$PWD/node_modules/@stack-kit/stack" ./ui/button ./parts/ListSplit
+```
+
+Run the line that the command printed, then `npx svelte-kit sync`. The line starts with `npm install -D -E`. `-E` writes each exact version, and `-D` puts each package into `devDependencies`. Never put one of these packages into `dependencies`. The server build resolves each package of `dependencies` with the conditions of Node, and `tw-animate-css` exports its CSS under the `style` condition only, so `vite build` stops with `"." is not exported under the conditions ["node", "module-sync", "import"]`. The install removes `node_modules/$app`, where SvelteKit 3 writes its generated tsconfig. Until the sync writes it again, `svelte-check` stops with "File '$app/tsconfig' not found".
+
+The required peers include `svelte-sonner`, also for a product that shows no toast of its own: `behaviour/undo` shows the Undo toast with it, and the board and the reorder list call `behaviour/undo`. The optional peers, such as the CodeMirror packages of `parts/CodeEditor`, come only with the export paths that need them.
+
+Run the command again after each new import of an export path, and at each update. A project that installs with another package manager takes the same names and versions from the record: each required peer of `package.json`, the `packages` list of each export path that it imports, and the version of each name in the `packages` key at the top of the record.
+
 ### Clone a release into a project with no Node
 
 A project with no Node clones one tag into `_reference/stack/`.
@@ -98,7 +117,7 @@ The files are in `node_modules/@stack-kit/stack/` after an npm install, and in `
 
 ### Import the CSS
 
-Import the files in this order in the global CSS file of the product. The second line needs the package `tw-animate-css`, which the first add of a component installs, as "Add a component" says. The third line is the `tailwind.css` of shadcn-svelte 1.7.0, which each release ships beside the component files. So a product installs no `shadcn-svelte` package. At the first load, the page takes exactly one theme file: import it after `stack.css`. A product that lets the person switch the theme at run time imports no theme file and links one instead, as "Pick a theme" below says.
+Import the files in this order in the global CSS file of the product. The second line needs the package `tw-animate-css`, which the line of "Install the packages" installs. The third line is the `tailwind.css` of shadcn-svelte 1.7.0, which each release ships beside the component files. So a product installs no `shadcn-svelte` package. At the first load, the page takes exactly one theme file: import it after `stack.css`. A product that lets the person switch the theme at run time imports no theme file and links one instead, as "Pick a theme" below says.
 
 ```css
 @import "tailwindcss";
@@ -109,6 +128,8 @@ Import the files in this order in the global CSS file of the product. The second
 ```
 
 A project with no Node writes each `@stack-kit/stack/` path as a path into its clone, relative to the CSS file. From `src/routes/layout.css`, `@stack-kit/stack/stack.css` becomes `../../_reference/stack/stack.css`.
+
+`stack.css` starts with three `@source` lines, which name the folders of the components and the parts in the package. Tailwind does not scan `node_modules/`, so these lines make it find the classes of each part that the product imports. The product writes no `@source` line of its own for the package.
 
 `stack.css` maps each color role to a Tailwind color, so that classes such as `bg-primary` and `text-muted-foreground` exist. The product layer comes after the theme. `## Typography` in `DESIGN.md` tells how a product loads the font Inter.
 
@@ -139,45 +160,93 @@ A page with no build step cannot use `stack.css`, because only the Tailwind buil
 
 `stack-plain.css` holds the tokens of `stack.css` as plain custom properties with the same names, such as `--text-sm`, `--radius-md` and `--color-card`. A fragment uses `var()` only. It writes an opacity modifier, such as `bg-primary/80`, as `color-mix(in oklab, var(--color-primary) 80%, transparent)`. "Content that no build sees" in `## Overview` of `DESIGN.md` gives every name. A page with a build never needs the file for its own markup.
 
-### Add a component
+### Import a part
 
-Each release ships the component files that STACK tested, in `preview/src/lib/components/ui/` of the copy. Below, `<src>` is `node_modules/@stack-kit/stack` after an npm install, or `_reference/stack` after a clone. Never run `shadcn-svelte add` or `shadcn-svelte update` in a product. The CLI reads the live registry, which gives other files and other versions than the release ([0006](decisions/0006-where-a-product-gets-the-component-files.md)).
+Each release ships the 61 components that STACK tested, the parts that STACK adds, the behaviour modules and the pages outside the frame of a product. A product imports each of them from the package, and holds no copy. Never run `shadcn-svelte add` or `shadcn-svelte update` in a product. The CLI reads the live registry, which gives other files and other versions than the release ([0008](decisions/0008-a-product-imports-every-part-from-the-package.md)).
 
-`<src>/preview/components.lock.json` lists each component folder with its `uses` and its `packages`. `uses` names each folder that the component imports, also through another folder. `packages` names each package that the component needs. The `packages` key at the top of the lock gives the exact version of each package. The `css` key names the packages that the CSS of "Import the CSS" needs.
+The `exports` map of `package.json` names these paths:
 
-Run these steps in the root folder of the product, with the folder name in place of `<name>`:
+| Import path | What it gives | Example |
+|---|---|---|
+| `@stack-kit/stack/ui/<name>` | A component of the registry, by its folder name | `import * as Dialog from '@stack-kit/stack/ui/dialog';` |
+| `@stack-kit/stack/parts/<Name>` | A part that STACK adds, by its file name | `import ListSplit from '@stack-kit/stack/parts/ListSplit';` |
+| `@stack-kit/stack/behaviour/<name>` | A behaviour module: `item`, `keys`, `place`, `print`, `undo` or `width` | `import { undoToast } from '@stack-kit/stack/behaviour/undo';` |
+| `@stack-kit/stack/outside/<Name>` | A page outside the frame, such as the sign-in page, and the code helpers of `outside/codes` | `import SignInPage from '@stack-kit/stack/outside/SignInPage';` |
+| `@stack-kit/stack/utils` and `@stack-kit/stack/hooks/<name>` | `cn` and the other shared helpers, for a part of the product | `import { cn } from '@stack-kit/stack/utils';` |
+| `@stack-kit/stack/patterns` | The chart patterns and the chart colors, for a chart of the product | `import { PATTERNS } from '@stack-kit/stack/patterns';` |
+| `@stack-kit/stack/email` | The plain text part and the HTML part of an email of `## Email` in `DESIGN.md` | `import { html, text } from '@stack-kit/stack/email';` |
+| `@stack-kit/stack/architecture/keys.json` | The keys of `architecture/web-app.md` as data, which the key test of the product reads | |
+| `@stack-kit/stack/stack.css` and the other CSS paths | The CSS files of "Import the CSS" | |
 
-1. On the first add only, copy the shared files and the licence notice. Keep `LICENSE.md` beside the copies, because the licence of shadcn-svelte asks for its notice in each copy.
+The `###` definition of each part in `DESIGN.md` names its export path, and `preview/contract.json` lists the props, the callbacks and the snippets of each part. The `exports` map refuses every other path, such as the path of a file inside the package.
+
+Never import `@stack-kit/stack/ui/form`. A product builds each form with `field`, and validates it in its own code (`### form` in `DESIGN.md`).
+
+### Set up the root layout
+
+The root layout of the product sets up the parts once:
+
+- It imports the global CSS file of "Import the CSS".
+- It renders one `<Toaster />` from `@stack-kit/stack/ui/sonner`. The parts show their toasts in it, such as the Undo toast of the board.
+- In `onMount`, it calls `listenForPrint()` from `@stack-kit/stack/behaviour/print`, and returns its result. The function adds the listeners that fit the page and each chart to the paper.
+- When a person can change a key, it also calls `provideKeys(keyOf)` from `@stack-kit/stack/behaviour/keys` in `onMount`. `keyOf(action)` returns the keys that the person chose for the action, `[]` to turn the action off, or `undefined` for the default keys of `architecture/keys.json`.
+- A frame that binds its own keys calls `inText(e)` from `@stack-kit/stack/behaviour/keys` with the key event, before it acts on a key with no Cmd and no Ctrl.
+
+```svelte
+<script lang="ts">
+  import './layout.css';
+  import { onMount, type Snippet } from 'svelte';
+  import { listenForPrint } from '@stack-kit/stack/behaviour/print';
+  import { Toaster } from '@stack-kit/stack/ui/sonner';
+
+  let { children }: { children: Snippet } = $props();
+
+  onMount(() => listenForPrint());
+</script>
+
+{@render children()}
+<Toaster />
+```
+
+The frame stays code of the product: the sidebar, the top bar and the phone tab bar. The frame wraps the content of its top bar in `<FramePlace name="top-bar">`, and the content of its phone header in `<FramePlace name="phone-header">`, from `@stack-kit/stack/parts/FramePlace`. A part such as the selection bar then takes that place while it shows. With no `FramePlace`, the selection bar shows where the page puts it.
+
+### Extend a part
+
+Each part of STACK has five extension points:
+
+- Snippets for the content of the product.
+- The other attributes of its root element, such as `aria-describedby` or a `data-` attribute.
+- A `class` that only places the part: a margin, a grid cell or a width. The part merges it with `cn()`.
+- A stable `data-slot` name on its root element. When a release puts a new root around the element that had the slot of the part, that element keeps its slot, and the new root takes `<slot>-wrapper`, such as `code-block-wrapper` around `code-block`. The other attributes, the `class` and `bind:ref` then go on the new root.
+- `bind:ref`, which gives the root element.
+
+A product adds a part of its own by composing STACK parts in its own component. It never edits a file of the package, and it never copies a class of STACK into a page. When a part lacks a prop or a snippet that the product needs, propose it, as "Contribute from a product" says.
+
+### Delete the copies
+
+A product that copied files from a release before v2.0.0 deletes each copy at its update to v2.0.0, and holds no copy after it. Run these steps once, after "Install the packages":
+
+1. Print the folders of the components that the release ships:
 
    ```sh
-   mkdir -p src/lib/components/ui
-   cp <src>/preview/src/lib/utils.ts src/lib/utils.ts
-   cp -R <src>/preview/src/lib/hooks src/lib/
-   cp <src>/preview/src/lib/components/ui/LICENSE.md src/lib/components/ui/
+   node -p 'Object.keys(require(process.argv[1]).components).filter((k) => k.startsWith("./ui/")).map((k) => k.slice(5)).join(" ")' "$PWD/node_modules/@stack-kit/stack/preview/components.lock.json"
    ```
 
-2. Copy the folder of the component. Then run the same command for each folder in its `uses` list that the product does not hold yet.
+   Delete each of these folders from `src/lib/components/ui/`, and the `LICENSE.md` beside them. Keep each other folder, such as a folder from the live registry. It is code of the product, and STACK did not test it. It must work with the versions of the record. When it is general for a back office or a dashboard, propose it, as "Contribute from a product" says. A folder with the name of a part of STACK, such as `code-block`, holds that part: delete it, and import the part.
+
+2. Delete the copies of `utils.ts` and `hooks/`.
+3. Delete each file that copies a part or a module of the release, such as a copy of `CodeBlock.svelte`, of `screen-query.svelte.ts`, which `behaviour/width` replaces, or of the print file `chart-width.ts`. The keys of the record that start with `./parts/`, `./behaviour/` and `./outside/` name the parts and the modules.
+4. Remove the `shadcn-svelte` package and `components.json`, if the product has them. First replace the line `@import "shadcn-svelte/tailwind.css";` with the third line of "Import the CSS":
 
    ```sh
-   cp -R <src>/preview/src/lib/components/ui/<name> src/lib/components/ui/
+   npm uninstall shadcn-svelte
+   rm -f components.json
    ```
 
-3. Print the exact packages of the component. The command takes one or more folder names, and it adds the `css` list, which the first add needs:
-
-   ```sh
-   node -e 'const l = require(process.argv[1]); const n = new Set([...l.css, ...process.argv.slice(2).flatMap((c) => { if (!l.components[c]) throw new Error(c + " has no folder in the release"); return l.components[c].packages; })]); console.log([...n].sort().map((p) => `${p}@${l.packages[p]}`).join(" "))' "$PWD/<src>/preview/components.lock.json" <name>
-   ```
-
-4. Run `npm install -E` with the line that the command printed, then `npx svelte-kit sync`. The install removes `node_modules/$app`, where SvelteKit 3 writes its generated tsconfig. Until the sync writes it again, `svelte-check` stops with "File '$app/tsconfig' not found".
-5. Run the check of the product, such as `npm run check`. When a folder of `uses` is missing, `svelte-check` stops with "Cannot find module '#lib/components/ui/<folder>/index.js'". Copy that folder, then run the check again.
-
-Never copy `form`, because it does not work on SvelteKit 3 (`### form` in `DESIGN.md`). Its `packages` list also holds `@sveltejs/kit` and `vite`, so its install moves the framework of the product.
-
-A project with no Node runs steps 1 and 2 with `_reference/stack` in place of `<src>`. In place of step 3, it takes the names from the `css` key and from the `packages` list of each copied folder. It takes the version of each name from the `packages` key at the top of the lock. It installs each name at that exact version with its own package manager, then runs the sync and the check of steps 4 and 5.
-
-The copies import with the `#lib` subpath, such as `#lib/components/ui/button/index.js`. A SvelteKit 3 project maps `#lib/*` to `./src/lib/*` in the `imports` field of its `package.json`, so the copies need no other alias.
-
-Never edit a copied file. The lock holds the SHA-256 of each file, so a person or an agent can compare each copy with the release. A change comes through this repository and a new release, as "Contribute from a product" says.
+5. Change each import of a deleted file to its export path, such as `#lib/components/ui/button/index.js` to `@stack-kit/stack/ui/button`, and `#lib/utils.js` to `@stack-kit/stack/utils`.
+6. Set up the root layout and the frame, as "Set up the root layout" says.
+7. Run `npx svelte-kit sync` and the check of the product, such as `npm run check`. `svelte-check` names each file that still imports a deleted file, with "Cannot find module", and each use of a prop that changed. Fix each file as the step of its part in the change log says, and run the check again until it gives 0 errors.
+8. The entry of v2.0.0 in `CHANGELOG.md` holds a migration table. Each row names a copy or an own part that a product may hold, the STACK part that replaces it, and a word to search for. Search the product for each word, and replace each hit by the part of its row.
 
 ### Check the contrast of the product layer
 
@@ -227,27 +296,30 @@ node _reference/stack/scripts/contrast.mjs --layer src/app.css --pairs product-p
 Each product follows these rules:
 
 - Pin a release tag, never `main`. A tag never moves, so the lock file and the clone always point to the same commit.
-- Never edit the copy in `node_modules/@stack-kit/stack/` or in `_reference/stack/`. A change comes through this repository and a new release.
+- Never edit a file of the package in `node_modules/@stack-kit/stack/`, or of the clone in `_reference/stack/`. A change comes through this repository and a new release.
 - Use only the tokens of `DESIGN.md`. A token of the product has a name with the prefix `--product-`, such as `--product-status-done`, or with `product-` after the namespace of a Tailwind theme variable, such as `--spacing-product-touch`. So no name of the product can hide a name of this repository. A product never redefines a token of this repository.
-- Copy each component folder from the release into the product, as "Add a component" says, and never edit a copied file. Never run `shadcn-svelte add` or `shadcn-svelte update` in a product.
+- Import each component and each part from the package, as "Import a part" says, and hold no copy of a file of the release. Install the packages with `npm install -D -E`, as "Install the packages" says. Never run `shadcn-svelte add` or `shadcn-svelte update` in a product.
+- Give a part only a class that places it, such as a margin, a grid cell or a width. Never copy a class of STACK into a page.
 - Send a missing rule, a conflict or a defect to this repository as a pull request, as "Contribute from a product" below describes. Until a release ships the change, mark each stopgap in the code of the product with the number of the pull request. A product never changes a rule of this repository by itself.
 - Name the design source and the pinned tag in one line of the `AGENTS.md` of the product, such as:
 
   ```markdown
-  Design: @stack-kit/stack vX.Y.Z from https://github.com/stack-kit/stack, the only source. At the start of each UI task, check for a newer tag with `git ls-remote --tags --refs --sort=-v:refname https://github.com/stack-kit/stack 'v*' | head -1`. When one exists, read its CHANGELOG.md, then move the pin, or show the owner a plan first when the release changes something this project uses. Never pin main. Before each UI task, find the sections that the task needs in DESIGN.index.md of the copy, and read only those.
+  Design: @stack-kit/stack vX.Y.Z from https://github.com/stack-kit/stack, the only source. At the start of each UI task, check for a newer tag with `git ls-remote --tags --refs --sort=-v:refname https://github.com/stack-kit/stack 'v*' | head -1`. When one exists, read its CHANGELOG.md, then move the pin, or show the owner a plan first when the release changes something this project uses. Never pin main. Before each UI task, find the sections that the task needs in `node_modules/@stack-kit/stack/DESIGN.index.md`, and read only those.
   ```
 
 ## Update a product to a new release
 
-The version number says what a release changes:
+An update is one change of the pin. The version number says what the release changes, and what the product does at the update:
 
-| Level | What the release does |
-|---|---|
-| Major | It renames or removes a name. |
-| Minor | It adds a name. |
-| Patch | It corrects a value. |
+| Level | What the release changes | What the product does |
+|---|---|---|
+| Major | A change that a product must act on: a removed or renamed prop, callback, snippet, export or `data-slot`; a narrowed type; a new required input; a changed default that changes what a page shows; a behaviour that needs a new function from the product; a change of a rule of the frame. | It takes each step of the Breaking part of the change log entry. |
+| Minor | A new part; a new optional prop or snippet; a change of the look; a change of behaviour that needs no input from the product. | Nothing. It reads the Behaviour part, so that it knows what its users see. |
+| Patch | A fix that keeps the contract and the documented behaviour. | Nothing. |
 
-Read the change log of the new tag before the update.
+The contract of a part is its props, its callbacks, its snippets, its exported types and functions, its `data-slot` names and its documented behaviour. `preview/contract.json` holds the contract of each release, and a release stops when its level is below the level of the change of its contract.
+
+Read the change log of the new tag before the update. Each entry has the parts Breaking, Behaviour, Added and Fixed. Breaking holds the change of the contract since the last release, and one step for each part.
 
 To print the newest tag, run `git ls-remote --tags --refs --sort=-v:refname https://github.com/stack-kit/stack 'v*' | head -1`. The tag is at the end of the line that the command prints. Put the tag in place of `vX.Y.Z` in the commands below.
 
@@ -267,29 +339,14 @@ git -C _reference/stack show vX.Y.Z:CHANGELOG.md
 git -C _reference/stack checkout vX.Y.Z
 ```
 
-Before a major update, find each name from the Breaking section in the product, and change or remove each use.
+To update a product with npm, take these steps:
 
-To update a product with npm, change the tag at the end of the dependency line to the new tag, in the form `#vX.Y.Z`. When the line names another URL, replace the whole line with the line of "Pin a release with npm". Then run `npm install`.
+1. Change the tag at the end of the dependency line to the new tag, in the form `#vX.Y.Z`. When the line names another URL, replace the whole line with the line of "Pin a release with npm". Then run `npm install`.
+2. Print the install line again with the command of "Install the packages", and run it. A release can change the version of a package in the record, and a part can need a new package.
+3. Run `npx svelte-kit sync` and the check of the product, such as `npm run check`. After a major update, `svelte-check` names each file that uses a removed or changed name. Change each file as the step of its part in Breaking says, and run the check again until it gives 0 errors.
+4. Take each other step of Breaking, such as a change of a rule of the frame, which no check finds.
 
-Then update the component files from the new copy:
-
-1. Copy again each folder in `src/lib/components/ui/` of the product, except `form`, when the release also holds that folder. Also copy `utils.ts`, `hooks/` and `LICENSE.md`, as "Add a component" says. Remove each folder before its copy, so that a file that the release removed goes too:
-
-   ```sh
-   test -d <src>/preview/src/lib/components/ui/<name> && rm -rf src/lib/components/ui/<name> && cp -R <src>/preview/src/lib/components/ui/<name> src/lib/components/ui/
-   ```
-
-2. Read the `git diff` of the copies against the change log of the new tag. A change of a copy that the change log does not explain is a defect of the release. Send it to this repository as "Contribute from a product" says.
-3. Remove the `shadcn-svelte` package and `components.json`, if the product has them. First replace the line `@import "shadcn-svelte/tailwind.css";` with the third line of "Import the CSS". A release ships that file, and a product never runs the CLI:
-
-   ```sh
-   npm uninstall shadcn-svelte
-   rm -f components.json
-   ```
-
-4. Print the packages of the copied folders with the command of "Add a component", and run `npm install -E` with the line. Then run `npx svelte-kit sync` and the check of the product. When the check names a folder that is missing, a `uses` list of the new release grew. Copy that folder too. A project with no Node takes the names and the versions as "Add a component" says for a project with no Node.
-
-Steps 1 and 4 take only the folders that the release holds, and the `components` key of the lock names them. Any other folder of `src/lib/components/ui/`, such as a folder from the live registry, stays as the product has it. It is code of the product, and STACK did not test it. Such a folder must work with the package versions of the lock. When it needs another version of a package that the lock pins, change the folder or propose that version. When the folder is general for a back office or a dashboard, propose it as "Contribute from a product" says. When a later release holds a folder with the same name, step 1 replaces the folder of the product. A folder with the name of a part of STACK, such as `code-block`, holds that part as `DESIGN.md` defines it. When such a folder holds the registry item, replace the item with that part at this update. A product takes no new folder from the live registry.
+An update to v2.0.0 from an earlier release also deletes the copies, as "Delete the copies" says.
 
 After an update, change the tag in the line of `AGENTS.md` that names the design source.
 
@@ -632,12 +689,12 @@ The products draw charts with LayerChart 2.7.0 on its SVG layer, in the chart pa
 |---|---|---|
 | Svelte in SvelteKit | Svelte 5.57.2 in SvelteKit 3.0.1, on Node 22.17 or later | [0001](decisions/0001-svelte-5.md) |
 | Tailwind CSS | 4.3.3, through `@tailwindcss/vite` 4.3.3 | [0002](decisions/0002-tailwind-4.md) |
-| shadcn-svelte on Bits UI | shadcn-svelte 1.7.0 on Bits UI 2.19.5, as the component files and the lock of each release | [0003](decisions/0003-shadcn-svelte-and-bits-ui.md), [0006](decisions/0006-where-a-product-gets-the-component-files.md) |
+| shadcn-svelte on Bits UI | shadcn-svelte 1.7.0 on Bits UI 2.19.5, as the components that each release ships, with the record of the tested versions | [0003](decisions/0003-shadcn-svelte-and-bits-ui.md), [0008](decisions/0008-a-product-imports-every-part-from-the-package.md) |
 | LayerChart on its SVG layer | 2.7.0, pinned exactly together with its four prerelease `@layerstack` packages | [0004](decisions/0004-layerchart-svg-layer.md) |
 | CodeMirror 6 for a code editor | `@codemirror/state` 6.7.6, `@codemirror/view` 6.43.15 and `@codemirror/commands` 6.11.1, pinned exactly | [0005](decisions/0005-codemirror-6.md) |
 | lean-qr for a QR code | 2.7.4, pinned exactly | [0007](decisions/0007-lean-qr.md) |
 
-Each record in `decisions/` has the status `accepted` and a `date` in its front matter. Each record follows the MADR 4.0 form. It gives the context, the decision drivers and the options. Then it gives the outcome with its consequences and its confirmation, and the pros and cons of each option.
+Each record in `decisions/` has a status and a `date` in its front matter. The status is `accepted`, or `superseded by` the record that replaces it. Records 0008 to 0012 are no stack choice. They decide how a product takes the parts: the import from the package, the seam to SvelteKit, the modules with runes, the shared behaviour, and the props of a part from one release to the next. Each record follows the MADR 4.0 form. It gives the context, the decision drivers and the options. Then it gives the outcome with its consequences and its confirmation, and the pros and cons of each option.
 
 ## The preview
 
@@ -681,14 +738,16 @@ The checks run with Node 18 or later, the minimum of the CLI `@google/design.md`
 | `npm run names` | Refuses the name of a studied third-party product in every file that git does not ignore. `scripts/names.list` holds a SHA-256 hash for each name, and no name in clear text. `npm run names -- --loose` lists every match in any case, for a person to review. |
 | `npm run markers` | Refuses a line of a merge conflict block in every file that git does not ignore: a line of seven `<` alone or followed by a space, a line of seven `=` between those two, and a line of seven `>` alone or followed by a space. A line of seven `=` under a text line is a Markdown heading, and the check lets it pass in a Markdown file. A lone line of seven `=` fails outside Markdown. `npm run markers -- --staged` checks the staged files. |
 | `npm run components` | Checks that each of the 61 components and each part of STACK has a definition with the nine parts, and that each key of a Tokens part exists in `components`. `npm run components -- --only button,chart` checks the named components only. |
-| `npm run lock -- --check` | Writes nothing. It fails when `preview/components.lock.json` differs from the component files: a file, a hash, a folder of `uses`, a package or its version. It names the first ten differences. Run `npm run lock`, and commit the lock with the change of the copies. |
+| `npm run lock -- --check` | Writes nothing. It fails when the record `preview/components.lock.json` or the peers of `package.json` differ from the files: an export path, a path of `uses`, a package, its version or an edited file. It names the first ten differences. Run `npm run lock`, and commit the record and `package.json` with the change of the files. |
+| `npm run parts` | Fails when a part of `stack/` or `outside/` lacks one of its five extension points: the `<Name>Props` type, `...rest`, `class` through `cn(`, a root `data-slot` and `ref = $bindable(`. It also fails when `DESIGN.md` does not name a shipped part by its export path. `npm run parts -- --release` also fails on a part that still holds the pending marker. |
 | `npm run keys` | Fails when `architecture/keys.json` and the two key tables of `architecture/web-app.md` disagree. The tables are the shared keys and the keys that the components own. |
 | `npm run check` | Runs the lint, the theme check, the contrast check, the contrast check of each example layer, the self-test of the generator, the names check, the markers check, the completeness check, the lock check, the key check and the dry run of the index, in this order, and stops at the first failure. |
 | `npm run theme` | Not a check. It writes `themes/default.css`, `stack.css`, `stack-plain.css` and `chart-patterns.svg` from the front matter. |
 | `npm run generate -- --out <file>` | Not a check. It writes a theme file from `--base`, `--accent` and `--contrast`, and then runs the contrast check on it. An input that it lacks comes from `theme-inputs`. `--charts <theme>` takes the chart colors of a theme of `themes/`, such as `graphite`, in place of the default set. `--compare <theme file>` also prints the difference of each role. `## Themes` in `DESIGN.md` gives the rules, and "Make a theme with the generator" gives the command of a product. |
 | `npm run index` | Not a check. It writes `DESIGN.index.md`: the first and the last line of the front matter, of each of its top-level keys, and of each `##` section and `###` heading of `DESIGN.md`, in the order of the file. The head names the version of `package.json` and the first 12 hex digits of the SHA-256 of `DESIGN.md`. The `version` script of `package.json` runs it, so that `npm version` puts a fresh index into the release commit. |
-| `npm run lock` | Not a check. It writes `preview/components.lock.json` from the files of `preview/src/lib/components/ui/`, `utils.ts`, `hooks/` and `preview/package-lock.json`. It fails on an import of a file that the release does not ship, and on a package that the lock of the preview lacks. The `version` script of `package.json` runs it, so that `npm version` puts a fresh lock into the release commit. |
+| `npm run lock` | Not a check. It writes the record `preview/components.lock.json` from the export paths of `package.json` that hold code, the files that they reach and `preview/package-lock.json`, and it writes the peers of `package.json` from the record. It fails on an import of a file that the release does not ship, and on a package that the lock of the preview lacks. `node scripts/component-lock.mjs print <export path>...` prints the install line of the packages of the export paths. The `version` script of `package.json` runs it, so that `npm version` puts a fresh record into the release commit. |
 | `npm run index -- --check` | Writes nothing. It fails when `DESIGN.index.md` is missing or differs from what `npm run index` writes, and it names the first line that differs. `npm run check` does not run it, because the index is written at each release only, so that parallel branches do not conflict on it. Between two releases, the index on `main` can be out of date. |
+| `node ../scripts/contract.mjs check` in `preview/` | Part of the check of `preview/`. It writes nothing, and it fails when `preview/contract.json` differs from a fresh contract of the parts. Run `node scripts/contract.mjs write` in the root, and commit the file with the change of the parts. |
 | `npm run check` in `preview/` | Runs `svelte-check` on the preview. It also refuses a `:root`, `.dark` or `@theme` block in `src/routes/layout.css`, because the theme comes from `themes/` and `stack.css` only. The one exception is the `@import` of `../lib/examples/index.css`, which imports the `product-theme.css` of each example. Each `product-theme.css` holds `@theme inline` aliases and no value. The same check refuses a `:root` or `.dark` line in `src/lib/examples/*/product-theme.css`. |
 
 To add a name to the names list, print its line, then append the line to `scripts/names.list`. Use `cap` for a name that is also an English word. A `cap` line matches a capitalized word, or any case inside a URL or a host name. Use `any` for a name that matches in every case.
@@ -719,9 +778,9 @@ After a change to the front matter of `DESIGN.md`, run `npm run theme`. It write
 A product never runs the shadcn-svelte CLI, so a change of the registry reaches a product only through a release of STACK. Take a change on purpose, in a branch of its own, in these steps:
 
 1. In `preview/`, run the pinned CLI for each folder that changes, such as `npx --no -- shadcn-svelte update <name>`, then `npx svelte-kit sync`. A new version of the CLI first goes into `preview/package.json` with `npm install -E`. Then copy its `dist/tailwind.css` byte for byte to `src/lib/components/ui/shadcn-svelte.css`, and change the version in `LICENSE.md` beside it. The CLI reads the live registry that `preview/components.json` names.
-2. Read `git diff preview/`. The CLI writes each file in the registry form, so it removes the edits of STACK. `EDITED` in `scripts/component-lock.mjs` lists the files, and the lock lists them under `edited`. Apply each edit again.
+2. Read `git diff preview/`. The CLI writes each file in the registry form, so it removes the edits of STACK. `EDITED` in `scripts/component-lock.mjs` lists the files, and the record lists them under `edited`. Apply each edit again. The CLI also writes each rune module as a `.svelte.ts` file, such as `sidebar/context.svelte.ts` and `hooks/is-mobile.svelte.ts`, and no `.svelte.ts` file ships, because the dev server of a product does not compile one inside a package. Write the change into the `.svelte.js` file beside it, with its types in JSDoc, delete the `.svelte.ts` file, and run `node scripts/rune-types.mjs`, which writes the `.svelte.d.ts` file. The check of `preview/` fails while a `.svelte.ts` file is in a folder that ships.
 3. Pin each package that the CLI added or moved with `npm install -E` in `preview/`, because the CLI adds each package with a range.
 4. Change the definitions in `## Components` of `DESIGN.md` where a slot, a class or a state changed. A new item of the registry gets its definition, its name in `COMPONENTS` of `scripts/components.mjs` and its showcase in the same change. Never take an item with the name of a part of STACK, such as `code-block`. `npm run components` fails on a folder that `COMPONENTS` does not name.
 5. When the snapshot date moves, change `REGISTRY_SNAPSHOT` in `scripts/components.mjs`, the date in `DESIGN.md`, and the date in `preview/src/lib/components/ui/LICENSE.md`.
-6. Run `npm run lock`, then `npm run check` in the root and in `preview/`, and look at each changed component in the preview.
-7. Name each change of a copy in the change log entry of the release, because a product reads the diff of its copies against it. Then make the release.
+6. Run `npm run lock` and `node scripts/contract.mjs write`, then `npm run check` in the root and in `preview/`, and look at each changed component in the preview.
+7. Name each change that a product sees in the change log entry of the release, under Breaking, Behaviour, Added or Fixed, at the level of the version table in "Update a product to a new release". `node scripts/contract.mjs diff <last tag> HEAD` prints the change of the contract. Then make the release.

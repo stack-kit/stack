@@ -13,7 +13,7 @@ export type StateRole = 'success' | 'warning' | 'destructive';
 
 export const SANS =
 	"'Inter Variable', Inter, 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-export const MONO = 'ui-monospace, Menlo, Consolas, monospace';
+const MONO = 'ui-monospace, Menlo, Consolas, monospace';
 
 export type Link = { label: string; url: string };
 export type Fact = { label: string; value: string; strong?: boolean };
@@ -80,13 +80,22 @@ function href(url: string): string {
 	return esc(url);
 }
 
+/** A color for a style: a hex value only, so a value never carries markup or another property. Both `html` and `blockLines` check it. */
+function checkColors(c: Colors): void {
+	for (const role of ROLES) {
+		if (!/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c[role])) {
+			throw new Error(`A color in an email is a hex value such as #1a2b3c, and the color ${JSON.stringify(c[role])} of the role ${role} is not.`);
+		}
+	}
+}
+
 /**
  * An identifier in a column of identifiers: tabular figures on its number part only, so that the
  * hyphen keeps its width, as "### Type steps" of DESIGN.md asks.
  */
 function identifier(s: string): string {
 	const m = /^(.*?)(\d+)$/.exec(s);
-	return m ? `${esc(m[1])}<span style="font-variant-numeric:tabular-nums;">${m[2]}</span>` : esc(s);
+	return m ? `${esc(m[1] ?? '')}<span style="font-variant-numeric:tabular-nums;">${m[2]}</span>` : esc(s);
 }
 
 const indent = (n: number, lines: string[]) => lines.map((l) => (l ? ' '.repeat(n) + l : l));
@@ -106,7 +115,7 @@ function a(link: Link, style: string, color: string): string {
 }
 
 /** The head: the mark of the product in text, the workspace, and the rule under them. */
-export function head(e: Email, c: Colors): string[] {
+function head(e: Email, c: Colors): string[] {
 	const workspace = e.workspace ? `<span style="font-weight:400; color:${c['muted-foreground']};"> · ${esc(e.workspace)}</span>` : '';
 	return [
 		'<tr>',
@@ -117,12 +126,13 @@ export function head(e: Email, c: Colors): string[] {
 	];
 }
 
-export function heading(e: Email, c: Colors): string[] {
+function heading(e: Email, c: Colors): string[] {
 	return row(24, [`<h1 style="margin:0; ${type.heading} color:${c.foreground};">${esc(e.heading)}</h1>`]);
 }
 
 /** The lines of one block, with no outer row. "### Email template" of DESIGN.md shows these. */
 export function blockLines(block: Block, c: Colors): string[] {
+	checkColors(c);
 	switch (block.kind) {
 		case 'text':
 			return [p(type.body, c.foreground, esc(block.text))];
@@ -173,7 +183,7 @@ export function blockLines(block: Block, c: Colors): string[] {
 		}
 		case 'table': {
 			const t = block.table;
-			const side = (i: number) => (t.columns[i].numeric ? 'right' : 'left');
+			const side = (i: number) => (t.columns[i]?.numeric ? 'right' : 'left');
 			const pad = (i: number) => (i === t.columns.length - 1 ? '8px 0' : '8px 12px 8px 0');
 			return [
 				`<h2 style="margin:0 0 8px; ${type.section} color:${c.foreground};">${esc(t.heading)}</h2>`,
@@ -221,7 +231,7 @@ function gap(block: Block, prev: Block | null): number {
  * link with the padding. The edge does not show in light. It outlines the button when a client
  * darkens the light colors and keeps the dark ground of the button.
  */
-export function buttonLines(link: Link, c: Colors): string[] {
+function buttonLines(link: Link, c: Colors): string[] {
 	return [
 		`<table ${LAYOUT}>`,
 		'  <tr>',
@@ -234,13 +244,13 @@ export function buttonLines(link: Link, c: Colors): string[] {
 }
 
 /** The full address of the action, as a plain line under the button. */
-export function addressLines(link: Link, c: Colors): string[] {
+function addressLines(link: Link, c: Colors): string[] {
 	const url = { label: link.url, url: link.url };
 	return [`<p style="margin:0; ${type.code} color:${c['muted-foreground']}; word-break:break-all;">${a(url, type.code, c['muted-foreground'])}</p>`];
 }
 
 /** The foot: the reason, the line that stops the email where a person can stop it, and the sender. */
-export function footLines(e: Email, c: Colors): string[] {
+function footLines(e: Email, c: Colors): string[] {
 	const muted = c['muted-foreground'];
 	return [
 		`<table ${LAYOUT} width="100%">`,
@@ -261,6 +271,7 @@ const FILL = '&#847;&#160;'.repeat(30);
 
 /** The HTML part: a full document with inline styles only. */
 export function html(e: Email, c: Colors): string {
+	checkColors(c);
 	let prev: Block | null = null;
 	const body = e.body.flatMap((block) => {
 		const lines = row(gap(block, prev), blockLines(block, c));

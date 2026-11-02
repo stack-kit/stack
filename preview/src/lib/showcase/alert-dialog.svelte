@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 
 	const instances = [

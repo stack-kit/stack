@@ -8,29 +8,19 @@
 	the pending amount. The bar takes the figure, and the last tick passed, as its value text, and the
 	names of the ticks and the line under the bar as its description.
 -->
-<script lang="ts">
-	import { Progress } from '#lib/components/ui/progress/index.js';
-	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
-	import { PATTERNS, lineCenter, patternPrefix, styledPattern } from './patterns.js';
+<script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
 
 	/** A threshold: its value, its name, such as "Warning", its value in words, and the role that the fill takes from it. */
-	type Tick = { at: number; name: string; text: string; role?: 'warning' | 'destructive' };
+	export type Tick = { at: number; name: string; text: string; role?: 'warning' | 'destructive' };
 
-	let {
-		label,
-		value,
-		max = 100,
-		figure,
-		fill = 'primary',
-		ticks = [],
-		forecast,
-		pending,
-		large = false
-	}: {
+	export type MeterProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> & {
+		/** The root element of the part: the box of the label row, the bar and the line under it. */
+		ref?: HTMLDivElement | null;
 		label: string;
 		value: number;
 		max?: number;
-		/** The figure in words, such as "7.2 of 10 GB". */
+		/** The figure in words, such as "7.2 of 10 GB". The product formats it. */
 		figure: string;
 		/** The safe fill: primary, or muted-foreground when nothing needs attention while the value is safe. */
 		fill?: 'primary' | 'neutral';
@@ -42,16 +32,43 @@
 		pending?: { amount: number; text: string };
 		/** The 8 px meter of a large view, in place of the 6 px meter. */
 		large?: boolean;
-	} = $props();
+		/** A class for the root, such as a max-w class that limits the width of the meter. */
+		class?: string;
+	};
+</script>
+
+<script lang="ts">
+	import { Progress } from '#lib/components/ui/progress/index.js';
+	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
+	import { cn } from '#lib/utils.js';
+	import { PATTERNS, lineCenter, patternPrefix, styledPattern } from './patterns.js';
+
+	let {
+		label,
+		value,
+		max = 100,
+		figure,
+		fill = 'primary',
+		ticks = [],
+		forecast,
+		pending,
+		large = false,
+		class: className,
+		ref = $bindable(null),
+		...rest
+	}: MeterProps = $props();
 
 	const id = $props.id();
 	const prefix = patternPrefix(id);
 	// The pending segment takes pattern 1 with the marks of the color pattern style: a 2 px line with crispEdges.
 	// The pattern names its number, the style of its marks and their ink, so that the print listener of
 	// the chart patterns draws the same marks as shapes (preview/src/lib/print/pattern-fills.ts).
-	const hatch = styledPattern('color-pattern', PATTERNS[0]);
+	const hatch = styledPattern('color-pattern', PATTERNS[0]!);
 
 	const percent = (v: number) => Math.min(100, Math.max(0, (v / max) * 100));
+	// The bar takes the value inside 0 to max, as aria-valuenow must be, also for a use past its limit.
+	// The figure and the ticks keep the real value.
+	const barValue = $derived(Math.min(max, Math.max(0, value)));
 	const passed = $derived(ticks.findLast((t) => value >= t.at));
 	const role = $derived(ticks.findLast((t) => value >= t.at && t.role)?.role);
 	const valueText = $derived(passed ? `${figure}, past ${passed.name.toLowerCase()}` : figure);
@@ -69,7 +86,7 @@
 	);
 </script>
 
-<div class="flex flex-col gap-1.5" data-meter={id}>
+<div bind:this={ref} data-slot="meter" data-meter={id} class={cn('flex flex-col gap-1.5', className)} {...rest}>
 	<div class="flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
 		<span
 			id="{id}-label"
@@ -83,7 +100,7 @@
 	</div>
 	<div class={['relative', forecast && 'mt-1.5']}>
 		<Progress
-			{value}
+			value={barValue}
 			{max}
 			aria-labelledby="{id}-label"
 			aria-valuetext={valueText}

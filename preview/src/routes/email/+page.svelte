@@ -4,7 +4,7 @@
 	import { emailColors } from '#lib/email/design.js';
 	import { checkTemplate } from '#lib/email/guard.js';
 	import { KINDS } from '#lib/email/samples.js';
-	import { view } from '#lib/stack/view.svelte.js';
+	import { view } from '#lib/preview/view.svelte.js';
 
 	// The template of "## Email" in DESIGN.md and email.ts must agree, as the component menu and
 	// the showcases must agree on the component page.

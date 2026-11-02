@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Field from '#lib/components/ui/field/index.js';
 	import * as Select from '#lib/components/ui/select/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 
 	const sizes = ['sm', 'default'] as const;
 	let open = $state(forcedOpen('select'));

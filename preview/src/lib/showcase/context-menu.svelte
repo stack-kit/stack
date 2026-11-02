@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 
 	let open = $state(forcedOpen('context-menu'));
 	let showBookmarks = $state(true);

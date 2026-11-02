@@ -29,9 +29,9 @@ export const COMPONENTS = [
   'chart',
 ];
 // The parts that STACK adds because the registry lacks them. Each has a definition with the nine
-// parts and a showcase, and no folder in preview/src/lib/components/ui/: a product builds it from
-// Bits UI, from other components or from the library of its record. The preview may keep a
-// component of its own for it in preview/src/lib/stack/, as it does for the code editor.
+// parts and a showcase, and no folder in preview/src/lib/components/ui/. Each ships as a file of
+// preview/src/lib/stack/, and a product imports it from the package, such as code-editor from
+// @stack-kit/stack/parts/CodeEditor.
 export const STACK_PARTS = ['code-editor', 'code-block', 'diff', 'time-field', 'time-zone-field', 'selection-bar', 'reorder-list', 'stepper', 'board', 'month-view', 'day-log', 'unread-mark', 'mail-message', 'figure-band', 'qr-code'];
 export const DEFINED = [...COMPONENTS, ...STACK_PARTS];
 export const PARTS = ['Purpose', 'Anatomy', 'Variants', 'Sizes', 'States', 'Tokens', 'Accessibility', 'Example', 'Phone'];

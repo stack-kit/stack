@@ -31,7 +31,7 @@ Build the UI with Svelte 5 in SvelteKit, Tailwind CSS 4, shadcn-svelte on Bits U
 ### Take the look from DESIGN.md and the behavior from web-app.md
 
 - Use only the tokens of [`DESIGN.md`](../DESIGN.md). Give a token of the product the prefix `--product-`, and never redefine a token of STACK.
-- Copy each component folder from the release, as "Add a component" in [`README.md`](../README.md) says, and never edit a copied file. Never run `shadcn-svelte add` or `shadcn-svelte update`, because the CLI reads the live registry and not the files that STACK tested ([0006](../decisions/0006-where-a-product-gets-the-component-files.md)).
+- Import each component and each part from the package of the release, as "Import a part" in [`README.md`](../README.md) says, and hold no copy. Give a part only a class that places it, and never copy a class of STACK into a page. Never run `shadcn-svelte add` or `shadcn-svelte update`, because the CLI reads the live registry and not the files that STACK tested ([0008](../decisions/0008-a-product-imports-every-part-from-the-package.md)).
 - Follow [`web-app.md`](web-app.md) on every screen: a message key for every text, `Intl` for every format, one registry of keys, the command palette, the three screen states, and WCAG 2.2 at level AA.
 
 **Why.** One source gives every product the same look and the same behavior. A theme then changes token values only, and no component changes.
@@ -67,7 +67,7 @@ Each product keeps its own `ARCHITECTURE.md`, which maps the code of that produc
 
 ### Pin a release, and propose instead of override
 
-Pin a release tag of STACK, never `main`, and never edit the copy of STACK in the product. Send a missing rule, a conflict or a defect to STACK as a pull request, and mark each stopgap in the code with the number of the pull request. "Follow the rules for a product" and "Contribute from a product" in the [README of the repository](../README.md) give the steps.
+Pin a release tag of STACK, never `main`, and never edit a file of the package of STACK in the product. Send a missing rule, a conflict or a defect to STACK as a pull request, and mark each stopgap in the code with the number of the pull request. "Follow the rules for a product" and "Contribute from a product" in the [README of the repository](../README.md) give the steps.
 
 **Why.** A product never customizes the core. STACK takes only what is general for a back office or a dashboard, and it may decline a proposal with a reason.
 

@@ -22,7 +22,7 @@
 import { flushSync } from 'svelte';
 
 /** The part of the ChartState of LayerChart 2.7.0 that measureCharts reads and writes. */
-type ChartSize = { containerRef?: HTMLElement; _containerWidth: number; _containerHeight: number };
+type ChartSize = { containerRef?: HTMLElement | undefined; _containerWidth: number; _containerHeight: number };
 /** The charts of the page. Each chart registers the context that it binds. */
 const charts = new Set<ChartSize>();
 /** The size of each chart on the screen, from before the first redraw of a print. */

@@ -14,6 +14,9 @@
 	a still skeleton in place of each value and each note.
 -->
 <script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
+	import type { ChartStyle } from './patterns.js';
+
 	export type Figure = {
 		/** The name of the figure, such as "Open cases". */
 		label: string;
@@ -26,22 +29,11 @@
 		/** The values of the period, oldest first, and the accessible name of the sparkline. */
 		trend?: { values: number[]; label: string };
 	};
-</script>
 
-<script lang="ts">
-	import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-	import { cn } from '#lib/utils.js';
-	import Sparkline from './Sparkline.svelte';
-	import type { ChartStyle } from './patterns.js';
-
-	let {
-		figures,
-		label,
-		loading = false,
-		inset = 'page',
-		style = 'pattern',
-		class: className
-	}: {
+	// style is the style of the sparklines, so the root takes no style attribute.
+	export type FigureBandProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class' | 'style'> & {
+		/** The root element of the part. */
+		ref?: HTMLDivElement | null;
 		/** One to four figures, in the order that the product sets. */
 		figures: Figure[];
 		/** The accessible name of the list, such as "Figures of today". */
@@ -51,9 +43,26 @@
 		/** The side padding of the region that holds the band: a page, or a pane and the item column. */
 		inset?: 'page' | 'pane';
 		style?: ChartStyle;
-		/** A class for the box, such as border-t when the band does not stand under an edge. */
+		/** A class for the root, such as border-t when the band does not stand under an edge. */
 		class?: string;
-	} = $props();
+	};
+</script>
+
+<script lang="ts">
+	import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+	import { cn } from '#lib/utils.js';
+	import Sparkline from './Sparkline.svelte';
+
+	let {
+		figures,
+		label,
+		loading = false,
+		inset = 'page',
+		style = 'pattern',
+		class: className,
+		ref = $bindable(null),
+		...rest
+	}: FigureBandProps = $props();
 
 	// Tailwind finds a class only as a whole word in the source, so each count names its class.
 	const columns: Record<number, string> = {
@@ -83,7 +92,7 @@
 	</div>
 {/snippet}
 
-<div data-slot="figure-band" class={cn('@container print:break-inside-avoid', className)} aria-busy={loading ? 'true' : undefined}>
+<div bind:this={ref} data-slot="figure-band" class={cn('@container print:break-inside-avoid', className)} aria-busy={loading ? 'true' : undefined} {...rest}>
 	<ul role="list" aria-label={label} class={cn('grid grid-cols-2', columns[figures.length])}>
 		{#each figures as f, i (f.label)}
 			<li

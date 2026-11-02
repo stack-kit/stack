@@ -2,33 +2,31 @@ import { getContext, setContext } from "svelte";
 import { IsMobile } from "#lib/hooks/is-mobile.svelte.js";
 import { SIDEBAR_KEYBOARD_SHORTCUT } from "./constants.js";
 
-type Getter<T> = () => T;
-
-export type SidebarStateProps = {
-	/**
-	 * A getter function that returns the current open state of the sidebar.
-	 * We use a getter function here to support `bind:open` on the `Sidebar.Provider`
-	 * component.
-	 */
-	open: Getter<boolean>;
-
-	/**
-	 * A function that sets the open state of the sidebar. To support `bind:open`, we need
-	 * a source of truth for changing the open state to ensure it will be synced throughout
-	 * the sub-components and any `bind:` references.
-	 */
-	setOpen: (open: boolean) => void;
-};
+/**
+ * @typedef {object} SidebarStateProps
+ * @property {() => boolean} open
+ * A getter function that returns the current open state of the sidebar.
+ * We use a getter function here to support `bind:open` on the `Sidebar.Provider`
+ * component.
+ * @property {(open: boolean) => void} setOpen
+ * A function that sets the open state of the sidebar. To support `bind:open`, we need
+ * a source of truth for changing the open state to ensure it will be synced throughout
+ * the sub-components and any `bind:` references.
+ */
 
 class SidebarState {
-	readonly props: SidebarStateProps;
+	/** @readonly @type {SidebarStateProps} */
+	props;
 	open = $derived.by(() => this.props.open());
 	openMobile = $state(false);
-	setOpen: SidebarStateProps["setOpen"];
-	#isMobile: IsMobile;
+	/** @type {SidebarStateProps["setOpen"]} */
+	setOpen;
+	/** @type {IsMobile} */
+	#isMobile;
 	state = $derived.by(() => (this.open ? "expanded" : "collapsed"));
 
-	constructor(props: SidebarStateProps) {
+	/** @param {SidebarStateProps} props */
+	constructor(props) {
 		this.setOpen = props.setOpen;
 		this.#isMobile = new IsMobile();
 		this.props = props;
@@ -41,14 +39,14 @@ class SidebarState {
 	}
 
 	// Event handler to apply to the `<svelte:window>`
-	handleShortcutKeydown = (e: KeyboardEvent) => {
+	handleShortcutKeydown = (/** @type {KeyboardEvent} */ e) => {
 		if (e.key === SIDEBAR_KEYBOARD_SHORTCUT && (e.metaKey || e.ctrlKey)) {
 			e.preventDefault();
 			this.toggle();
 		}
 	};
 
-	setOpenMobile = (value: boolean) => {
+	setOpenMobile = (/** @type {boolean} */ value) => {
 		this.openMobile = value;
 	};
 
@@ -62,18 +60,18 @@ const SYMBOL_KEY = "scn-sidebar";
 /**
  * Instantiates a new `SidebarState` instance and sets it in the context.
  *
- * @param props The constructor props for the `SidebarState` class.
- * @returns  The `SidebarState` instance.
+ * @param {SidebarStateProps} props The constructor props for the `SidebarState` class.
+ * @returns {SidebarState} The `SidebarState` instance.
  */
-export function setSidebar(props: SidebarStateProps): SidebarState {
+export function setSidebar(props) {
 	return setContext(Symbol.for(SYMBOL_KEY), new SidebarState(props));
 }
 
 /**
  * Retrieves the `SidebarState` instance from the context. This is a class instance,
  * so you cannot destructure it.
- * @returns The `SidebarState` instance.
+ * @returns {SidebarState} The `SidebarState` instance.
  */
-export function useSidebar(): SidebarState {
+export function useSidebar() {
 	return getContext(Symbol.for(SYMBOL_KEY));
 }

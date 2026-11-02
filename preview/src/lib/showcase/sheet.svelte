@@ -3,7 +3,7 @@
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 
 	const sides = ['top', 'right', 'bottom', 'left'] as const;
 	let open = $state(Object.fromEntries(sides.map((s) => [s, forcedOpen(`sheet-${s}`)])));

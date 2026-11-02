@@ -1,238 +1,288 @@
+<script lang="ts" module>
+	import type { Done, OutsideRoot, Passkey, Refused } from './OutsidePage.svelte';
+
+	export type SignInPageProps = OutsideRoot & {
+		/** "Sign in with a passkey": the browser shows its passkey sheet, and the server checks the passkey. */
+		passkey: Passkey;
+		/** "Create a passkey" in the step "Make a passkey on this device", which follows a right code. */
+		addPasskey: Passkey;
+		/** Checks the email address of the account and the code from another device. */
+		deviceCode: (email: string, code: string) => Promise<{ ok: true } | Refused<'code-wrong' | 'code-expired'>>;
+		/** Checks the email address and the 6 digits of an authenticator app. With none, the page offers no authenticator app. */
+		appCode?: (email: string, code: string) => Promise<{ ok: true } | Refused<'app-wrong' | 'app-used' | 'app-paused' | 'app-paused-100'>>;
+		/** The person is in: after a passkey, a new passkey or Not now. The product goes on. */
+		ondone: Done;
+		/** The address of the recovery page of the product. */
+		links: { recovery: string };
+		/** The address that the code form posts to with no script. With none, the form posts to the address of the page. */
+		action?: string;
+		/** The description under the code from another device: where that device shows the code. */
+		codeHelp?: string;
+	};
+</script>
+
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { REGEXP_ONLY_DIGITS } from 'bits-ui';
+	import { building } from '$app/env';
+	import { page } from '$app/state';
+	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
-	import * as InputOTP from '#lib/components/ui/input-otp/index.js';
 	import { Spinner } from '#lib/components/ui/spinner/index.js';
-	import CircleXIcon from '@lucide/svelte/icons/circle-x';
-	import InfoIcon from '@lucide/svelte/icons/info';
-	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
+	import { cn } from '#lib/utils.js';
+	import CodeInput from './CodeInput.svelte';
 	import OutsidePage from './OutsidePage.svelte';
-	import { APP_CODES, CODES, CODE_PATTERN, PRODUCT, SAMPLE_ADDRESS, pasteCode, readCode, viewHref, type SignInState } from './data.js';
+	import StateLine from './StateLine.svelte';
 
-	// The sign-in page in the states of "Sign-in page" in DESIGN.md: a passkey, or the address of
-	// the account and the code of a device that is signed in. The address of the page forces the
-	// first state. In the preview the passkey button runs Waiting and then Cancelled, because the
-	// preview has no server and no passkey. Continue always submits: an empty address and a code of
-	// fewer than 8 characters each show a field error, and so does the sample code of Code wrong.
-	// The code field reads the code as Crockford base32 does, so a typed o shows as 0, and i or l
-	// as 1. A paste drops the hyphen or the space between the two groups. The no-script state
-	// shows what the <noscript> line shows. A disabled button loses the focus to <body>, so the end
-	// of Waiting puts the focus back on the passkey button. Under the form, the link "Use a recovery
-	// code" opens the recovery page.
-	// The states that start with app show the form of an authenticator app in the place of the form
-	// of the code from another device, as "Code from an authenticator app" in DESIGN.md says: the
-	// address and 6 digits in two groups of three. A link under each form opens the other form.
-	let { initial }: { initial: SignInState } = $props();
+	// The sign-in page of "Sign-in page" in DESIGN.md: a passkey, or the address of the account and the
+	// code of a device that is signed in. A right code leads to the step "Make a passkey on this
+	// device". Continue always submits: an empty address and a short code each show a field error, and
+	// the product function answers each full code. An error goes when the person changes the code.
+	// A disabled button loses the focus to <body>, so the end of Waiting puts the focus back on the
+	// button, and a new step puts it on the title.
+	// With appCode, the address parameter method=app shows the form of an authenticator app in the
+	// place of the form of the code from another device. The link to each form is a plain link, so it
+	// works with no script. The address is read only behind building, so a prerendered page shows the
+	// first form.
+	let {
+		product,
+		passkey,
+		addPasskey,
+		deviceCode,
+		appCode,
+		ondone,
+		links,
+		action,
+		codeHelp = 'On a device where you are signed in, open the settings of your account and show a code for a new device. Type the 8 characters that it shows.',
+		class: className,
+		ref = $bindable(null),
+		...rest
+	}: SignInPageProps = $props();
 
-	const WRONG = 'This code is not right for this address. Check the address and the 8 characters on the other device.';
-	const APP_WRONG = 'This code is not right for this address. Check the address and the 6 digits in your authenticator app.';
-	/** The code and the error of each state that opens with a code that the server refused. */
-	const REFUSED: Partial<Record<SignInState, { code: string; message: string }>> = {
-		'code-wrong': { code: CODES.wrong, message: WRONG },
-		'code-expired': { code: CODES.expired, message: 'This code has run out. Ask the other device for a new code.' },
-		'app-wrong': { code: APP_CODES.wrong, message: APP_WRONG },
-		'app-used': {
-			code: APP_CODES.used,
-			message:
-				'This code was used already. Wait for the next code in your authenticator app. If you did not sign in with it a moment ago, sign in with a passkey and check the security page.'
-		},
-		'app-paused': { code: APP_CODES.wrong, message: 'Too many wrong codes. Try again after 14:35, or sign in with a passkey.' },
-		'app-paused-100': {
-			code: APP_CODES.wrong,
-			message: 'This authenticator app works no more. Sign in with a passkey or use a recovery code, then add the authenticator app again.'
-		}
-	};
+	const uid = $props.id();
+	/** sign-in: the passkey and the code. passkey: the step "Make a passkey on this device". */
+	let step = $state<'sign-in' | 'passkey'>('sign-in');
+	let passkeyState = $state<'ready' | 'waiting' | 'failed' | 'cancelled'>('ready');
+	let button = $state<HTMLElement | null>(null);
+	let titleRef = $state<HTMLHeadingElement | null>(null);
 
-	// The address sets the first state; the buttons change it after that.
-	// svelte-ignore state_referenced_locally
-	let current = $state<SignInState>(initial);
-	// svelte-ignore state_referenced_locally
-	const start = REFUSED[initial];
-	// svelte-ignore state_referenced_locally
-	const app = initial.startsWith('app');
-	let code = $state(start?.code ?? '');
-	let email = $state<string>(start ? SAMPLE_ADDRESS : '');
-	// The code that the error belongs to. The error goes when the person changes the code.
-	let refused = $state<{ code: string; message: string } | null>(start ?? null);
-	// True after a submit with no address. The error goes when the person types an address.
-	let noAddress = $state(false);
-
-	let passkeyButton = $state<HTMLElement | null>(null);
-	const waiting = $derived(current === 'waiting');
-	const noScript = $derived(current === 'no-script' || current === 'app-no-script');
-	const invalid = $derived(refused !== null && refused.code === code);
-	const emailInvalid = $derived(noAddress && email.trim() === '');
-	const title = `Sign in to ${PRODUCT.name}`;
-	/** The other way in that the lines of the passkey name. */
-	const otherWay = app ? 'use a code from your authenticator app' : 'use a code from another device';
-	/** The focus ring of the active cell, from the input-otp definition of DESIGN.md. */
-	const slot = 'data-active:z-10 data-active:border-ring data-active:ring-3 data-active:ring-ring/50';
-
-	async function passkey() {
-		current = 'waiting';
-		await new Promise((r) => setTimeout(r, 1500));
-		current = 'cancelled';
-		await tick();
-		passkeyButton?.focus();
+	const app = $derived(appCode !== undefined && !building && page.url.searchParams.get('method') === 'app');
+	/** The address of this page with the other code form. */
+	function formHref(toApp: boolean) {
+		if (building) return toApp ? '?method=app' : '?';
+		const url = new URL(page.url.href);
+		if (toApp) url.searchParams.set('method', 'app');
+		else url.searchParams.delete('method');
+		// Only the query, so that a path that starts with // can never give a link to another host.
+		return url.search || '?';
 	}
 
-	function submitCode(e: SubmitEvent) {
+	let email = $state('');
+	let code = $state('');
+	// The code that the error belongs to. The error goes when the person changes the code.
+	let refused = $state<{ code: string; message: string } | null>(null);
+	// True after a submit with no address. The error goes when the person types an address.
+	let noAddress = $state(false);
+	let sending = false;
+	// The other form starts with no code and no error.
+	$effect.pre(() => {
+		void app;
+		code = '';
+		refused = null;
+	});
+
+	const waiting = $derived(passkeyState === 'waiting');
+	const invalid = $derived(refused !== null && refused.code === code);
+	const emailInvalid = $derived(noAddress && email.trim() === '');
+	/** The other way in that the lines of the passkey name. */
+	const otherWay = $derived(app ? 'use a code from your authenticator app' : 'use a code from another device');
+	const line = $derived.by(() => {
+		if (passkeyState === 'ready') return undefined;
+		const signIn = step === 'sign-in';
+		if (passkeyState === 'waiting') return { kind: 'wait' as const, text: signIn ? 'Choose a passkey in the window of your browser.' : 'Follow the steps in the window of your browser.' };
+		if (passkeyState === 'failed')
+			return {
+				kind: 'fail' as const,
+				text: signIn
+					? `This app does not know that passkey. Choose the passkey that you made here, or ${otherWay}.`
+					: 'This app could not save the passkey. Choose Create a passkey to try again, or choose Not now.'
+			};
+		return {
+			kind: 'cancel' as const,
+			text: signIn ? `No passkey was chosen. Choose Sign in with a passkey to try again, or ${otherWay}.` : 'No passkey was made. Choose Create a passkey to try again, or choose Not now.'
+		};
+	});
+
+	/** "after 14:35" for the end of a pause, or "later" when until is missing or is no valid date. */
+	function after(until: string | undefined) {
+		const end = new Date(until ?? NaN);
+		return Number.isNaN(end.getTime()) ? 'later' : `after ${new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(end)}`;
+	}
+	/** The states of a code: the refusals of deviceCode and appCode, and failed, when a function rejects. */
+	type CodeState = 'code-wrong' | 'code-expired' | 'app-wrong' | 'app-used' | 'app-paused' | 'app-paused-100' | 'failed';
+	const WRONG = 'This code is not right for this address. Check the address and the 8 characters on the other device.';
+	const APP_WRONG = 'This code is not right for this address. Check the address and the 6 digits in your authenticator app.';
+	function refusal(r: Refused<CodeState>): string {
+		switch (r.state) {
+			case 'code-wrong':
+				return WRONG;
+			case 'code-expired':
+				return 'This code has run out. Ask the other device for a new code.';
+			case 'app-wrong':
+				return APP_WRONG;
+			case 'app-used':
+				return 'This code was used already. Wait for the next code in your authenticator app. If you did not sign in with it a moment ago, sign in with a passkey and check the security page.';
+			case 'app-paused':
+				return `Too many wrong codes. Try again ${after(r.until)}, or sign in with a passkey.`;
+			case 'app-paused-100':
+				return 'This authenticator app works no more. Sign in with a passkey or use a recovery code, then add the authenticator app again.';
+			case 'failed':
+				return 'This app could not check the code. Choose Continue to try again.';
+		}
+	}
+
+	async function runPasskey(run: Passkey) {
+		passkeyState = 'waiting';
+		const result = await run().catch((): Refused<'failed'> => ({ ok: false, state: 'failed' }));
+		if (result.ok) {
+			try {
+				await ondone();
+			} finally {
+				passkeyState = 'ready';
+			}
+			return;
+		}
+		passkeyState = result.state;
+		await tick();
+		button?.focus();
+	}
+
+	async function submit(e: SubmitEvent) {
 		e.preventDefault();
+		if (sending) return;
 		noAddress = email.trim() === '';
-		const length = app ? 6 : 8;
-		const short = app ? 'Type the 6 digits.' : 'Type the 8 characters.';
+		const sent = code;
+		if (sent.length < (app ? 6 : 8)) {
+			refused = { code: sent, message: app ? 'Type the 6 digits.' : 'Type the 8 characters.' };
+			return;
+		}
 		// With no address the server cannot check the code, so only a short code shows its error.
-		refused = code.length < length ? { code, message: short } : noAddress ? null : { code, message: app ? APP_WRONG : WRONG };
+		refused = null;
+		if (noAddress) return;
+		sending = true;
+		const answer: Promise<{ ok: true } | Refused<CodeState>> = app && appCode ? appCode(email.trim(), sent) : deviceCode(email.trim(), sent);
+		const result = await answer.catch((): Refused<'failed'> => ({ ok: false, state: 'failed' })).finally(() => (sending = false));
+		if (!result.ok) {
+			refused = { code: sent, message: refusal(result) };
+			return;
+		}
+		step = 'passkey';
+		passkeyState = 'ready';
+		await tick();
+		titleRef?.focus();
 	}
 </script>
 
-<OutsidePage {title} tab="Sign in">
-	<div class="flex flex-col gap-2">
-		<h1 class="text-xl font-semibold">{title}</h1>
-		<p class="text-sm text-muted-foreground">Use the passkey that you made for this app.</p>
-	</div>
-
-	<div class="flex max-w-96 flex-col">
-		{#if noScript}
-			<!-- What the <noscript> line shows in the place of the passkey button. -->
-			<p class="text-sm">A passkey needs JavaScript. Turn on JavaScript, or {otherWay}.</p>
-		{:else}
-			<Button bind:ref={passkeyButton} class="self-start max-md:w-full" disabled={waiting} aria-busy={waiting || undefined} data-loading={waiting || undefined} onclick={passkey}>
+<OutsidePage
+	bind:ref
+	bind:titleRef
+	{product}
+	title={step === 'sign-in' ? `Sign in to ${product.name}` : 'Make a passkey on this device'}
+	tab="Sign in"
+	text={step === 'sign-in'
+		? 'Use the passkey that you made for this app.'
+		: 'With a passkey here, this device signs in with no code next time. On a computer that you borrowed, choose Not now: you then stay signed in for this session only.'}
+	noscript={step === 'sign-in' ? `A passkey needs JavaScript. Turn on JavaScript, or ${otherWay}.` : undefined}
+	data-slot="sign-in-page"
+	class={cn(className)}
+	{...rest}
+>
+	{#if step === 'sign-in'}
+		<div class="flex max-w-96 flex-col">
+			<Button
+				bind:ref={button}
+				data-needs-js
+				class="self-start max-md:w-full"
+				disabled={waiting}
+				aria-busy={waiting || undefined}
+				data-loading={waiting || undefined}
+				onclick={() => runPasskey(passkey)}
+			>
 				{#if waiting}<Spinner data-icon="inline-start" aria-label="Waiting for a passkey" />{:else}<KeyRoundIcon data-icon="inline-start" />{/if}Sign in with a passkey
 			</Button>
-		{/if}
-		<!-- The two regions are in the page from the first render, so a screen reader reads each new text. -->
-		<div role="status">
-			{#if waiting}
-				<p class="mt-2 text-xs text-muted-foreground">Choose a passkey in the window of your browser.</p>
-			{:else if current === 'cancelled'}
-				<p class="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
-					<InfoIcon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-					<span>No passkey was chosen. Choose Sign in with a passkey to try again, or {otherWay}.</span>
-				</p>
-			{/if}
+			<StateLine kind={line?.kind} text={line?.text} />
 		</div>
-		<div role="alert">
-			{#if current === 'failed'}
-				<p class="mt-2 flex items-start gap-2 text-sm text-destructive">
-					<CircleXIcon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-					<span>This app does not know that passkey. Choose the passkey that you made here, or {otherWay}.</span>
-				</p>
-			{/if}
-		</div>
-	</div>
 
-	<form method="post" class="flex max-w-96 flex-col gap-6" novalidate onsubmit={submitCode}>
-		<Field.Separator>or</Field.Separator>
-		<Field.Field data-invalid={emailInvalid || undefined}>
-			<Field.Label for="device-email">Email address</Field.Label>
-			<Input
-				id="device-email"
-				name="email"
-				type="email"
-				autocomplete="username"
-				placeholder={SAMPLE_ADDRESS}
-				aria-invalid={emailInvalid || undefined}
-				aria-describedby={emailInvalid ? 'device-email-error' : undefined}
-				bind:value={email}
-			/>
-			{#if emailInvalid}
-				<Field.Error id="device-email-error">Type the email address of your account.</Field.Error>
-			{/if}
-		</Field.Field>
-		<Field.Field data-invalid={invalid || undefined}>
-			{#if app}
-				<Field.Label for="app-code">Code from your authenticator app</Field.Label>
-				<div class="flex items-center gap-2 max-md:flex-col max-md:items-stretch">
-					<!-- 6 digits in two groups of three. The default inputmode is numeric, so a phone shows the number keys. -->
-					<InputOTP.Root
-						inputId="app-code"
-						name="code"
-						maxlength={6}
-						pattern={REGEXP_ONLY_DIGITS}
-						pasteTransformer={pasteCode}
-						class="tabular-nums"
-						aria-invalid={invalid || undefined}
-						aria-describedby={invalid ? 'app-code-help app-code-error' : 'app-code-help'}
-						bind:value={code}
-					>
-						{#snippet children({ cells })}
-							<InputOTP.Group aria-hidden="true">
-								{#each cells.slice(0, 3) as cell, i (i)}
-									<InputOTP.Slot {cell} class={slot} aria-invalid={invalid || undefined} />
-								{/each}
-							</InputOTP.Group>
-							<InputOTP.Separator aria-hidden="true" />
-							<InputOTP.Group aria-hidden="true">
-								{#each cells.slice(3) as cell, i (i)}
-									<InputOTP.Slot {cell} class={slot} aria-invalid={invalid || undefined} />
-								{/each}
-							</InputOTP.Group>
-						{/snippet}
-					</InputOTP.Root>
-					<Button type="submit" variant="outline" class="text-foreground">Continue</Button>
-				</div>
-				<Field.Description id="app-code-help">
-					Open the authenticator app on your phone and type the 6 digits that it shows for {PRODUCT.name}.
-				</Field.Description>
-				{#if invalid && refused}
-					<Field.Error id="app-code-error">{refused.message}</Field.Error>
+		<form method="post" {action} class="flex max-w-96 flex-col gap-6" novalidate onsubmit={submit}>
+			<Field.Separator>or</Field.Separator>
+			<Field.Field data-invalid={emailInvalid || undefined}>
+				<Field.Label for="{uid}-email">Email address</Field.Label>
+				<Input
+					id="{uid}-email"
+					name="email"
+					type="email"
+					autocomplete="username"
+					aria-invalid={emailInvalid || undefined}
+					aria-describedby={emailInvalid ? `${uid}-email-error` : undefined}
+					bind:value={email}
+				/>
+				{#if emailInvalid}
+					<Field.Error id="{uid}-email-error">Type the email address of your account.</Field.Error>
 				{/if}
-			{:else}
-				<Field.Label for="device-code">Code from another device</Field.Label>
+			</Field.Field>
+			<Field.Field data-invalid={invalid || undefined}>
+				<Field.Label for="{uid}-code">{app ? 'Code from your authenticator app' : 'Code from another device'}</Field.Label>
 				<div class="flex items-center gap-2 max-md:flex-col max-md:items-stretch">
-					<!-- inputId names the hidden input, which the label points to; an id would go to the box. -->
-					<InputOTP.Root
-						inputId="device-code"
+					<CodeInput
+						kind={app ? 'app' : 'device'}
+						inputId="{uid}-code"
 						name="code"
-						maxlength={8}
-						pattern={CODE_PATTERN}
-						inputmode="text"
-						autocapitalize="characters"
-						pasteTransformer={pasteCode}
-						class="tabular-nums"
-						aria-invalid={invalid || undefined}
-						aria-describedby={invalid ? 'device-code-help device-code-error' : 'device-code-help'}
-						bind:value={() => code, (v) => (code = readCode(v))}
-					>
-						{#snippet children({ cells })}
-							<InputOTP.Group aria-hidden="true">
-								{#each cells.slice(0, 4) as cell, i (i)}
-									<InputOTP.Slot {cell} class={slot} aria-invalid={invalid || undefined} />
-								{/each}
-							</InputOTP.Group>
-							<InputOTP.Separator aria-hidden="true" />
-							<InputOTP.Group aria-hidden="true">
-								{#each cells.slice(4) as cell, i (i)}
-									<InputOTP.Slot {cell} class={slot} aria-invalid={invalid || undefined} />
-								{/each}
-							</InputOTP.Group>
-						{/snippet}
-					</InputOTP.Root>
+						{invalid}
+						aria-describedby={invalid ? `${uid}-code-help ${uid}-code-error` : `${uid}-code-help`}
+						bind:value={code}
+					/>
 					<!-- An invalid field turns its text destructive, and the button keeps its own text color. -->
 					<Button type="submit" variant="outline" class="text-foreground">Continue</Button>
 				</div>
-				<Field.Description id="device-code-help">
-					On a device where you are signed in, open Settings, then Devices, and choose Add a device. Type the 8 characters that it shows.
+				<Field.Description id="{uid}-code-help">
+					{app ? `Open the authenticator app on your phone and type the 6 digits that it shows for ${product.name}.` : codeHelp}
 				</Field.Description>
 				{#if invalid && refused}
-					<Field.Error id="device-code-error">{refused.message}</Field.Error>
+					<Field.Error id="{uid}-code-error">{refused.message}</Field.Error>
+				{/if}
+			</Field.Field>
+		</form>
+
+		<!-- With no side padding, the text of each link keeps the left edge of the column. The first link opens the other
+		     code form, and the links stack with no space between them. -->
+		<div class="flex flex-col items-start">
+			{#if appCode}
+				{#if app}
+					<Button variant="link" href={formHref(false)} class="px-0">Use a code from another device</Button>
+				{:else}
+					<Button variant="link" href={formHref(true)} class="px-0">Use a code from an authenticator app</Button>
 				{/if}
 			{/if}
-		</Field.Field>
-	</form>
-
-	<!-- With no side padding, the text of each link keeps the left edge of the column. The first link opens the other
-	     code form, and the links stack with no space between them. -->
-	<div class="flex flex-col items-start">
-		{#if app}
-			<Button variant="link" href={viewHref('sign-in', 'ready')} class="px-0">Use a code from another device</Button>
-		{:else}
-			<Button variant="link" href={viewHref('sign-in', 'app')} class="px-0">Use a code from an authenticator app</Button>
-		{/if}
-		<Button variant="link" href={viewHref('recovery', 'ready')} class="px-0">Use a recovery code</Button>
-	</div>
+			<Button variant="link" href={links.recovery} class="px-0">Use a recovery code</Button>
+		</div>
+	{:else}
+		<div class="flex flex-col">
+			<div class="flex gap-2 max-md:flex-col">
+				<Button
+					bind:ref={button}
+					data-needs-js
+					class="max-md:w-full"
+					disabled={waiting}
+					aria-busy={waiting || undefined}
+					data-loading={waiting || undefined}
+					onclick={() => runPasskey(addPasskey)}
+				>
+					{#if waiting}<Spinner data-icon="inline-start" aria-label="Making a passkey" />{:else}<KeyRoundIcon data-icon="inline-start" />{/if}Create a passkey
+				</Button>
+				<Button variant="outline" class="max-md:w-full" onclick={() => ondone()}>Not now</Button>
+			</div>
+			<StateLine kind={line?.kind} text={line?.text} />
+		</div>
+	{/if}
 </OutsidePage>

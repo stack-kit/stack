@@ -12,6 +12,7 @@
 -->
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';
+	import type { HTMLOlAttributes } from 'svelte/elements';
 
 	export type StepState = 'done' | 'current' | 'failed' | 'next';
 	export interface Step {
@@ -22,6 +23,19 @@
 		/** Down the page, what the step holds under its name: a line, a button or a field. */
 		body?: Snippet;
 	}
+
+	export type StepperProps = Omit<HTMLOlAttributes, 'children' | 'class'> & {
+		/** The root element, the ordered list of the steps. */
+		ref?: HTMLOListElement | null;
+		/** The name of the list, such as "Import steps". */
+		label: string;
+		steps: Step[];
+		orientation?: 'horizontal' | 'vertical';
+		/** Classes for the list, such as its padding in a band under the top bar. */
+		class?: string;
+		/** The words for a screen reader and the word of a failed step, in the language of the product. */
+		words?: { done?: string; failed?: string };
+	};
 </script>
 
 <script lang="ts">
@@ -34,17 +48,10 @@
 		steps,
 		orientation = 'horizontal',
 		class: className,
-		words = {}
-	}: {
-		/** The name of the list, such as "Import steps". */
-		label: string;
-		steps: Step[];
-		orientation?: 'horizontal' | 'vertical';
-		/** Classes for the list, such as its padding in a band under the top bar. */
-		class?: string;
-		/** The words for a screen reader and the word of a failed step, in the language of the product. */
-		words?: { done?: string; failed?: string };
-	} = $props();
+		words = {},
+		ref = $bindable(null),
+		...rest
+	}: StepperProps = $props();
 
 	const done = $derived(words.done ?? 'done');
 	const failed = $derived(words.failed ?? 'Failed');
@@ -75,6 +82,7 @@
 {/snippet}
 
 <ol
+	bind:this={ref}
 	data-slot="stepper"
 	data-orientation={orientation}
 	role="list"
@@ -84,6 +92,7 @@
 		across ? 'flex-wrap items-center gap-x-3 gap-y-1 max-md:flex-col max-md:flex-nowrap max-md:items-stretch max-md:gap-0' : 'flex-col',
 		className
 	)}
+	{...rest}
 >
 	{#each steps as s, i (i)}
 		{@const last = i === steps.length - 1}

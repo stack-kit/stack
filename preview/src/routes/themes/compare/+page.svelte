@@ -6,8 +6,8 @@
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
-	import { front } from '#lib/stack/design.js';
-	import { view } from '#lib/stack/view.svelte.js';
+	import { front } from '#lib/preview/design.js';
+	import { view } from '#lib/preview/view.svelte.js';
 	import { generate, compare, withCharts, formatOklch, STEPS, THEME_INPUTS } from '../../../../../scripts/lib/generate.mjs';
 
 	// The generator of scripts/generate.mjs runs here in the browser, on the same rules and the same

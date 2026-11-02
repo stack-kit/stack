@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import ComponentMenu from '#lib/stack/ComponentMenu.svelte';
-	import { MENU_NAMES } from '#lib/stack/component-menu.js';
+	import ComponentMenu from '#lib/preview/ComponentMenu.svelte';
+	import { MENU_NAMES } from '#lib/preview/component-menu.js';
 
 	// One file per component in src/lib/showcase/, named after the registry item. The page shows
 	// them in the order of the component menu, so the current link of the menu moves down as the
@@ -15,7 +15,7 @@
 	const missing = MENU_NAMES.filter((name) => !files.has(name));
 	if (unlisted.length || missing.length) {
 		throw new Error(
-			`The component menu (src/lib/stack/component-menu.ts) and src/lib/showcase/ disagree. ` +
+			`The component menu (src/lib/preview/component-menu.ts) and src/lib/showcase/ disagree. ` +
 				`Showcases not in the menu: ${unlisted.join(', ') || 'none'}. ` +
 				`Menu names with no showcase: ${missing.join(', ') || 'none'}.`
 		);
@@ -34,7 +34,8 @@
 		<p class="mb-6 text-sm text-muted-foreground">
 			{showcases.length} components, each in every variant and size, and in each state that a prop
 			can force. An overlay opens with its trigger, or with <code class="font-mono">?open=</code> and
-			the <code class="font-mono">data-open-id</code> of the trigger.
+			the <code class="font-mono">data-open-id</code> of the trigger, or of the field that holds the
+			trigger.
 		</p>
 
 		{#each showcases as { name, component: Showcase } (name)}

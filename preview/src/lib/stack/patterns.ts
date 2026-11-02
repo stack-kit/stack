@@ -15,7 +15,7 @@
 // - The center of a line or a mark comes from `lineCenter`, so its edges fall on whole pixels.
 // - With `stagger`, the second row moves by half a pitch in x. Its mark is drawn at both
 //   vertical tile edges, because the tile clips its content.
-import { chartPatterns, spacing, themeFallbacks, type ChartPattern } from './design.js';
+import { chartPatterns, spacing, themeFallbacks, type ChartPattern } from './design-values.js';
 
 export type { ChartPattern };
 
@@ -33,11 +33,11 @@ export type ChartGround = 'background' | 'card' | 'popover';
 
 /** The patterns in category order: PATTERNS[0] is pattern-1. */
 export const PATTERNS: ChartPattern[] = Object.keys(chartPatterns).map(
-	(_, i) => chartPatterns[`pattern-${i + 1}`]
+	(_, i) => chartPatterns[`pattern-${i + 1}`]!
 );
 
 /** The side of the legend tile in px (`spacing.legend-tile`). */
-export const LEGEND_TILE = Number.parseFloat(spacing['legend-tile']);
+export const LEGEND_TILE = Number.parseFloat(spacing['legend-tile']!);
 
 /**
  * The center of a line or a mark of `width` in a tile of `pitch`: on a half unit when the width

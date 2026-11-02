@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 
 	const directions = ['bottom', 'top', 'right', 'left'] as const;
 	let open = $state(Object.fromEntries(directions.map((d) => [d, forcedOpen(`drawer-${d}`)])));

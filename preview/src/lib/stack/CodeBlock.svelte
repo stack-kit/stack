@@ -4,7 +4,8 @@
 	768 px a long line scrolls sideways, and below 768 px it wraps and the gutter hides, as in the code
 	editor. kind="command" shows a prompt sign before each command, and kind="log" can show a column
 	of times. Both wrap a long line at every width. The box stops at 320 px (max-h-80), and a class on
-	the box sets another height.
+	the part sets another height. The root (code-block-wrapper) holds that height and the class, so a
+	product places the part and sets the height with one class. In print the root has no height cap.
 
 	The copy button sits in a column of its own, outside the scroll area, so it never covers a line
 	and it stays in place while the text scrolls. It copies the text with no prompt sign, no line
@@ -18,6 +19,8 @@
 	whose text fits adds no stop to the tab order.
 -->
 <script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
+
 	export type LogEntry = {
 		/** The time as it shows, in the form of a log in architecture/web-app.md. */
 		time: string;
@@ -26,6 +29,28 @@
 		/** The full date and time in the locale, for the tooltip of the time. */
 		full?: string;
 		text: string;
+	};
+
+	export type CodeBlockProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> & {
+		/** The root element of the part, which holds the box and the status line. */
+		ref?: HTMLDivElement | null;
+		/** The text. A log with a column of times passes entries instead. */
+		code?: string;
+		kind?: 'code' | 'command' | 'log';
+		/** The lines of a log, each with its time. */
+		entries?: LogEntry[];
+		/** True to number the lines of code in a gutter, from 768 px. */
+		numbers?: boolean;
+		/** Classes for the root: a place, such as a margin, and the height where the box stops growing: max-h-30. */
+		class?: string;
+		'aria-label'?: string;
+		'aria-labelledby'?: string;
+		/** The text that the copy button writes, when it differs from the text that shows, such as a key with no space. */
+		copyValue?: string | undefined;
+		/** The name and the tooltip of the copy button, in the language of the product. */
+		copyLabel?: string;
+		copiedLabel?: string;
+		failedLabel?: string;
 	};
 </script>
 
@@ -48,26 +73,10 @@
 		copyValue,
 		copyLabel = 'Copy',
 		copiedLabel = 'Copied',
-		failedLabel = 'The browser did not copy the text. The text is selected, so copy it by hand.'
-	}: {
-		/** The text. A log with a column of times passes entries instead. */
-		code?: string;
-		kind?: 'code' | 'command' | 'log';
-		/** The lines of a log, each with its time. */
-		entries?: LogEntry[];
-		/** True to number the lines of code in a gutter, from 768 px. */
-		numbers?: boolean;
-		/** Classes for the box, such as the height where it stops growing: max-h-30. */
-		class?: string;
-		'aria-label'?: string;
-		'aria-labelledby'?: string;
-		/** The text that the copy button writes, when it differs from the text that shows, such as a key with no space. */
-		copyValue?: string;
-		/** The name and the tooltip of the copy button, in the language of the product. */
-		copyLabel?: string;
-		copiedLabel?: string;
-		failedLabel?: string;
-	} = $props();
+		failedLabel = 'The browser did not copy the text. The text is selected, so copy it by hand.',
+		ref = $bindable(null),
+		...rest
+	}: CodeBlockProps = $props();
 
 	// A line break at the end shows no line, so every one leaves the lines and the copy, and a
 	// carriage return becomes a line break. A command that ends in a line break would run at once
@@ -78,7 +87,7 @@
 	// A time and its text are two spaces apart, on the screen and in the copy.
 	const copyText = $derived(copyValue ?? (timed ? entries!.map((e) => `${e.time}  ${e.text}`).join('\n') : text));
 	// A line after a line that ends in a backslash goes on with the same command, so it takes no sign.
-	const prompted = $derived(lines.map((l, i) => i === 0 || !lines[i - 1].endsWith('\\')));
+	const prompted = $derived(lines.map((l, i) => i === 0 || !lines[i - 1]!.endsWith('\\')));
 	// From 768 px a wrapped line of a log starts under the text, not under the time: a hanging indent
 	// as wide as the longest time and its two spaces. The text stays inline, so a selection by hand
 	// gives the time and the text on one line, as the copy does. Below 768 px a wrapped line starts
@@ -142,8 +151,10 @@
 	const sign = 'text-muted-foreground select-none';
 </script>
 
-<div class="flex min-w-0 flex-col gap-1" dir="ltr">
-<div data-slot="code-block" class={cn('flex max-h-80 rounded-lg bg-muted font-mono text-xs text-foreground', className)}>
+<!-- The part gives its tooltips their provider, so it works on a page with none. -->
+<Tooltip.Provider>
+<div bind:this={ref} data-slot="code-block-wrapper" dir="ltr" class={cn('flex max-h-80 min-w-0 flex-col gap-1 print:max-h-none', className)} {...rest}>
+<div data-slot="code-block" class="flex min-h-0 rounded-lg bg-muted font-mono text-xs text-foreground">
 	<ScrollArea
 		bind:viewportRef={viewport}
 		orientation={kind === 'code' ? 'both' : 'vertical'}
@@ -201,3 +212,4 @@
 </div>
 <span role="status" class={result === 'failed' ? 'text-xs text-muted-foreground' : 'sr-only'}>{result === 'copied' ? copiedLabel : result === 'failed' ? failedLabel : ''}</span>
 </div>
+</Tooltip.Provider>

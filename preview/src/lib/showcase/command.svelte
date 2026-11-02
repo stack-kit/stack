@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Command from '#lib/components/ui/command/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import UserIcon from '@lucide/svelte/icons/user';

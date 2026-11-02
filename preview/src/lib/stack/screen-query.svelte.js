@@ -15,10 +15,10 @@ import { MediaQuery } from 'svelte/reactivity';
 //
 // The module adds its listeners when it loads. Chromium runs the listeners of the window in the order
 // that they were added, and the capture phase does not change that order (measured in Chromium 148).
-// So a print listener that reads the layout calls setPrinting() first (view.svelte.ts does), and the
-// layout of the column is in place before it draws the fills and fits the charts, whatever the order
-// of the imports. In afterprint the layout of the screen comes back first, and the listener of
-// view.svelte.ts then gives each chart its size on the screen back.
+// So a print listener that reads the layout calls setPrinting() first (listenForPrint of
+// behaviour/print.ts does), and the layout of the column is in place before it draws the fills and
+// fits the charts, whatever the order of the imports. In afterprint the layout of the screen comes
+// back first, and the listener of behaviour/print.ts then gives each chart its size on the screen back.
 
 /**
  * The column of A4 portrait with the margins of `### Paper`, in CSS px. The text box is 174 mm, and
@@ -32,10 +32,14 @@ const REM = 16;
 /** One width feature, in parentheses or not: min-width or max-width, or the range syntax. */
 const WIDTH = /^(?:(min|max)-width\s*:|width\s*(<=|>=|<|>))\s*(\d+(?:\.\d+)?)(px|rem)$/;
 
-/** The answer of the query at a viewport of PRINT_COLUMN px. Throws for a query that is not one width feature. */
-function atPrintColumn(query: string): boolean {
+/**
+ * The answer of the query at a viewport of PRINT_COLUMN px. Throws for a query that is not one width feature.
+ * @param {string} query
+ * @returns {boolean}
+ */
+function atPrintColumn(query) {
 	const trimmed = query.trim();
-	const feature = WIDTH.exec(/^\((.*)\)$/.exec(trimmed)?.[1].trim() ?? trimmed);
+	const feature = WIDTH.exec(/^\((.*)\)$/.exec(trimmed)?.[1]?.trim() ?? trimmed);
 	if (!feature) {
 		throw new Error(
 			`ScreenQuery reads one width feature in px or rem, such as "min-width: 768px", "max-width: 767px" or "(width < 48rem)", and "${query}" is not one. Use MediaQuery of svelte/reactivity for a query that is not about the width, such as "prefers-reduced-motion: reduce". For a band of widths, use two ScreenQuery, such as "md.current && !lg.current".`
@@ -62,8 +66,10 @@ let printing = $state(false);
 /**
  * Sets the print answer of every ScreenQuery and applies it at once. A print listener that reads the
  * layout calls it first, so the order of the listeners and of the imports does not matter.
+ * @param {boolean} on
+ * @returns {void}
  */
-export function setPrinting(on: boolean): void {
+export function setPrinting(on) {
 	if (printing === on) return;
 	printing = on;
 	flushSync();
@@ -81,8 +87,9 @@ export function setPrinting(on: boolean): void {
  *
  * sidebarOpen computes again only when screenWide changes, and a print does not change it.
  * A single $derived that reads isPrinting() resets the choice after each print.
+ * @returns {boolean}
  */
-export function isPrinting(): boolean {
+export function isPrinting() {
 	return printing;
 }
 
@@ -98,16 +105,19 @@ if (typeof window !== 'undefined') {
  * call site passes it.
  */
 export class ScreenQuery {
-	readonly #screen: MediaQuery;
-	readonly #print: boolean;
+	/** @readonly @type {MediaQuery} */
+	#screen;
+	/** @readonly @type {boolean} */
+	#print;
 
-	/** @param query One width feature in px or rem, such as "min-width: 768px" or "(width < 48rem)". */
-	constructor(query: string) {
+	/** @param {string} query One width feature in px or rem, such as "min-width: 768px" or "(width < 48rem)". */
+	constructor(query) {
 		this.#print = atPrintColumn(query);
 		this.#screen = new MediaQuery(query);
 	}
 
-	get current(): boolean {
+	/** @returns {boolean} */
+	get current() {
 		// The query of the screen is read in print too, so that its listener stays.
 		const screen = this.#screen.current;
 		return printing ? this.#print : screen;

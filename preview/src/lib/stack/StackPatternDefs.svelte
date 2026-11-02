@@ -11,15 +11,38 @@
 	Each pattern names its number in data-pattern, so that the print listener of
 	../print/pattern-fills.ts draws the marks as shapes.
 -->
-<script lang="ts">
-	import { PATTERNS, lineCenter, markColor, styledPattern, type ChartStyle } from './patterns.js';
+<script lang="ts" module>
+	import type { SVGAttributes } from 'svelte/elements';
+	import type { ChartStyle } from './patterns.js';
 
-	let { prefix, style = 'pattern' }: { prefix: string; style?: ChartStyle } = $props();
+	/** @behaviour print:marks-as-shapes */
+	export type StackPatternDefsProps = Omit<SVGAttributes<SVGSVGElement>, 'children' | 'style'> & {
+		ref?: SVGSVGElement | null;
+		/** The prefix of the ids, from patternPrefix($props.id()) of the chart. */
+		prefix: string;
+		style?: ChartStyle;
+	};
+</script>
+
+<script lang="ts">
+	import { cn } from '#lib/utils.js';
+	import { PATTERNS, lineCenter, markColor, styledPattern } from './patterns.js';
+
+	let { prefix, style = 'pattern', class: className, ref = $bindable(null), ...rest }: StackPatternDefsProps = $props();
 
 	const lineRendering = $derived(style === 'color-pattern' ? 'crispEdges' : undefined);
 </script>
 
-<svg width="0" height="0" class="absolute" aria-hidden="true" data-pattern-defs={prefix}>
+<svg
+	bind:this={ref}
+	width="0"
+	height="0"
+	aria-hidden="true"
+	data-slot="stack-pattern-defs"
+	data-pattern-defs={prefix}
+	class={cn('absolute', className)}
+	{...rest}
+>
 	<defs>
 		{#each PATTERNS as base, i (i)}
 			{@const n = i + 1}
@@ -42,13 +65,13 @@
 					{/if}
 				{:else}
 					{@const shifted = c + p.pitch / 2}
-					{@const marks = p.stagger
+					{@const marks = (p.stagger
 						? [
 								[c, c],
 								[shifted, c + p.pitch],
 								[shifted - p.pitch, c + p.pitch]
 							]
-						: [[c, c]]}
+						: [[c, c]]) satisfies [number, number][]}
 					{#each marks as [x, y], j (j)}
 						{#if p.type === 'dots'}
 							<circle cx={x} cy={y} r={p.width / 2} fill={ink} />

@@ -1,7 +1,8 @@
 <!--
 	The code editor of DESIGN.md (### code-editor): CodeMirror 6 from its three core packages, in a
-	box with the edge of an input. The box is the .cm-editor element itself, so that its max-height
-	makes the scroller scroll. EditorView.theme reads the tokens of stack.css as CSS custom
+	box with the edge of an input. The box is the .cm-editor element itself. The root of the part
+	(code-editor-wrapper) holds it and takes the class, so a max-height class on the part stops the box,
+	and the scroller then scrolls. EditorView.theme reads the tokens of stack.css as CSS custom
 	properties, so a change of the mode or the theme needs no editor code. It also replaces each
 	value of the base theme that would show: the dotted focus outline, the monospace font and the
 	1.4 line height of the scroller, the black caret, and the grey gutter.
@@ -13,9 +14,27 @@
 	editor lets Esc through, because Tab leaves it at once. Below 768 px the gutter hides and long
 	lines wrap.
 -->
+<script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
+
+	/** @behaviour escape:kept */
+	export type CodeEditorProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> & {
+		/** The root element of the part, which holds the box of CodeMirror. */
+		ref?: HTMLDivElement | null;
+		value?: string;
+		readonly?: boolean;
+		invalid?: boolean;
+		/** Classes for the root: a place, such as a margin, and the height where the box stops growing: max-h-120. */
+		class?: string;
+		'aria-label'?: string;
+		'aria-labelledby'?: string;
+		'aria-describedby'?: string;
+	};
+</script>
+
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ScreenQuery } from '#lib/stack/screen-query.svelte.js';
+	import { bands } from '#lib/stack/behaviour/width.js';
 	import { Compartment, EditorState, type Extension } from '@codemirror/state';
 	import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 	import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
@@ -28,17 +47,10 @@
 		class: className,
 		'aria-label': ariaLabel,
 		'aria-labelledby': ariaLabelledby,
-		'aria-describedby': ariaDescribedby
-	}: {
-		value?: string;
-		readonly?: boolean;
-		invalid?: boolean;
-		/** Classes for the box, such as the height where it stops growing: max-h-120. */
-		class?: string;
-		'aria-label'?: string;
-		'aria-labelledby'?: string;
-		'aria-describedby'?: string;
-	} = $props();
+		'aria-describedby': ariaDescribedby,
+		ref = $bindable(null),
+		...rest
+	}: CodeEditorProps = $props();
 
 	// The edge and the radius of an input, the code step, the focus ring of ## Shapes, and the
 	// invalid edge and halo of a text area. The ground is background in both modes, not the ground of
@@ -95,7 +107,6 @@
 		}
 	});
 
-	const phone = new ScreenQuery('(width < 48rem)');
 	const layout = new Compartment();
 	const settings = new Compartment();
 
@@ -109,7 +120,7 @@
 		if (ariaLabelledby) content['aria-labelledby'] = ariaLabelledby;
 		if (ariaDescribedby) content['aria-describedby'] = ariaDescribedby;
 		if (invalid) content['aria-invalid'] = 'true';
-		const box: Record<string, string> = { 'data-slot': 'code-editor', dir: 'ltr', class: cn(BOX, className) };
+		const box: Record<string, string> = { 'data-slot': 'code-editor', dir: 'ltr', class: BOX };
 		if (readonly) box['data-readonly'] = '';
 		return [
 			EditorState.readOnly.of(readonly),
@@ -118,12 +129,12 @@
 		];
 	}
 
-	let host: HTMLDivElement;
 	let view: EditorView | undefined;
 
 	onMount(() => {
+		if (!ref) return;
 		view = new EditorView({
-			parent: host,
+			parent: ref,
 			state: EditorState.create({
 				doc: value,
 				extensions: [
@@ -131,7 +142,7 @@
 					keys,
 					keepEscape,
 					theme,
-					layout.of(layoutOf(phone.current)),
+					layout.of(layoutOf(!bands.md.current)),
 					settings.of(settingsOf()),
 					EditorView.updateListener.of((u) => {
 						if (u.docChanged) value = u.state.doc.toString();
@@ -146,7 +157,7 @@
 	});
 
 	$effect(() => {
-		const next = layoutOf(phone.current);
+		const next = layoutOf(!bands.md.current);
 		view?.dispatch({ effects: layout.reconfigure(next) });
 	});
 
@@ -164,4 +175,5 @@
 	});
 </script>
 
-<div bind:this={host}></div>
+<!-- The box of CodeMirror shrinks to a max-height of the root, because the box hides its overflow. -->
+<div bind:this={ref} data-slot="code-editor-wrapper" class={cn('flex flex-col', className)} {...rest}></div>

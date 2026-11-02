@@ -2,9 +2,9 @@
 
 The folders beside this file are copies of the components of shadcn-svelte 1.7.0, in the nova style, from the registry snapshot of 2026-10-13 (`https://shadcn-svelte.com/registry`).
 
-`../../utils.ts` and `../../hooks/is-mobile.svelte.ts` come from the same release of shadcn-svelte, and this notice covers them too.
+`../../utils.ts` and `../../hooks/is-mobile.svelte.js` come from the same release of shadcn-svelte, and this notice covers them too. STACK wrote `is-mobile.svelte.js` as JavaScript from the TypeScript file of the release. Its types are in JSDoc and in `is-mobile.svelte.d.ts`.
 
-STACK changed five files: `chart/chart-container.svelte`, `checkbox/checkbox.svelte`, `radio-group/radio-group-item.svelte`, `slider/slider.svelte` and `switch/switch.svelte`.
+STACK changed six files: `chart/chart-container.svelte`, `checkbox/checkbox.svelte`, `radio-group/radio-group-item.svelte`, `sidebar/context.svelte.js`, `slider/slider.svelte` and `switch/switch.svelte`. STACK wrote `sidebar/context.svelte.js` as JavaScript from the TypeScript file of the release. Its types are in JSDoc and in `sidebar/context.svelte.d.ts`.
 
 `shadcn-svelte.css` in this folder of the release is the file `dist/tailwind.css` of the package shadcn-svelte 1.7.0, byte for byte, and this notice covers it too.
 

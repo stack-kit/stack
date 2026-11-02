@@ -4,3 +4,4 @@ preview/build/
 .DS_Store
 _scratch/
 _worktree/
+fixture/.pack/

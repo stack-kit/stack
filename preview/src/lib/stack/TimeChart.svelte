@@ -19,34 +19,9 @@
 	origin, and the plot leaves half the widest name at its right for the name of the last x value.
 	The chart renders on the client only, on the SVG layer, in a container of fixed height.
 -->
-<script lang="ts">
-	import { Area, AreaChart, LineChart, Spline, Text } from 'layerchart/svg';
-	import type { ChartState, TextProps, Tooltip } from 'layerchart';
-	import { innerWidth } from 'svelte/reactivity/window';
-	import * as Chart from '#lib/components/ui/chart/index.js';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Table from '#lib/components/ui/table/index.js';
-	import { registerChart } from '#lib/print/chart-width.js';
-	import StackPatternDefs from './StackPatternDefs.svelte';
-	import LineTile from './LineTile.svelte';
-	import {
-		CHART_INK,
-		COMPARISON_LOOK,
-		MAX_ANNOTATIONS,
-		MAX_REFERENCES,
-		REFERENCE_STROKE,
-		categoryFill,
-		chartColor,
-		groundColor,
-		lineLook,
-		markProps,
-		patternPrefix,
-		threeTicks,
-		type Category,
-		type ChartGround,
-		type ChartStyle,
-		type LineLook
-	} from './patterns.js';
+<script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
+	import type { Category, ChartGround, ChartStyle } from './patterns.js';
 
 	type Row = Record<string, number | Date>;
 	/** A named line at a value, such as a target or a threshold. */
@@ -59,23 +34,10 @@
 	 */
 	type Comparison = { key: string; label: string; current: number; previous: number; period: string };
 
-	let {
-		kind = 'line',
-		style = 'pattern',
-		ground = 'background',
-		title,
-		summary,
-		metrics,
-		data,
-		x = 'date',
-		comparison,
-		references = [],
-		annotations = [],
-		rowHeaderLabel = 'Day',
-		format = (v: number) => v.toLocaleString('en'),
-		dateFormat = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-		class: className = 'h-64 w-full'
-	}: {
+	/** @behaviour print:fit-column */
+	export type TimeChartProps = Omit<HTMLAttributes<HTMLElement>, 'children' | 'class' | 'style' | 'title'> & {
+		/** The root, the figure of the chart. */
+		ref?: HTMLElement | null;
 		kind?: 'line' | 'area';
 		/** The pattern style is the default. A product or a person may take one of the two color styles. */
 		style?: ChartStyle;
@@ -100,9 +62,58 @@
 		format?: (value: number) => string;
 		/** The text of an x value: on the axis, in the tooltip, in the list and in the table. */
 		dateFormat?: (date: Date) => string;
-		/** The size of the chart container. It needs a fixed height. */
+		/** Classes for the root, which place the part, such as a margin, a grid cell or a width. A height class, such as h-80, sets the height of the chart container. */
 		class?: string;
-	} = $props();
+	};
+</script>
+
+<script lang="ts">
+	import { Area, AreaChart, LineChart, Spline, Text } from 'layerchart/svg';
+	import type { ChartState, TextProps, Tooltip } from 'layerchart';
+	import { innerWidth } from 'svelte/reactivity/window';
+	import * as Chart from '#lib/components/ui/chart/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { registerChart } from '#lib/print/chart-width.js';
+	import { cn } from '#lib/utils.js';
+	import { placeOf, sizeOf } from './chart-class.js';
+	import StackPatternDefs from './StackPatternDefs.svelte';
+	import LineTile from './LineTile.svelte';
+	import {
+		CHART_INK,
+		COMPARISON_LOOK,
+		MAX_ANNOTATIONS,
+		MAX_REFERENCES,
+		REFERENCE_STROKE,
+		categoryFill,
+		chartColor,
+		groundColor,
+		lineLook,
+		markProps,
+		patternPrefix,
+		threeTicks,
+		type LineLook
+	} from './patterns.js';
+
+	let {
+		kind = 'line',
+		style = 'pattern',
+		ground = 'background',
+		title,
+		summary,
+		metrics,
+		data,
+		x = 'date',
+		comparison,
+		references = [],
+		annotations = [],
+		rowHeaderLabel = 'Day',
+		format = (v: number) => v.toLocaleString('en'),
+		dateFormat = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+		class: className = 'h-64 w-full',
+		ref = $bindable(null),
+		...rest
+	}: TimeChartProps = $props();
 
 	// The limits of DESIGN.md, checked once at the boundary.
 	$effect.pre(() => {
@@ -122,6 +133,8 @@
 	const tableId = `${prefix}-table`;
 	const referenceTableId = `${prefix}-references`;
 
+	// The context stays undefined until the chart mounts. The type of the LayerChart prop leaves undefined
+	// out, so each bind:context takes "!", which only satisfies that type.
 	let context = $state<ChartState<Row>>();
 	$effect(() => (context ? registerChart(context) : undefined));
 	let container = $state<HTMLElement | null>(null);
@@ -149,7 +162,7 @@
 			label: m.label,
 			value: m.key,
 			color: inkOf(i + 1),
-			props: kind === 'area' ? { fill: categoryFill(style, prefix, 1), fillOpacity: 1 } : markProps(looks[i])
+			props: kind === 'area' ? { fill: categoryFill(style, prefix, 1), fillOpacity: 1 } : markProps(looks[i]!)
 		})),
 		...(comparison
 			? [{ key: comparison.key, label: comparison.label, value: comparison.key, color: COMPARISON_LOOK.stroke, props: markProps(COMPARISON_LOOK) }]
@@ -158,7 +171,7 @@
 
 	const lookOf = (key: string): LineLook => {
 		const i = metrics.findIndex((m) => m.key === key);
-		return i >= 0 ? looks[i] : COMPARISON_LOOK;
+		return i >= 0 ? looks[i]! : COMPARISON_LOOK;
 	};
 	const labelOf = (key: string) => metrics.find((m) => m.key === key)?.label ?? (comparison?.key === key ? comparison.label : key);
 
@@ -216,15 +229,16 @@
 
 	/** The labels at their heights: each at the height of the end of its line, moved apart in order. */
 	function placeLabels(c: ChartState<Row>): EndLabel[] {
-		const last = data[data.length - 1];
+		// A chart with no data has no end of a line, so its labels stand at 0.
+		const last = data.at(-1);
 		const placed = endLabels.map((l) => {
 			const reference = l.id.startsWith('reference-') ? references[Number(l.id.slice(10))] : undefined;
-			return { ...l, at: c.yScale(reference ? reference.value : Number(last[l.id] ?? 0)) };
+			return { ...l, at: c.yScale(reference ? reference.value : Number(last?.[l.id] ?? 0)) };
 		});
 		placed.sort((a, b) => a.at - b.at);
-		placed.forEach((p, i) => (p.at = Math.max(p.at, 0, i ? placed[i - 1].at + LABEL_STEP : 0)));
+		placed.forEach((p, i) => (p.at = Math.max(p.at, 0, i ? placed[i - 1]!.at + LABEL_STEP : 0)));
 		for (let i = placed.length - 1; i >= 0; i--) {
-			placed[i].at = Math.min(placed[i].at, i === placed.length - 1 ? c.height : placed[i + 1].at - LABEL_STEP);
+			placed[i]!.at = Math.min(placed[i]!.at, i === placed.length - 1 ? c.height : placed[i + 1]!.at - LABEL_STEP);
 		}
 		return placed;
 	}
@@ -240,9 +254,9 @@
 	function placeEvents(c: ChartState<Row>): { n: number; at: number; x: number }[] {
 		const placed = events.map((e) => ({ n: e.n, at: Number(c.xScale(e.at)), x: Number(c.xScale(e.at)) }));
 		const step = DISC + DISC_GAP;
-		placed.forEach((p, i) => (p.x = Math.max(p.x, DISC / 2, i ? placed[i - 1].x + step : 0)));
+		placed.forEach((p, i) => (p.x = Math.max(p.x, DISC / 2, i ? placed[i - 1]!.x + step : 0)));
 		for (let i = placed.length - 1; i >= 0; i--) {
-			placed[i].x = Math.min(placed[i].x, i === placed.length - 1 ? c.width : placed[i + 1].x - step);
+			placed[i]!.x = Math.min(placed[i]!.x, i === placed.length - 1 ? c.width : placed[i + 1]!.x - step);
 		}
 		return placed;
 	}
@@ -366,7 +380,14 @@
 	</g>
 {/snippet}
 
-<figure class="m-0 flex min-w-0 flex-col gap-1" data-time-chart={kind} data-chart-style={style}>
+<figure
+	bind:this={ref}
+	data-slot="time-chart"
+	data-time-chart={kind}
+	data-chart-style={style}
+	class={cn('m-0 flex min-w-0 flex-col gap-1', placeOf(className))}
+	{...rest}
+>
 	<figcaption class="text-sm font-medium">{title}</figcaption>
 	<p id={summaryId} class="text-xs text-muted-foreground">{summary}</p>
 	{#if comparison}
@@ -375,7 +396,7 @@
 		</p>
 	{/if}
 	{#if kind === 'area' && style !== 'color'}<StackPatternDefs {prefix} {style} />{/if}
-	<Chart.Container {config} class={className} bind:ref={container}>
+	<Chart.Container {config} class={cn('h-64 w-full', sizeOf(className))} bind:ref={container}>
 		{#if kind === 'area'}
 			<AreaChart
 				{data}
@@ -385,7 +406,7 @@
 				yNice={false}
 				rule={false}
 				{padding}
-				bind:context
+				bind:context={context!}
 				props={{ svg, yAxis, grid, xAxis }}
 				belowMarks={baseLine}
 				marks={areaMarks}
@@ -404,7 +425,7 @@
 				yNice={false}
 				rule={false}
 				{padding}
-				bind:context
+				bind:context={context!}
 				props={{ svg, yAxis, grid, xAxis }}
 				belowMarks={baseLine}
 				marks={lineMarks}

@@ -1,8 +1,13 @@
 <!--
 	A chart in the pattern style, the default, in the color pattern style or in the color style.
 	- kind "bar": one bar for each category, with the value above each bar.
-	- kind "stacked-bar" and "stacked-area": the categories stacked over the x values, with a legend,
-	  and the total above each bar.
+	- kind "stacked-bar" and "stacked-area": the categories stacked over the x values, with a legend
+	  when they hold two or more categories, and the total above each bar. A stacked bar of one
+	  category is a bar over time, such as the spend of each day: its caption names the metric, so it
+	  has no legend. When the names of the x values do not fit under the bars, the axis names every
+	  nth x value, by the rule of "A long category axis" in DESIGN.md.
+	- When the value of any bar is wider than its bar, only the tallest bar shows its value, by the
+	  rule of "Values that do not fit" in DESIGN.md.
 	- kind "donut": one slice for each category, with a leader line to an outside label (the name
 	  and the value), and the total in the center.
 	The pattern style fills category n with pattern-n: marks in chart-ink on the ground under the
@@ -16,47 +21,17 @@
 	  chart are hidden from a screen reader, because the table holds the same values.
 	The chart renders on the client only, on the SVG layer, in a container of fixed height.
 -->
-<script lang="ts">
-	import { AreaChart, BarChart, PieChart } from 'layerchart/svg';
-	import type { ChartState, Tooltip } from 'layerchart';
-	import * as Chart from '#lib/components/ui/chart/index.js';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Table from '#lib/components/ui/table/index.js';
-	import { registerChart } from '#lib/print/chart-width.js';
-	import StackPatternDefs from './StackPatternDefs.svelte';
-	import PatternLegend from './PatternLegend.svelte';
-	import PatternTile from './PatternTile.svelte';
-	import {
-		CHART_INK,
-		categoryFill,
-		chartColor,
-		groundColor,
-		patternPrefix,
-		threeTicks,
-		type Category,
-		type ChartGround,
-		type ChartStyle
-	} from './patterns.js';
+<script lang="ts" module>
+	import type { HTMLAttributes } from 'svelte/elements';
+	import type { Category, ChartGround, ChartStyle } from './patterns.js';
 
 	type Row = Record<string, string | number | Date>;
 	type Kind = 'bar' | 'stacked-bar' | 'stacked-area' | 'donut';
 
-	let {
-		kind,
-		style = 'pattern',
-		ground = 'background',
-		title,
-		summary,
-		categories,
-		data,
-		x = 'key',
-		rowHeader = x,
-		rowHeaderLabel = '',
-		valueLabel = 'Value',
-		totalLabel = 'total',
-		format = (v: number) => v.toLocaleString('en'),
-		class: className = 'h-64 w-full'
-	}: {
+	/** @behaviour print:fit-column */
+	export type PatternChartProps = Omit<HTMLAttributes<HTMLElement>, 'children' | 'class' | 'style' | 'title'> & {
+		/** The root, the figure of the chart. */
+		ref?: HTMLElement | null;
 		kind: Kind;
 		/** The pattern style is the default. A product or a person may take one of the two color styles. */
 		style?: ChartStyle;
@@ -81,18 +56,79 @@
 		totalLabel?: string;
 		/** The text of a value: on the chart, on the axis, in the tooltip and in the table. */
 		format?: (value: number) => string;
-		/** The size of the chart container. It needs a fixed height. */
+		/** Stacked: the short name of an x value on the axis, such as 19 Oct. With none, the axis shows the x value. */
+		tick?: (value: string | number | Date) => string;
+		/** Classes for the root, which place the part, such as a margin, a grid cell or a width. A height class, such as h-80, sets the height of the chart container. */
 		class?: string;
-	} = $props();
+	};
+</script>
+
+<script lang="ts">
+	import { AreaChart, BarChart, PieChart } from 'layerchart/svg';
+	import type { ChartState, Tooltip } from 'layerchart';
+	import * as Chart from '#lib/components/ui/chart/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { registerChart } from '#lib/print/chart-width.js';
+	import { cn } from '#lib/utils.js';
+	import { placeOf, sizeOf } from './chart-class.js';
+	import StackPatternDefs from './StackPatternDefs.svelte';
+	import PatternLegend from './PatternLegend.svelte';
+	import PatternTile from './PatternTile.svelte';
+	import { CHART_INK, categoryFill, chartColor, groundColor, patternPrefix, threeTicks } from './patterns.js';
+
+	let {
+		kind,
+		style = 'pattern',
+		ground = 'background',
+		title,
+		summary,
+		categories,
+		data,
+		x = 'key',
+		rowHeader = x,
+		rowHeaderLabel = '',
+		valueLabel = 'Value',
+		totalLabel = 'total',
+		format = (v: number) => v.toLocaleString('en'),
+		tick,
+		class: className = 'h-64 w-full',
+		ref = $bindable(null),
+		...rest
+	}: PatternChartProps = $props();
 
 	const uid = $props.id();
 	const prefix = patternPrefix(uid);
 	const summaryId = `${prefix}-summary`;
 	const tableId = `${prefix}-table`;
 
+	// The context stays undefined until the chart mounts. The type of the LayerChart prop leaves undefined
+	// out, so each bind:context takes "!", which only satisfies that type.
 	let context = $state<ChartState<Row>>();
 	$effect(() => (context ? registerChart(context) : undefined));
+	let container = $state<HTMLElement | null>(null);
 	let tableShown = $state(false);
+
+	// A fallback font has other widths than the web font, so the texts are measured again when the fonts load.
+	let fontsLoaded = $state(false);
+	$effect(() => {
+		document.fonts.ready.then(() => (fontsLoaded = true));
+	});
+
+	/**
+	 * The width of the widest text in the font of the container at a weight. It reads the width of the
+	 * chart and the font state, so that the texts are measured again when the text step changes and
+	 * when the web font replaces the fallback.
+	 */
+	function widest(texts: string[], weight: 400 | 500): number {
+		void fontsLoaded;
+		if (!container || !context?.width) return 0;
+		const pen = document.createElement('canvas').getContext('2d');
+		if (!pen) return 0;
+		const font = getComputedStyle(container);
+		pen.font = `${weight} ${font.fontSize} ${font.fontFamily}`;
+		return Math.max(0, ...texts.map((t) => pen.measureText(t).width));
+	}
 
 	const stacked = $derived(kind === 'stacked-bar' || kind === 'stacked-area');
 	const position = $derived(new Map(categories.map((c, i) => [c.key, i])));
@@ -132,6 +168,27 @@
 	const svg = $derived({ title, 'aria-describedby': `${summaryId} ${tableId}` });
 	const yAxis = $derived({ ticks, format });
 	const grid = $derived({ yTicks: ticks });
+
+	// "A long category axis" in DESIGN.md: on a band axis LayerChart 2.7.0 names every x value, so the
+	// axis of a stacked bar names every nth x value, where n is the smallest step for which n times the
+	// distance from one bar to the next is at least the widest name plus 8 px. The first x value always
+	// has its name. The tooltip and the data table name every x value.
+	const NAME_STEPS = [1, 2, 3, 4, 6, 12];
+	const NAME_GAP = 8;
+	const xTicks = $derived.by(() => {
+		if (kind !== 'stacked-bar' || data.length < 2 || !context) return undefined;
+		const values = data.map((row) => row[x]).filter((v) => v !== undefined);
+		const [first, second] = values;
+		if (first === undefined || second === undefined) return undefined;
+		const step = Math.abs(Number(context.xScale(second)) - Number(context.xScale(first)));
+		const name = widest(values.map((v) => (tick ? tick(v) : String(v))), 400);
+		if (!step || !name) return undefined;
+		const n = NAME_STEPS.find((k) => k * step >= name + NAME_GAP) ?? 12;
+		return values.filter((_, i) => i % n === 0);
+	});
+	const xAxis = $derived(
+		kind === 'bar' ? { format: label } : { ...(xTicks ? { ticks: xTicks } : {}), ...(tick ? { format: tick } : {}) }
+	);
 
 	// The donut leaves room around the ring for the outside labels.
 	const DONUT_PAD = { top: 28, bottom: 28, left: 96, right: 96 };
@@ -173,11 +230,11 @@
 		for (const side of [1, -1]) {
 			const column = placed.filter((p) => p.side === side).sort((a, b) => a.y - b.y);
 			column.forEach((p, i) => {
-				p.y = Math.max(p.y, top, i ? column[i - 1].y + LABEL_STEP : top);
+				p.y = Math.max(p.y, top, i ? column[i - 1]!.y + LABEL_STEP : top);
 			});
 			for (let i = column.length - 1; i >= 0; i--) {
-				const limit = i === column.length - 1 ? bottom : column[i + 1].y - LABEL_STEP;
-				column[i].y = Math.min(column[i].y, limit);
+				const limit = i === column.length - 1 ? bottom : column[i + 1]!.y - LABEL_STEP;
+				column[i]!.y = Math.min(column[i]!.y, limit);
 			}
 		}
 		for (const p of placed) p.x2 = p.side * Math.sqrt(Math.max(0, labelRadius ** 2 - p.y ** 2));
@@ -198,7 +255,7 @@
 	{#if i !== undefined}
 		<span class="flex shrink-0"><PatternTile {prefix} n={i + 1} {style} /></span>
 		<div class="flex flex-1 items-center justify-between gap-2 leading-none">
-			<span class="text-muted-foreground">{categories[i].label}</span>
+			<span class="text-muted-foreground">{categories[i]!.label}</span>
 			<span class="font-medium text-foreground tabular-nums">{format(Number(item.value))}</span>
 		</div>
 	{/if}
@@ -216,17 +273,24 @@
 	/>
 {/snippet}
 
+<!-- "Values that do not fit" in DESIGN.md: when the value of any bar is wider than its bar, only the
+     tallest bar shows its value, the first of them when two are equally tall. -->
 {#snippet barValues({ context: c }: { context: ChartState<Row> })}
 	{@const shown = c.series.visibleSeries.map((s) => s.key)}
 	{@const band = c.xScale.bandwidth?.() ?? 0}
+	{@const totals = data.map((row) => rowTotal(row, shown))}
+	{@const fit = widest(totals.map(format), 500) <= band}
+	{@const tallest = totals.indexOf(Math.max(...totals))}
 	<g aria-hidden="true" data-chart-values>
 		{#each data as row, r (r)}
-			<text
-				x={Number(c.xScale(row[x])) + band / 2}
-				y={c.yScale(rowTotal(row, shown)) - 6}
-				text-anchor="middle"
-				class="fill-foreground text-xs font-medium tabular-nums">{format(rowTotal(row, shown))}</text
-			>
+			{#if fit || r === tallest}
+				<text
+					x={Number(c.xScale(row[x])) + band / 2}
+					y={c.yScale(totals[r] ?? 0) - 6}
+					text-anchor="middle"
+					class="fill-foreground text-xs font-medium tabular-nums">{format(totals[r] ?? 0)}</text
+				>
+			{/if}
 		{/each}
 	</g>
 {/snippet}
@@ -264,11 +328,18 @@
 	</g>
 {/snippet}
 
-<figure class="m-0 flex min-w-0 flex-col gap-1" data-pattern-chart={kind} data-chart-style={style}>
+<figure
+	bind:this={ref}
+	data-slot="pattern-chart"
+	data-pattern-chart={kind}
+	data-chart-style={style}
+	class={cn('m-0 flex min-w-0 flex-col gap-1', placeOf(className))}
+	{...rest}
+>
 	<figcaption class="text-sm font-medium">{title}</figcaption>
 	<p id={summaryId} class="text-xs text-muted-foreground">{summary}</p>
 	{#if style !== 'color'}<StackPatternDefs {prefix} {style} />{/if}
-	<Chart.Container {config} class={[className, '[&_.lc-area-line]:fill-none']}>
+	<Chart.Container {config} class={[cn('h-64 w-full', sizeOf(className)), '[&_.lc-area-line]:fill-none']} bind:ref={container}>
 		{#if kind === 'bar'}
 			<BarChart
 				{data}
@@ -280,8 +351,8 @@
 				yNice={false}
 				rule={false}
 				padding={{ top: 20, bottom: 20, left: 32, right: 4 }}
-				bind:context
-				props={{ svg, bars: edge, yAxis, grid, xAxis: { format: label } }}
+				bind:context={context!}
+				props={{ svg, bars: edge, yAxis, grid, xAxis }}
 				belowMarks={baseLine}
 				aboveMarks={barValues}
 			>
@@ -299,8 +370,8 @@
 				yNice={false}
 				rule={false}
 				padding={{ top: 20, bottom: 20, left: 32, right: 4 }}
-				bind:context
-				props={{ svg, bars: edge, yAxis, grid }}
+				bind:context={context!}
+				props={{ svg, bars: edge, yAxis, grid, xAxis }}
 				belowMarks={baseLine}
 				aboveMarks={barValues}
 			>
@@ -318,8 +389,8 @@
 				yNice={false}
 				rule={false}
 				padding={{ top: 8, bottom: 20, left: 32, right: 4 }}
-				bind:context
-				props={{ svg, line: edge, yAxis, grid }}
+				bind:context={context!}
+				props={{ svg, line: edge, yAxis, grid, xAxis }}
 				belowMarks={baseLine}
 			>
 				{#snippet tooltip()}
@@ -334,7 +405,7 @@
 				cRange={data.map((d) => fill(d.key))}
 				innerRadius={0.6}
 				padding={DONUT_PAD}
-				bind:context
+				bind:context={context!}
 				props={{ svg, arc: edge, pie: { sort: null } }}
 				aboveMarks={donutMarks}
 			>
@@ -342,7 +413,8 @@
 			</PieChart>
 		{/if}
 	</Chart.Container>
-	{#if context && stacked}
+	<!-- A chart with one category has no legend: its caption names the metric ("Labels on the chart"). -->
+	{#if context && stacked && categories.length > 1}
 		<PatternLegend {context} {prefix} {categories} {style} />
 	{/if}
 	<div>

@@ -2,21 +2,19 @@
 	import * as Form from '#lib/components/ui/form/index.js';
 	import * as RadioGroup from '#lib/components/ui/radio-group/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
-	import type { SuperForm } from 'sveltekit-superforms';
-	import { writable } from 'svelte/store';
+	import { superForm } from 'sveltekit-superforms';
 
 	type Data = { username: string; email: string; notify: string };
 
-	// sveltekit-superforms 2.31.0 supports SvelteKit 1 and 2. Its superForm() reads $app/stores,
-	// which SvelteKit 3 removed, so it throws app_stores_removed. The form parts read only these
-	// four stores of a superForm, so the showcase passes them directly. The email error is set
-	// by hand, so that the invalid state shows with no submit.
-	const form = {
-		form: writable<Data>({ username: 'ana', email: 'ana@', notify: 'all' }),
-		errors: writable({ email: ['Enter a whole email address.'] }),
-		constraints: writable({}),
-		tainted: writable(undefined)
-	} as unknown as SuperForm<Data>;
+	// A form with no server action and no schema. The `errors` key holds the email error, so that
+	// the invalid state shows with no submit.
+	const form = superForm<Data>({
+		id: 'showcase',
+		valid: false,
+		posted: false,
+		data: { username: 'ana', email: 'ana@', notify: 'all' },
+		errors: { email: ['Enter a whole email address.'] }
+	});
 	const formData = form.form;
 </script>
 

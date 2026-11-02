@@ -1,14 +1,34 @@
 <script module lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import type { SvelteSet } from 'svelte/reactivity';
+
 	/** A row of a tree. The rows come in tree order: a parent row, then its child rows, then its next sibling. */
 	export type TreeRow = { id: string; parent?: string; name: string; note?: string };
 
 	/** A tree holds at most three levels. */
 	export const TREE_DEPTH = 3;
+
+	export type TableTreeProps<T extends TreeRow> = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> & {
+		/** The root element of the part: the box of the table. */
+		ref?: HTMLDivElement | null;
+		rows: T[];
+		/** The ids of the folded parent rows. */
+		folded: SvelteSet<string>;
+		caption?: string;
+		/** The cells of the header row, the head of the name column too. */
+		head: Snippet;
+		/** The cells before the name cell, such as the check box of the selection. */
+		start?: Snippet<[T]>;
+		/** The cells after the name cell. */
+		cells: Snippet<[T]>;
+		selected?: (row: T) => boolean;
+		/** A class for the table. */
+		class?: string;
+	};
 </script>
 
 <script lang="ts" generics="T extends TreeRow">
-	import type { Snippet } from 'svelte';
-	import type { SvelteSet } from 'svelte/reactivity';
 	import * as Table from '#lib/components/ui/table/index.js';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import { cn } from '#lib/utils.js';
@@ -28,6 +48,9 @@
 	//   A first cell with a box takes 14 px at its start, so the container does not clip the target.
 	//   The header row is 44 px high too, so the container does not clip the target of a box in it
 	//   at its top, and the box of the first row does not cover it.
+	// - A <div> is the root of the part: it takes the class, the other attributes and ref, and its
+	//   data-slot is table-tree. It holds the scroll box of Table.Root, so the <table> keeps its
+	//   data-slot table.
 	// - Each level adds 24 px of indent. A row with no child rows adds 24 px more, the chevron and its
 	//   gap, so that its name stands under the names of its siblings.
 	let {
@@ -37,20 +60,11 @@
 		head,
 		start,
 		cells,
-		selected
-	}: {
-		rows: T[];
-		/** The ids of the folded parent rows. */
-		folded: SvelteSet<string>;
-		caption?: string;
-		/** The cells of the header row, the head of the name column too. */
-		head: Snippet;
-		/** The cells before the name cell, such as the check box of the selection. */
-		start?: Snippet<[T]>;
-		/** The cells after the name cell. */
-		cells: Snippet<[T]>;
-		selected?: (row: T) => boolean;
-	} = $props();
+		selected,
+		class: className,
+		ref = $bindable(null),
+		...rest
+	}: TableTreeProps<T> = $props();
 
 	const uid = $props.id();
 	const rowId = (id: string) => `${uid}-row-${id}`;
@@ -72,7 +86,7 @@
 			if (l > 1) {
 				let top = r.parent!;
 				while (parent.get(top) !== undefined) top = parent.get(top)!;
-				if (groups.at(-1)?.[0].id !== top) {
+				if (groups.at(-1)?.[0]!.id !== top) {
 					throw new Error(`TableTree: the row "${r.id}" stands apart from the rows of "${top}". Give the rows in tree order.`);
 				}
 			}
@@ -97,12 +111,13 @@
 	}
 </script>
 
+<div bind:this={ref} data-slot="table-tree" class={cn('w-full min-w-0', className)} {...rest}>
 <Table.Root class="max-md:[&_[data-slot=checkbox]]:after:-inset-[15px] max-md:[&_tr>:first-child:has([data-slot=checkbox])]:pl-[14px]">
 	{#if caption}<Table.Caption>{caption}</Table.Caption>{/if}
 	<Table.Header>
 		<Table.Row class="max-md:h-[44px]">{@render head()}</Table.Row>
 	</Table.Header>
-	{#each tree.groups as group (group[0].id)}
+	{#each tree.groups as group (group[0]!.id)}
 		<Table.Body>
 			{#each group as row (row.id)}
 				{@const level = tree.level.get(row.id)!}
@@ -156,3 +171,4 @@
 		</Table.Body>
 	{/each}
 </Table.Root>
+</div>

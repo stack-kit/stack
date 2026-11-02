@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import * as Sidebar from '#lib/components/ui/sidebar/index.js';
 	import { EXAMPLE_LINKS } from '#lib/examples/index.js';
-	import { THEMES, view } from '#lib/stack/view.svelte.js';
+	import { THEMES, view } from '#lib/preview/view.svelte.js';
 
 	let { children }: LayoutProps = $props();
 

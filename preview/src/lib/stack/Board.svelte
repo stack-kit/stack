@@ -1,4 +1,8 @@
 <script lang="ts" module>
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+
+	/** @behaviour undo keys:undo blocked put-back */
 	/** One column of a board: the cards of one value of the field, in their order. */
 	export type BoardColumn<T> = {
 		id: string;
@@ -27,7 +31,7 @@
 	export function placeCard<T extends { id: string }>(columns: readonly BoardColumn<T>[], id: string, to: BoardPlace): BoardColumn<T>[] {
 		const from = placeOf(columns, id);
 		if (!from) return [...columns];
-		const card = columns.find((c) => c.id === from.column)!.items[from.index];
+		const card = columns.find((c) => c.id === from.column)!.items[from.index]!;
 		const out = columns.map((c) => (c.id === from.column ? { ...c, items: c.items.filter((x) => x.id !== id) } : c));
 		return out.map((c) => {
 			if (c.id !== to.column) return c;
@@ -42,13 +46,63 @@
 	const RAIL =
 		'flex h-full w-10 shrink-0 flex-col items-center gap-2 rounded-lg border border-border bg-muted/50 py-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 	const cards = (n: number) => `${NUMBER.format(n)} ${n === 1 ? 'card' : 'cards'}`;
+
+	export type BoardProps<T extends { id: string }> = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
+		/** The root element, the region of the board. */
+		ref?: HTMLDivElement | null;
+		/** The columns in their order, each with its cards in their order. A move writes them. */
+		columns: BoardColumn<T>[];
+		/** The name of the board, for a screen reader, such as "Board of the leads". */
+		label: string;
+		/** The name of a card, for its handle, its menu and the live region. */
+		name: (item: T) => string;
+		/** The name of the field of the columns, for the switch of a phone, such as "Stage". */
+		field?: string;
+		/** The count of a column in words, for its head and the switch. */
+		count?: (n: number) => string;
+		/** Set when each column sorts its cards by a field: a move then changes the column only. */
+		sorted?: { by: string; place: (item: T, items: readonly T[]) => number };
+		/**
+		 * Why a rule of the product keeps the card out of the column now, as a sentence, or undefined to
+		 * let the move go. A column that the rule blocks takes no drop, the arrow keys do not move the
+		 * card into it, and its Move to in More gives the sentence as its reason. A stopped move says the
+		 * sentence in the live region and in a toast.
+		 */
+		blocked?: (item: T, column: string) => string | undefined;
+		/**
+		 * Called after each drop, each move from More and each Undo, with the columns already written.
+		 * `undo` is true for the move of an Undo. Return a Promise to wait for the save: when it
+		 * rejects, the card goes back, and the board says the message of the rejection, or else that
+		 * the card did not move. Undo shows only after the Promise resolves. The result of an older save
+		 * after a newer move changes nothing.
+		 */
+		onmove?: (item: T, from: BoardPlace, to: BoardPlace, undo?: boolean) => void;
+		/** Set when the person may fold a column. The head then holds Fold, and a rail unfolds. */
+		onfold?: (column: string, folded: boolean) => void;
+		/** The start of the head line of a card, after the handle, such as the identifier. */
+		lead?: Snippet<[T]>;
+		/** The body of a card under its head line: the title and the fields. */
+		card: Snippet<[T]>;
+		/** The 16 px icon of a column, such as its status icon. */
+		icon?: Snippet<[BoardColumn<T>]>;
+		/** More buttons at the right of the head of a column, such as New. */
+		actions?: Snippet<[BoardColumn<T>]>;
+		/** The line of a column with no card. */
+		empty?: Snippet<[BoardColumn<T>]>;
+		/** More items of the menu of a card, before the moves, such as Open. */
+		menu?: Snippet<[T]>;
+		/** The end of a column under its cards, such as Show all. */
+		foot?: Snippet<[BoardColumn<T>]>;
+	};
 </script>
 
 <script lang="ts" generics="T extends { id: string }">
-	import { tick, type Snippet } from 'svelte';
+	import { tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
-	import { ScreenQuery, isPrinting } from '#lib/stack/screen-query.svelte.js';
 	import { toast } from 'svelte-sonner';
+	import { cn } from '#lib/utils.js';
+	import { bands, isPrinting } from '#lib/stack/behaviour/width.js';
+	import { undoToast } from '#lib/stack/behaviour/undo.js';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
@@ -73,7 +127,9 @@
 	//   or after, Space or Enter drops it, and Esc or a focus that leaves puts it back.
 	// - No drag: Move up, Move down and Move to in More.
 	// A polite live region says each step. A drop and a move from More save at once, and a toast
-	// offers Undo. Below 768 px the board shows one column at a time, with a switch of the
+	// offers Undo, which the undo key runs too while the toast shows (behaviour/undo). A rule of the
+	// product can block a move (blocked), and a save that fails puts the card back (onmove). Below
+	// 768 px the board shows one column at a time, with a switch of the
 	// columns above it, and More holds every move: a finger cannot drag to a column that it does
 	// not see. Print takes the phone layout, and paper has no switch. So in print the switch
 	// hides, and every column prints in turn under its head. A folded column prints its head only, as its rail does, and a cut column ends with a line such as "First 10 of 62 cards".
@@ -92,39 +148,12 @@
 		actions,
 		empty,
 		menu,
-		foot
-	}: {
-		/** The columns in their order, each with its cards in their order. A move writes them. */
-		columns: BoardColumn<T>[];
-		/** The name of the board, for a screen reader, such as "Board of the leads". */
-		label: string;
-		/** The name of a card, for its handle, its menu and the live region. */
-		name: (item: T) => string;
-		/** The name of the field of the columns, for the switch of a phone, such as "Stage". */
-		field?: string;
-		/** The count of a column in words, for its head and the switch. */
-		count?: (n: number) => string;
-		/** Set when each column sorts its cards by a field: a move then changes the column only. */
-		sorted?: { by: string; place: (item: T, items: readonly T[]) => number };
-		/** Called after each drop, each move from More and each Undo, with the columns already written. */
-		onmove?: (item: T, from: BoardPlace, to: BoardPlace) => void;
-		/** Set when the person may fold a column. The head then holds Fold, and a rail unfolds. */
-		onfold?: (column: string, folded: boolean) => void;
-		/** The start of the head line of a card, after the handle, such as the identifier. */
-		lead?: Snippet<[T]>;
-		/** The body of a card under its head line: the title and the fields. */
-		card: Snippet<[T]>;
-		/** The 16 px icon of a column, such as its status icon. */
-		icon?: Snippet<[BoardColumn<T>]>;
-		/** More buttons at the right of the head of a column, such as New. */
-		actions?: Snippet<[BoardColumn<T>]>;
-		/** The line of a column with no card. */
-		empty?: Snippet<[BoardColumn<T>]>;
-		/** More items of the menu of a card, before the moves, such as Open. */
-		menu?: Snippet<[T]>;
-		/** The end of a column under its cards, such as Show all. */
-		foot?: Snippet<[BoardColumn<T>]>;
-	} = $props();
+		foot,
+		blocked,
+		ref = $bindable(null),
+		class: className,
+		...rest
+	}: BoardProps<T> = $props();
 
 	const uid = $props.id();
 	const hint = `${uid}-hint`;
@@ -133,7 +162,7 @@
 	const headId = (id: string) => `${uid}-head-${id}`;
 	const switchId = (id: string) => `${uid}-switch-${id}`;
 	const railId = (id: string) => `${uid}-rail-${id}`;
-	const wide = new ScreenQuery('min-width: 48rem');
+	const wide = bands.md;
 	const reduce = new MediaQuery('prefers-reduced-motion: reduce');
 
 	/** The text of the live region. */
@@ -152,7 +181,8 @@
 	let moving = false;
 
 	const columnOf = (id: string) => columns.find((c) => c.id === id)!;
-	const itemOf = (id: string) => columns.flatMap((c) => c.items).find((x) => x.id === id)!;
+	/** The card, or undefined when the product took it away, such as during a drag. */
+	const itemOf = (id: string) => columns.flatMap((c) => c.items).find((x) => x.id === id);
 	const open = $derived(columns.filter((c) => !c.folded));
 	const phoneColumn = $derived(columns.find((c) => c.id === phoneShown) ?? columns.find((c) => c.items.length > 0) ?? columns[0]);
 	const size = (c: BoardColumn<T>) => c.total ?? c.items.length;
@@ -171,9 +201,10 @@
 
 	/** The place of a card in a column, by the order of that column. */
 	function land(it: T, column: string, index: number): BoardPlace {
-		if (!sorted) return { column, index };
-		const others = columnOf(column).items.filter((x) => x.id !== it.id);
-		return { column, index: sorted.place(it, others) };
+		// The product can take the column away, such as during a drag.
+		const c = columns.find((x) => x.id === column);
+		if (!sorted || !c) return { column, index };
+		return { column, index: sorted.place(it, c.items.filter((x) => x.id !== it.id)) };
 	}
 
 	/** Says a text again: the region empties first, so that a screen reader says the same words. */
@@ -218,25 +249,65 @@
 	}
 
 	const focusOn = (id: string) => document.getElementById(id)?.focus();
+	/** The control of a card that takes the focus: its handle, its More on a phone, or the rail of a folded column. */
+	const focusCard = (it: T, column: string) => focusOn(wide.current ? (columnOf(column).folded ? railId(column) : handleId(it.id)) : moreId(it.id));
+
+	/**
+	 * Says why a rule or a failed save keeps the card out of a place, in the live region and in a toast
+	 * of its own, so that the Undo of the move before stays in the toast of the board.
+	 */
+	function refuse(text: string) {
+		void say(text);
+		toast(text, { id: `${uid}-refused`, duration: 10000 });
+	}
+
+	/** The sequence number of the newest move. The result of the save of an older move changes nothing. */
+	let last = 0;
+
+	/**
+	 * Waits for the Promise that onmove can return. When it rejects, the card goes back to `back` and
+	 * the board says why. Gives true when the move holds. The result of move `seq` after a newer move
+	 * changes nothing, and gives false.
+	 */
+	async function held(result: unknown, it: T, back: BoardPlace, seq: number): Promise<boolean> {
+		if (typeof (result as PromiseLike<unknown> | null)?.then !== 'function') return true;
+		try {
+			await result;
+			return seq === last;
+		} catch (e) {
+			if (seq !== last) return false;
+			const reason = e instanceof Error ? e.message : typeof e === 'string' ? e : '';
+			// The product can change the columns while it saves, and take the card or its column away.
+			if (placeOf(columns, it.id) && columns.some((c) => c.id === back.column)) await write(placeCard(columns, it.id, back));
+			const at = placeOf(columns, it.id);
+			refuse(`${reason || `${name(it)} did not move.`}${at ? ` Back in ${where(at)}.` : ''}`);
+			// The card left its column and came back, so the focus that it held fell to the page.
+			if (at && document.activeElement === document.body) focusCard(it, at.column);
+			return false;
+		}
+	}
 
 	/** Saves a move, and offers Undo in one toast for the board: a new move replaces it. */
-	function save(it: T, from: BoardPlace, to: BoardPlace) {
-		onmove?.(it, from, to);
-		toast(`${name(it)} moved to ${columnOf(to.column).label}`, {
+	async function save(it: T, from: BoardPlace, to: BoardPlace) {
+		const seq = ++last;
+		// The product can take the column away while it saves, so the name of the column comes first.
+		const label = columnOf(to.column).label;
+		if (!(await held(onmove?.(it, from, to), it, from, seq))) return;
+		undoToast(`${name(it)} moved to ${label}`, {
 			id: `${uid}-moved`,
-			duration: 10000,
-			action: {
-				label: 'Undo',
-				onClick: async () => {
-					const now = placeOf(columns, it.id) ?? to;
-					const home = land(it, from.column, from.index);
-					await write(placeCard(columns, it.id, home));
-					onmove?.(it, now, home);
-					said = `Undone. ${name(it)} is back in ${where(home)}.`;
-					// The toast leaves with its Undo button, so the focus moves to the card. A folded
-					// column on a wide board shows no card, so the focus moves to its rail.
-					focusOn(wide.current ? (columnOf(home.column).folded ? railId(home.column) : handleId(it.id)) : moreId(it.id));
-				}
+			undo: async () => {
+				// The product can take the card, or the column that it came from, away while the toast shows.
+				if (!placeOf(columns, it.id) || !columns.some((c) => c.id === from.column)) return refuse(`${name(it)} cannot go back.`);
+				const undo = ++last;
+				const now = placeOf(columns, it.id) ?? to;
+				const home = land(it, from.column, from.index);
+				await write(placeCard(columns, it.id, home));
+				const result = onmove?.(it, now, home, true);
+				said = `Undone. ${name(it)} is back in ${where(home)}.`;
+				// The toast leaves with its Undo button, so the focus moves to the card. A folded
+				// column on a wide board shows no card, so the focus moves to its rail.
+				focusCard(it, home.column);
+				await held(result, it, now, undo);
 			}
 		});
 	}
@@ -250,6 +321,8 @@
 			return;
 		}
 		if (same(at, to)) return say(`Already at ${where(at)}.`);
+		const off = to.column === at.column ? undefined : blocked?.(it, to.column);
+		if (off) return refuse(off);
 		await write(placeCard(columns, it.id, to));
 		focusOn(handleId(it.id));
 		said = `Moved to ${where(to)}.${limitText(to)}`;
@@ -314,34 +387,39 @@
 	const GAP = 8;
 	type Area = { id: string; left: number; right: number; top: number; slots: { id: string; top: number; bottom: number }[] };
 	/** The drag of one pointer. A second finger or pen on the handle changes nothing. */
-	let drag: { pointer: number; id: string; from: BoardPlace; x: number; y: number; dx: number; dy: number; rect: DOMRect; areas: Area[]; to: BoardPlace } | null = null;
+	let drag: { pointer: number; id: string; from: BoardPlace; x: number; y: number; dx: number; dy: number; rect: DOMRect; areas: Area[]; to: BoardPlace; off?: string | undefined } | null = null;
 
 	function onpointerdown(e: PointerEvent, it: T) {
 		if (e.button !== 0 || lifted || !wide.current) return;
 		const from = placeOf(columns, it.id)!;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-		const rect = shells[it.id].getBoundingClientRect();
+		const rect = shells[it.id]!.getBoundingClientRect();
 		const areas = open.map((c) => {
-			const r = lists[c.id].getBoundingClientRect();
+			const r = lists[c.id]!.getBoundingClientRect();
 			const others = c.items.filter((x) => x.id !== it.id);
-			return { id: c.id, left: r.left, right: r.right, top: r.top, slots: others.map((x) => ({ id: x.id, top: slots[x.id].getBoundingClientRect().top, bottom: slots[x.id].getBoundingClientRect().bottom })) };
+			return { id: c.id, left: r.left, right: r.right, top: r.top, slots: others.map((x) => ({ id: x.id, top: slots[x.id]!.getBoundingClientRect().top, bottom: slots[x.id]!.getBoundingClientRect().bottom })) };
 		});
 		drag = { pointer: e.pointerId, id: it.id, from, x: e.clientX, y: e.clientY, dx: 0, dy: 0, rect, areas, to: from };
 		// The slot keeps the height of the card, and the card leaves the column as a fixed layer,
 		// so that the scroll box of the column does not clip it on its way to another column.
-		slots[it.id].style.height = `${rect.height}px`;
-		Object.assign(shells[it.id].style, { position: 'fixed', left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px` });
+		slots[it.id]!.style.height = `${rect.height}px`;
+		Object.assign(shells[it.id]!.style, { position: 'fixed', left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px` });
 		lifted = { id: it.id, from, by: 'pointer', before: columns };
 		said = `Lifted ${name(it)}. ${where(from)}.`;
 	}
 	function onpointermove(e: PointerEvent) {
 		if (!drag || e.pointerId !== drag.pointer) return;
 		const { rect, areas, from } = drag;
+		// The product can take the card away during the drag. Its handle then goes, and the lost
+		// pointer capture ends the drag.
+		const it = itemOf(drag.id);
+		const shell = shells[drag.id];
+		if (!it || !shell?.isConnected) return;
 		// The card stays under the heads of the columns.
 		const floor = Math.min(...areas.map((a) => a.top));
 		drag.dx = e.clientX - drag.x;
 		drag.dy = Math.max(floor - rect.top, e.clientY - drag.y);
-		shells[drag.id].style.transform = `translate(${drag.dx}px, ${drag.dy}px)`;
+		shell.style.transform = `translate(${drag.dx}px, ${drag.dy}px)`;
 		const top = rect.top + drag.dy;
 		const bottom = rect.bottom + drag.dy;
 		const middle = rect.left + drag.dx + rect.width / 2;
@@ -357,25 +435,38 @@
 		} else {
 			to = { column: area.id, index: area.slots.findLastIndex((s) => s.top < bottom + GAP / 2) + 1 };
 		}
-		to = land(itemOf(drag.id), to.column, to.index);
+		to = land(it, to.column, to.index);
+		// A column that the rule keeps the card out of takes no drop line and no drop: the card goes back.
+		drag.off = to.column === from.column ? undefined : blocked?.(it, to.column);
+		if (drag.off) to = from;
 		drag.to = to;
 		line = same(to, from) ? null : { column: to.column, before: area.slots[to.index]?.id ?? null };
 	}
 	async function endDrag(drop: boolean) {
 		if (!drag) return;
-		const { id, from, dx, dy, rect, to } = drag;
+		const { id, dx, dy, rect, off } = drag;
+		let { from, to } = drag;
 		drag = null;
 		line = null;
-		const it = itemOf(id);
-		const left = new DOMRect(rect.left + dx, rect.top + dy, rect.width, rect.height);
-		slots[id].style.height = '';
-		Object.assign(shells[id].style, { position: '', left: '', top: '', width: '', transform: '' });
 		lifted = null;
-		const at = drop ? to : from;
+		const left = new DOMRect(rect.left + dx, rect.top + dy, rect.width, rect.height);
+		const slot = slots[id];
+		if (slot) slot.style.height = '';
+		const shell = shells[id];
+		if (shell) Object.assign(shell.style, { position: '', left: '', top: '', width: '', transform: '' });
+		// The product can replace the columns during a drag. The card then counts from where it is
+		// now, and a drop on a column that is gone puts it back. With the card gone, nothing moves.
+		const it = itemOf(id);
+		const now = placeOf(columns, id);
+		if (!it || !now) return void say('Move cancelled.');
+		if (!same(now, from)) from = now;
+		if (!columns.some((c) => c.id === to.column)) to = from;
+		const at = drop && !off ? to : from;
 		await write(same(at, from) ? columns : placeCard(columns, id, at), new Map([[id, left]]));
 		// The press gave the handle the focus, and the move can take it away, so it goes back.
 		document.getElementById(handleId(id))?.focus({ preventScroll: true });
 		if (!drop) said = `Move cancelled. Back in ${where(from)}.`;
+		else if (off) refuse(`${off} Back in ${where(from)}.`);
 		else {
 			said = `Dropped in ${where(at)}.${limitText(at)}`;
 			if (!same(at, from)) save(it, from, at);
@@ -419,9 +510,6 @@
 
 <svelte:window onkeydowncapture={onwindowkey} />
 
-<p id={hint} class="sr-only">Press Space to lift it. Then the arrow keys move it in its column and to the column before or after, Space drops it, and Escape puts it back.</p>
-<p role="status" class="sr-only">{said}</p>
-
 {#snippet more(it: T, c: BoardColumn<T>, i: number)}
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger id={moreId(it.id)} class="{buttonVariants({ variant: 'ghost', size: 'icon-xs' })} relative z-10 shrink-0 print:hidden" aria-label="More for {name(it)}">
@@ -440,10 +528,32 @@
 				<DropdownMenu.Separator />
 			{/if}
 			{#each columns.filter((x) => x.id !== c.id) as target (target.id)}
-				<DropdownMenu.Item onSelect={() => (pending = () => menuMove(it, land(it, target.id, 0)))}><ArrowRightIcon />Move to {target.label}</DropdownMenu.Item>
+				{@const off = blocked?.(it, target.id)}
+				{#if off}
+					{@render reasonItem(`${moreId(it.id)}-to-${target.id}`, `Move to ${target.label}`, off)}
+				{:else}
+					<DropdownMenu.Item onSelect={() => (pending = () => menuMove(it, land(it, target.id, 0)))}><ArrowRightIcon />Move to {target.label}</DropdownMenu.Item>
+				{/if}
 			{/each}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
+{/snippet}
+
+<!-- A move that a rule blocks ("Disabled with a reason" in ### dropdown-menu): the item stays reachable
+     with the arrow keys and runs nothing, its label draws at 50%, and a second line gives the reason.
+     Bits UI writes aria-disabled="false" over a prop, so the child snippet sets it after the props. -->
+{#snippet reasonItem(id: string, label: string, reason: string)}
+	<DropdownMenu.Item onSelect={(e: Event) => e.preventDefault()}>
+		{#snippet child({ props })}
+			<div {...props} aria-disabled="true" aria-labelledby="{id}-label" aria-describedby="{id}-reason">
+				<ArrowRightIcon class="opacity-50" />
+				<span class="flex flex-col">
+					<span id="{id}-label" class="opacity-50">{label}</span>
+					<span id="{id}-reason" class="text-xs text-muted-foreground">{reason}</span>
+				</span>
+			</div>
+		{/snippet}
+	</DropdownMenu.Item>
 {/snippet}
 
 {#snippet shell(it: T, c: BoardColumn<T>, i: number)}
@@ -464,8 +574,9 @@
 		>
 			<div class="flex min-h-6 items-center gap-1">
 				{#if wide.current}
-					<!-- The tooltip closes while a card is lifted, so that it covers no card on the way. -->
-					<Tooltip.Root disabled={lifted !== null} open={lifted ? false : undefined}>
+					<!-- The tooltip closes while a card is lifted, so that it covers no card on the way. Undefined gives the
+					     open state back to the tooltip. The type of bits-ui leaves undefined out, and "!" only satisfies that type. -->
+					<Tooltip.Root disabled={lifted !== null} open={(lifted ? false : undefined) as boolean}>
 						<Tooltip.Trigger
 							onkeydown={(e: KeyboardEvent) => onkeydown(e, it)}
 							onfocusout={() => onfocusout(it)}
@@ -553,8 +664,17 @@
 {/snippet}
 
 <Tooltip.Provider>
-	{#if wide.current}
-		<div data-slot="board" role="region" aria-label={label} class="min-h-0 flex-1 overflow-x-auto bg-background">
+	<div
+		bind:this={ref}
+		data-slot="board"
+		role="region"
+		aria-label={label}
+		class={cn(wide.current ? 'min-h-0 flex-1 overflow-x-auto bg-background' : 'flex min-h-0 flex-1 flex-col bg-background print:block', className)}
+		{...rest}
+	>
+		<p id={hint} class="sr-only">Press Space to lift it. Then the arrow keys move it in its column and to the column before or after, Space drops it, and Escape puts it back.</p>
+		<p role="status" class="sr-only">{said}</p>
+		{#if wide.current}
 			<div class="flex h-full w-max gap-2 p-3">
 				{#each columns as c (c.id)}
 					{#if c.folded && onfold}
@@ -581,10 +701,8 @@
 					{/if}
 				{/each}
 			</div>
-		</div>
-	{:else if phoneColumn}
-		<!-- Below 768 px: one column at a time, and a switch of the columns above it. In print the switch hides, and every column prints in turn with its head and its cards. In print the board and each column are blocks: a flex item keeps its height when a card moves to the next page, and the next column printed over that card (measured). The list takes no top padding in print and the head takes it as a margin, so that print:break-after-avoid keeps the head on the page of its first card. With the padding, a page could end inside the list, under the padding, and a head stood alone at the foot of a page (measured). -->
-		<div data-slot="board" role="region" aria-label={label} class="flex min-h-0 flex-1 flex-col bg-background print:block">
+		{:else if phoneColumn}
+			<!-- Below 768 px: one column at a time, and a switch of the columns above it. In print the switch hides, and every column prints in turn with its head and its cards. In print the board and each column are blocks: a flex item keeps its height when a card moves to the next page, and the next column printed over that card (measured). The list takes no top padding in print and the head takes it as a margin, so that print:break-after-avoid keeps the head on the page of its first card. With the padding, a page could end inside the list, under the padding, and a head stood alone at the foot of a page (measured). -->
 			<div class="shrink-0 border-b border-border print:hidden">
 				<ScrollArea orientation="horizontal" class="w-full">
 					<ToggleGroup.Root
@@ -629,8 +747,8 @@
 					{/if}
 				</section>
 			{/each}
-		</div>
-	{/if}
+		{/if}
+	</div>
 </Tooltip.Provider>
 
 <style>

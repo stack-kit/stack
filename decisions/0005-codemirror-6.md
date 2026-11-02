@@ -100,9 +100,9 @@ Firefox, Safari, VoiceOver, NVDA and a phone with a touch keyboard were not test
 
 The test of 2026-10-23 ran these versions. The preview pins the three packages exactly, and its lockfile holds the rest: `@codemirror/language` 6.13.1, `@codemirror/streamparser` 6.0.0, `@lezer/common` 1.5.4, `@lezer/highlight` 1.2.5, `@lezer/lr` 1.4.11, `style-mod` 4.1.4, `crelt` 1.0.7, `w3c-keyname` 2.2.8 and `@marijn/find-cluster-break` 1.0.4.
 
-The test found these rules for a product:
+The test found these rules for the part:
 
-- **The theme.** Put the box classes on the `.cm-editor` element through `EditorView.editorAttributes`, with `data-slot="code-editor"`. Then a `max-h-*` class on the box makes the scroller scroll, and the phone key of `stack.css` reaches the box. Give the scroller `font-family: inherit` and `line-height: inherit`, so that the classes of the box set the font.
+- **The theme.** Put the box classes on the `.cm-editor` element through `EditorView.editorAttributes`, with `data-slot="code-editor"`. Put that element in a root of its own (`code-editor-wrapper`), a flex column that takes the class of the page. Then a `max-h-*` class on the root stops the box, which hides its overflow, and the scroller scrolls. The phone key of `stack.css` reaches the box. Give the scroller `font-family: inherit` and `line-height: inherit`, so that the classes of the box set the font.
 - **The minimum height.** Set the min-height on `.cm-content` and `.cm-gutter`, not on the box.
 - **Read-only.** Use `EditorState.readOnly`, never `EditorView.editable` set to false, which takes the text out of the focus order.
 - **The keys.** Put `indentWithTab` first in the keymap, and take Escape and Mod-Enter out of `defaultKeymap`. Stop each Esc in an editor that a person can edit with `EditorView.domEventHandlers`, and let it through when `view.state.readOnly` is true. Return false, so that CodeMirror still opens its window for Tab.

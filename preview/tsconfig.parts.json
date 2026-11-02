@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"exactOptionalPropertyTypes": true,
+		"noUncheckedIndexedAccess": true
+	},
+	"include": [
+		"src/lib/stack",
+		"src/lib/outside",
+		"src/lib/print/chart-width.ts",
+		"src/lib/print/pattern-fills.ts",
+		"src/lib/print/marks.ts",
+		"src/lib/email/email.ts"
+	]
+}

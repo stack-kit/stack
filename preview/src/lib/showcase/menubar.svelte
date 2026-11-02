@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Menubar from '#lib/components/ui/menubar/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 
 	let value = $state(forcedOpen('menubar') ? 'file' : '');
 	let wrap = $state(true);

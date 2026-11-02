@@ -1,46 +1,11 @@
 <script lang="ts" module>
 	import { CalendarDate, endOfMonth, startOfMonth, startOfWeek } from '@internationalized/date';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-	/** The weeks of the grid of a month, each a row of seven days, from the first day of the week of the locale. */
-	export function weeksOf(month: CalendarDate, locale: string): CalendarDate[][] {
-		const first = startOfWeek(startOfMonth(month), locale);
-		const last = endOfMonth(month);
-		const weeks: CalendarDate[][] = [];
-		for (let start = first; start.compare(last) <= 0; start = start.add({ weeks: 1 })) {
-			weeks.push(Array.from({ length: 7 }, (_, i) => start.add({ days: i })));
-		}
-		return weeks;
-	}
-</script>
-
-<script lang="ts" generics="T extends { id: string }">
-	import { tick, type Snippet } from 'svelte';
-	import { ScreenQuery } from '#lib/stack/screen-query.svelte.js';
-	import * as Popover from '#lib/components/ui/popover/index.js';
-	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-	import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-	import { cn } from '#lib/utils.js';
-	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
-	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-
-	// The records of one month on its grid, such as the tickets by their due date. Each day shows
-	// its records as lines of 20 px, and a day with more records than lines shows "3 more", which
-	// opens the day in a popover with every record. The first day of the week and the names of the
-	// days follow the locale. The grid is one tab stop: the arrow keys move the focus by a day or
-	// a week, Home and End go to the start and the end of the week, Page Up and Page Down show the
-	// month before or after, and Enter or Space opens the day. Below 768 px the month is a list by
-	// day: a head for each day with records, and the records under it.
-	let {
-		month = $bindable(),
-		today,
-		locale,
-		days,
-		lines = 4,
-		count = (n: number) => `${n} ${n === 1 ? 'record' : 'records'}`,
-		loading = false,
-		empty,
-		record
-	}: {
+	export type MonthViewProps<T extends { id: string }> = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
+		/** The root element, which holds the head line, the grid and the popover of a day. */
+		ref?: HTMLDivElement | null;
 		/** A day of the month that shows. Previous, Today, Next and the keys write it. */
 		month: CalendarDate;
 		/** Today, in the time zone that counts a calendar day for the product. */
@@ -58,12 +23,56 @@
 		empty?: Snippet;
 		/** One record as a link. The number is its tabindex: -1 in the grid, which is one tab stop, and 0 elsewhere. */
 		record: Snippet<[T, number]>;
-	} = $props();
+	};
+
+	/** The weeks of the grid of a month, each a row of seven days, from the first day of the week of the locale. */
+	export function weeksOf(month: CalendarDate, locale: string): CalendarDate[][] {
+		const first = startOfWeek(startOfMonth(month), locale);
+		const last = endOfMonth(month);
+		const weeks: CalendarDate[][] = [];
+		for (let start = first; start.compare(last) <= 0; start = start.add({ weeks: 1 })) {
+			weeks.push(Array.from({ length: 7 }, (_, i) => start.add({ days: i })));
+		}
+		return weeks;
+	}
+</script>
+
+<script lang="ts" generics="T extends { id: string }">
+	import { tick } from 'svelte';
+	import { bands } from '#lib/stack/behaviour/width.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+	import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+	import { cn } from '#lib/utils.js';
+	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+
+	// The records of one month on its grid, such as the tickets by their due date. Each day shows
+	// its records as lines of 20 px, and a day with more records than lines shows "3 more", which
+	// opens the day in a popover with every record. The first day of the week and the names of the
+	// days follow the locale. The grid is one tab stop: the arrow keys move the focus by a day or
+	// a week, Home and End go to the start and the end of the week, Page Up and Page Down show the
+	// month before or after, and Enter or Space opens the day. Below 768 px (bands.md) the month is
+	// a list by day: a head for each day with records, and the records under it.
+	let {
+		month = $bindable(),
+		today,
+		locale,
+		days,
+		lines = 4,
+		count = (n: number) => `${n} ${n === 1 ? 'record' : 'records'}`,
+		loading = false,
+		empty,
+		record,
+		ref = $bindable(null),
+		class: className,
+		...rest
+	}: MonthViewProps<T> = $props();
 
 	const uid = $props.id();
 	const headingId = `${uid}-month`;
 	const dayId = (d: CalendarDate) => `${uid}-day-${d.toString()}`;
-	const wide = new ScreenQuery('min-width: 48rem');
+	const wide = bands.md;
 	const UTC = 'UTC';
 	const names = $derived({
 		month: new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: UTC }),
@@ -130,7 +139,7 @@
 		e.stopPropagation();
 		if (opens) {
 			if (recordsOf(d).length > 0) show(d, e.currentTarget as HTMLElement);
-		} else go(to[e.key]());
+		} else go(to[e.key]!());
 	}
 
 	const shift = (months: number) => {
@@ -151,7 +160,7 @@
 {/snippet}
 
 <!-- Below 768 px the list by day keeps its height, so that a box that scrolls around it scrolls the whole list. -->
-<div data-slot="month-view" class="flex min-h-0 flex-1 flex-col gap-3 bg-background max-md:flex-none">
+<div bind:this={ref} data-slot="month-view" class={cn('flex min-h-0 flex-1 flex-col gap-3 bg-background max-md:flex-none', className)} {...rest}>
 	<div class="flex flex-wrap items-center gap-2">
 		<h2 id={headingId} class="text-base font-semibold" aria-live="polite">{names.month.format(at(month))}</h2>
 		<div class="ml-auto flex items-center gap-1 print:hidden">
@@ -174,7 +183,7 @@
 					</span>
 				{/each}
 			</div>
-			{#each weeks as week (week[0].toString())}
+			{#each weeks as week (week[0]!.toString())}
 				<div role="row" class="grid min-h-30 flex-1 grid-cols-7 border-b border-border last:border-b-0">
 					{#each week as d (d.toString())}
 						{@const own = inMonth(d)}
@@ -202,7 +211,7 @@
 									>{names.number.format(d.day)}</span
 								>
 								{#if loading}
-									{#each { length: BARS[d.day % BARS.length] } as _, i (i)}<Skeleton class="h-5 w-full" />{/each}
+									{#each { length: BARS[d.day % BARS.length]! } as _, i (i)}<Skeleton class="h-5 w-full" />{/each}
 								{:else if list.length > 0}
 									<ul class="flex min-w-0 flex-col gap-1">
 										{#each list.slice(0, cut) as it (it.id)}{@render line(it, -1)}{/each}
@@ -260,19 +269,20 @@
 			{/each}
 		</div>
 	{/if}
-</div>
 
-<Popover.Root bind:open>
-	<Popover.Content customAnchor={anchor} align="start" class="w-64" role="dialog" aria-label={openDay ? dayName(openDay) : undefined} onCloseAutoFocus={back}>
-		{#if openDay}
-			{@const list = recordsOf(openDay)}
-			<Popover.Header>
-				<Popover.Title>{names.day.format(at(openDay))}</Popover.Title>
-				<Popover.Description class="tabular-nums">{count(list.length)}</Popover.Description>
-			</Popover.Header>
-			<ul class="flex flex-col gap-1">
-				{#each list as it (it.id)}{@render line(it, 0)}{/each}
-			</ul>
-		{/if}
-	</Popover.Content>
-</Popover.Root>
+	<!-- The popover of a day. Its content renders in a portal, so the root keeps one box. -->
+	<Popover.Root bind:open>
+		<Popover.Content customAnchor={anchor} align="start" class="w-64" role="dialog" aria-label={openDay ? dayName(openDay) : undefined} onCloseAutoFocus={back}>
+			{#if openDay}
+				{@const list = recordsOf(openDay)}
+				<Popover.Header>
+					<Popover.Title>{names.day.format(at(openDay))}</Popover.Title>
+					<Popover.Description class="tabular-nums">{count(list.length)}</Popover.Description>
+				</Popover.Header>
+				<ul class="flex flex-col gap-1">
+					{#each list as it (it.id)}{@render line(it, 0)}{/each}
+				</ul>
+			{/if}
+		</Popover.Content>
+	</Popover.Root>
+</div>

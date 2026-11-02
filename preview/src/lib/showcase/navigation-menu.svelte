@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as NavigationMenu from '#lib/components/ui/navigation-menu/index.js';
 	import { navigationMenuTriggerStyle } from '#lib/components/ui/navigation-menu/navigation-menu-trigger.svelte';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 	import { onMount } from 'svelte';
 
 	// The menu ignores a value that is set before its items register, so the forced value

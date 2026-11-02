@@ -9,6 +9,8 @@
 	768 px the value comes first, because a phone cannot scan its own screen.
 -->
 <script lang="ts" module>
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { correction, generate } from 'lean-qr';
 
 	/** The side of the tile in px, the quiet zone included. */
@@ -62,29 +64,10 @@
 		}
 		return { version: (n - 17) / 4, module, path };
 	}
-</script>
 
-<script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-	import { cn } from '#lib/utils.js';
-	import CodeBlock from './CodeBlock.svelte';
-
-	let {
-		value,
-		label,
-		valueLabel,
-		kind = 'text',
-		text,
-		copyValue,
-		copyLabel = 'Copy',
-		openLabel = 'Open the link',
-		tooLongLabel = 'This value is too long for a QR code. Copy it as text.',
-		loading = false,
-		children,
-		class: className
-	}: {
+	export type QrCodeProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> & {
+		/** The root element of the part. */
+		ref?: HTMLDivElement | null;
 		/** The text that the code holds: an address, or a key that an app reads. */
 		value: string;
 		/** The accessible name of the code: what it opens or holds, never the value. */
@@ -109,14 +92,38 @@
 		/** The instruction above the value, such as "Scan the code with the camera of the phone." */
 		children?: Snippet;
 		class?: string;
-	} = $props();
+	};
+</script>
+
+<script lang="ts">
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+	import { cn } from '#lib/utils.js';
+	import CodeBlock from './CodeBlock.svelte';
+
+	let {
+		value,
+		label,
+		valueLabel,
+		kind = 'text',
+		text,
+		copyValue,
+		copyLabel = 'Copy',
+		openLabel = 'Open the link',
+		tooLongLabel = 'This value is too long for a QR code. Copy it as text.',
+		loading = false,
+		children,
+		class: className,
+		ref = $bindable(null),
+		...rest
+	}: QrCodeProps = $props();
 
 	const uid = $props.id();
 	const symbol = $derived(loading ? null : qrSymbol(value));
 	const tile = `width: ${QR_TILE}px; height: ${QR_TILE}px`;
 </script>
 
-<div data-slot="qr-code" class={cn('@container print:break-inside-avoid', className)} aria-busy={loading ? 'true' : undefined}>
+<div bind:this={ref} data-slot="qr-code" class={cn('@container print:break-inside-avoid', className)} aria-busy={loading ? 'true' : undefined} {...rest}>
 	<div class="flex flex-col gap-4 @lg:flex-row @lg:items-start @lg:gap-6">
 		{#if loading}
 			<Skeleton class="shrink-0 rounded-lg" style={tile} />

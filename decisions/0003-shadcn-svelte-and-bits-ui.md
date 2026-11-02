@@ -41,7 +41,7 @@ The chart parts of shadcn-svelte use LayerChart, which [0004](0004-layerchart-sv
 - Bad, because the teams are small. Bits UI names one maintainer, and shadcn-svelte names three. In 2026 the longest gap between releases was 97 days for shadcn-svelte and 108 days for Bits UI.
 - Bad, because the shadcn-svelte documentation lags its CLI in places, for example in the list of base colors.
 - Bad, because the CLI needs two extra steps on SvelteKit 3 (More Information). Since [0006](0006-where-a-product-gets-the-component-files.md), only the maintainer runs the CLI, in the preview.
-- Bad, because the CLI reads the live registry, which changes between two releases of STACK. So since [0006](0006-where-a-product-gets-the-component-files.md), a product copies the component files that a release ships, and never runs the CLI.
+- Bad, because the CLI reads the live registry, which changes between two releases of STACK. So a product never runs the CLI. Since [0006](0006-where-a-product-gets-the-component-files.md) it copied the component files that a release ships, and since [0008](0008-a-product-imports-every-part-from-the-package.md) it imports them from the package of a release.
 
 ### Confirmation
 
@@ -57,7 +57,7 @@ The test project of 2026-10-13 ran the shadcn-svelte 1.7.0 CLI and `bits-ui` 2.1
 
 - Good, because it keeps the theme contract, and it has its own create page.
 - Good, because it follows the reference kit closely. The nova button carries the same classes for its default size as the nova button of the reference kit.
-- Good, because a product holds each component as files in its own code. Since [0006](0006-where-a-product-gets-the-component-files.md), it copies them from a release of STACK, and not with the CLI.
+- Good, because each component is a set of plain files, which STACK tests and changes before a release. Since [0008](0008-a-product-imports-every-part-from-the-package.md), a product imports them from the package of a release, and not with the CLI.
 - Good, because Bits UI is made by one of the shadcn-svelte maintainers.
 - Bad, because it is an unofficial port with small teams.
 
@@ -87,4 +87,4 @@ The test project of 2026-10-13 found two steps that the shadcn-svelte CLI needs 
 
 A product takes a theme from the shadcn create page as the CSS block of its Theme tab. It never passes a preset code from the shadcn create page to the shadcn-svelte CLI.
 
-[0006](0006-where-a-product-gets-the-component-files.md) amends this record. The kit and its versions stay. A product copies the component files and the lock of a release, and installs the exact packages of the lock.
+[0006](0006-where-a-product-gets-the-component-files.md) amended this record, and [0008](0008-a-product-imports-every-part-from-the-package.md) supersedes 0006. The kit and its versions stay. A product imports each component from the package of a release, and installs the exact packages of the record of the tested versions.

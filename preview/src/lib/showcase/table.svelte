@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import * as Table from '#lib/components/ui/table/index.js';
-	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import TableTree, { type TreeRow } from '#lib/stack/TableTree.svelte';
-	import { checkboxReadonly } from '#lib/stack/checkbox-readonly.js';
+	import Gap from '#lib/stack/Gap.svelte';
+	import HeldCheckbox from '#lib/stack/HeldCheckbox.svelte';
 
 	const invoices = [
 		{ id: 'INV001', status: 'Paid', method: 'Card', amount: '$250.00', selected: false },
@@ -107,7 +107,7 @@
 </script>
 
 {#snippet none()}
-	<span aria-hidden="true" class="text-muted-foreground">&mdash;</span><span class="sr-only">Does not apply</span>
+	<Gap reason="Does not apply" />
 {/snippet}
 
 <section id="showcase-table" data-showcase="table" class="flex flex-col gap-4 border-t border-border py-8">
@@ -151,52 +151,31 @@
 			A box that a parent row sets is read-only, with the reason in its tooltip. Reports starts folded.
 		</p>
 		<div id="showcase-table-tree" class="max-w-3xl" data-grants={granted.size}>
-			<Tooltip.Provider>
-				<TableTree rows={features} folded={featuresFolded} caption="The permissions of the role Sales team.">
-					{#snippet head()}
-						<Table.Head>Feature</Table.Head>
-						{#each PERMS as p (p.id)}<Table.Head class="min-w-[44px]">{p.label}</Table.Head>{/each}
-					{/snippet}
-					{#snippet cells(f)}
-						{#each PERMS as p (p.id)}
-							{@const b = box(f, p.id)}
-							<Table.Cell>
-								{#if b.kind === 'none'}
-									{@render none()}
-								{:else if b.kind === 'set'}
-									{@const reason = `Set by ${b.by.name}. Change it in the ${b.by.name} row.`}
-									{@const rid = `showcase-table-tree-${f.id}-${p.id}-reason`}
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<Checkbox
-													{...props}
-													data-slot="checkbox"
-													checked
-													readonly
-													aria-disabled="true"
-													aria-label={boxName(f, p.label)}
-													aria-describedby={rid}
-													class={checkboxReadonly}
-												/>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content>{reason}</Tooltip.Content>
-									</Tooltip.Root>
-									<span id={rid} hidden>{reason}</span>
-								{:else}
-									<Checkbox
-										aria-label={boxName(f, p.label)}
-										checked={b.checked}
-										indeterminate={b.mixed}
-										onCheckedChange={(on) => grant(f, p.id, on)}
-									/>
-								{/if}
-							</Table.Cell>
-						{/each}
-					{/snippet}
-				</TableTree>
-			</Tooltip.Provider>
+			<TableTree rows={features} folded={featuresFolded} caption="The permissions of the role Sales team.">
+				{#snippet head()}
+					<Table.Head>Feature</Table.Head>
+					{#each PERMS as p (p.id)}<Table.Head class="min-w-[44px]">{p.label}</Table.Head>{/each}
+				{/snippet}
+				{#snippet cells(f)}
+					{#each PERMS as p (p.id)}
+						{@const b = box(f, p.id)}
+						<Table.Cell>
+							{#if b.kind === 'none'}
+								{@render none()}
+							{:else if b.kind === 'set'}
+								<HeldCheckbox checked reason="Set by {b.by.name}. Change it in the {b.by.name} row." aria-label={boxName(f, p.label)} />
+							{:else}
+								<Checkbox
+									aria-label={boxName(f, p.label)}
+									checked={b.checked}
+									indeterminate={b.mixed}
+									onCheckedChange={(on) => grant(f, p.id, on)}
+								/>
+							{/if}
+						</Table.Cell>
+					{/each}
+				{/snippet}
+			</TableTree>
 		</div>
 	</div>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Table from '#lib/components/ui/table/index.js';
-	import { colors, typography, spacing, rounded } from '#lib/stack/design.js';
+	import { colors, typography, spacing, rounded } from '#lib/preview/design.js';
 
 	// A swatch paints var(--name), so it follows the theme and mode switch. The value columns
 	// are the front matter of DESIGN.md, which is the default theme.

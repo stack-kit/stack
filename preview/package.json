@@ -13,7 +13,8 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --output machine",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && if grep -nE '^[[:space:]]*(:root|[.]dark|@theme)' src/routes/layout.css; then echo 'check: src/routes/layout.css holds the lines above. Remove them: the theme comes from ../themes/ and ../stack.css, never from layout.css.' >&2; exit 1; fi && if grep -snE '^[[:space:]]*(:root|[.]dark)' src/lib/examples/*/product-theme.css; then echo 'check: a product-theme.css holds the lines above. Remove them: it holds @theme inline aliases and no value.' >&2; exit 1; fi"
+		"check:parts": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.parts.json --output machine | node ../scripts/check-parts.mjs",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && npm run check:parts && node ../scripts/rune-types.mjs --check && node ../scripts/contract.mjs check && node --test ../scripts/contract.test.mjs && if grep -nE '^[[:space:]]*(:root|[.]dark|@theme)' src/routes/layout.css; then echo 'check: src/routes/layout.css holds the lines above. Remove them: the theme comes from ../themes/ and ../stack.css, never from layout.css.' >&2; exit 1; fi && if grep -snE '^[[:space:]]*(:root|[.]dark)' src/lib/examples/*/product-theme.css; then echo 'check: a product-theme.css holds the lines above. Remove them: it holds @theme inline aliases and no value.' >&2; exit 1; fi"
 	},
 	"devDependencies": {
 		"@codemirror/commands": "6.11.1",
@@ -32,7 +33,7 @@
 		"bits-ui": "2.19.5",
 		"cn": "0.4.0",
 		"embla-carousel-svelte": "8.6.0",
-		"formsnap": "2.0.1",
+		"formsnap": "2.1.0",
 		"layerchart": "2.7.0",
 		"lean-qr": "2.7.4",
 		"mode-watcher": "1.1.0",
@@ -41,7 +42,8 @@
 		"svelte": "5.57.2",
 		"svelte-check": "4.7.6",
 		"svelte-sonner": "1.2.1",
-		"sveltekit-superforms": "2.31.0",
+		"svelte2tsx": "0.7.61",
+		"sveltekit-superforms": "3.1.0",
 		"tailwind-variants": "3.3.1",
 		"tailwindcss": "4.3.3",
 		"tw-animate-css": "1.4.0",

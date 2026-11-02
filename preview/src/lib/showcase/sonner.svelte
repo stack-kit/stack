@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 

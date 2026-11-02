@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as HoverCard from '#lib/components/ui/hover-card/index.js';
 	import * as Avatar from '#lib/components/ui/avatar/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 
 	let open = $state(forcedOpen('hover-card'));
 </script>

@@ -1,6 +1,6 @@
 {
   "name": "@stack-kit/stack",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "The shared design file, its themes and its checks.",
   "license": "MIT",
@@ -27,15 +27,47 @@
     "providers/",
     "examples/",
     "preview/components.lock.json",
+    "preview/contract.json",
     "preview/src/lib/components/ui/",
     "preview/src/lib/hooks/",
     "preview/src/lib/utils.ts",
+    "preview/src/lib/stack/",
+    "preview/src/lib/outside/",
+    "preview/src/lib/email/email.ts",
+    "preview/src/lib/print/chart-width.ts",
+    "preview/src/lib/print/pattern-fills.ts",
+    "preview/src/lib/print/marks.ts",
     "scripts/contrast.mjs",
     "scripts/lib/color.mjs",
     "scripts/lib/design.mjs",
     "scripts/lib/email-roles.mjs",
+    "scripts/lib/email-roles.d.mts",
     "scripts/lib/pairs.mjs"
   ],
+  "imports": {
+    "#lib/*": "./preview/src/lib/*"
+  },
+  "exports": {
+    "./ui/*": "./preview/src/lib/components/ui/*/index.ts",
+    "./parts/*": "./preview/src/lib/stack/*.svelte",
+    "./behaviour/*": "./preview/src/lib/stack/behaviour/*.ts",
+    "./outside/*": "./preview/src/lib/outside/*.svelte",
+    "./outside/codes": "./preview/src/lib/outside/codes.ts",
+    "./utils": "./preview/src/lib/utils.ts",
+    "./hooks/*": "./preview/src/lib/hooks/*.svelte.js",
+    "./patterns": "./preview/src/lib/stack/patterns.ts",
+    "./email": "./preview/src/lib/email/email.ts",
+    "./stack.css": "./stack.css",
+    "./stack-plain.css": "./stack-plain.css",
+    "./themes/*": "./themes/*",
+    "./preview/src/lib/components/ui/shadcn-svelte.css": "./preview/src/lib/components/ui/shadcn-svelte.css",
+    "./DESIGN.md": "./DESIGN.md",
+    "./chart-patterns.svg": "./chart-patterns.svg",
+    "./architecture/keys.json": "./architecture/keys.json",
+    "./preview/components.lock.json": "./preview/components.lock.json",
+    "./preview/contract.json": "./preview/contract.json",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "lint": "node scripts/lint.mjs",
     "theme": "node scripts/theme.mjs",
@@ -48,11 +80,79 @@
     "keys": "node scripts/keys.mjs",
     "generate": "node scripts/generate.mjs",
     "index": "node scripts/index.mjs",
-    "version": "node scripts/index.mjs && node scripts/component-lock.mjs && git add DESIGN.index.md preview/components.lock.json",
-    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run"
+    "parts": "node scripts/parts.mjs",
+    "contract": "node scripts/contract.mjs",
+    "preversion": "node scripts/parts.mjs --release && node scripts/contract.mjs gate \"$npm_new_version\"",
+    "version": "node scripts/index.mjs && node scripts/component-lock.mjs && node scripts/contract.mjs write && git add DESIGN.index.md package.json preview/components.lock.json preview/contract.json",
+    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run && npm run parts && node --test scripts/parts.test.mjs"
   },
   "devDependencies": {
     "@google/design.md": "0.4.0",
     "yaml": "2.9.1"
+  },
+  "peerDependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@internationalized/date": "^3.12.4",
+    "@lucide/svelte": "^1.55.0",
+    "@shadcn-svelte/primitives": "^0.0.1",
+    "@sveltejs/kit": "^3.0.1",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "bits-ui": "^2.19.5",
+    "cn": "^0.4.0",
+    "embla-carousel-svelte": "^8.6.0",
+    "formsnap": "^2.1.0",
+    "layerchart": "^2.7.0",
+    "lean-qr": "^2.7.4",
+    "mode-watcher": "^1.1.0",
+    "paneforge": "^1.0.2",
+    "svelte": "^5.57.2",
+    "svelte-sonner": "^1.2.1",
+    "sveltekit-superforms": "^3.1.0",
+    "tailwind-variants": "^3.3.1",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0",
+    "vaul-svelte": "^1.0.0-next.7",
+    "vite": "^8.3.4"
+  },
+  "peerDependenciesMeta": {
+    "@codemirror/commands": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
+      "optional": true
+    },
+    "@shadcn-svelte/primitives": {
+      "optional": true
+    },
+    "embla-carousel-svelte": {
+      "optional": true
+    },
+    "formsnap": {
+      "optional": true
+    },
+    "layerchart": {
+      "optional": true
+    },
+    "lean-qr": {
+      "optional": true
+    },
+    "mode-watcher": {
+      "optional": true
+    },
+    "paneforge": {
+      "optional": true
+    },
+    "sveltekit-superforms": {
+      "optional": true
+    },
+    "vaul-svelte": {
+      "optional": true
+    }
   }
 }

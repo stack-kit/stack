@@ -1,7 +1,8 @@
 <script lang="ts">
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
-	import { forcedOpen } from '#lib/stack/view.svelte.js';
+	import ReasonMenuItem from '#lib/stack/ReasonMenuItem.svelte';
+	import { forcedOpen } from '#lib/preview/view.svelte.js';
 	import UserIcon from '@lucide/svelte/icons/user';
 
 	let open = $state(forcedOpen('dropdown-menu'));
@@ -20,18 +21,8 @@
 				<DropdownMenu.Item><UserIcon />Profile<DropdownMenu.Shortcut>⇧⌘P</DropdownMenu.Shortcut></DropdownMenu.Item>
 				<DropdownMenu.Item inset>Inset item</DropdownMenu.Item>
 				<DropdownMenu.Item disabled>Disabled item</DropdownMenu.Item>
-				<!-- A rule blocks the item: it stays reachable with the arrow keys, does nothing, and gives its reason.
-				     Bits UI writes aria-disabled="false" over a prop, so the child snippet sets it after the props. -->
-				<DropdownMenu.Item onSelect={(e) => e.preventDefault()}>
-					{#snippet child({ props })}
-						<div {...props} aria-disabled="true" aria-labelledby="showcase-menu-blocked" aria-describedby="showcase-menu-blocked-reason">
-							<span class="flex flex-col">
-								<span id="showcase-menu-blocked" class="opacity-50">Blocked item</span>
-								<span id="showcase-menu-blocked-reason" class="text-xs text-muted-foreground">Close the 3 open tasks first.</span>
-							</span>
-						</div>
-					{/snippet}
-				</DropdownMenu.Item>
+				<!-- A rule blocks the item: it stays reachable with the arrow keys, does nothing, and gives its reason. -->
+				<ReasonMenuItem label="Blocked item" reason="Close the 3 open tasks first." onSelect={() => {}} />
 				<DropdownMenu.Sub>
 					<DropdownMenu.SubTrigger>Invite users</DropdownMenu.SubTrigger>
 					<DropdownMenu.SubContent>
