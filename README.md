@@ -2,6 +2,8 @@
 
 STACK is the shared base that a set of web products build from. It holds the design file `DESIGN.md` and the CSS that a product imports. It also holds the stack choices, a decision record for each choice, and the architecture of each platform. The design system and the stack choices cover the whole of a web app and the admin area of a website. They do not cover the public pages of a website, because each site gets its own design and chooses its own stack. When a website runs its public pages and its admin as two apps, only the admin app imports the CSS of STACK. `STACK.md` gives the scope. The roadmap and the tickets live outside this repository.
 
+The preview of the current release shows each component and each part at https://stack.digitaldementia.co ("The preview").
+
 This README has two readers. An agent or a person in a product reads the sections from "Use a release in a product" to "The preview". The maintainer of this repository also reads "Checks and commit hooks" and "Maintain this repository".
 
 `media/charts-dark.png` is a screenshot of the chart page of the preview. The images in `media/` are not part of the npm package, so a copy of this README in `node_modules/` shows no image.
@@ -720,6 +722,8 @@ The products draw charts with LayerChart 2.7.0 on its SVG layer, in the chart pa
 Each record in `decisions/` has a status and a `date` in its front matter. The status is `accepted`, or `superseded by` the record that replaces it. Records 0008 to 0012 are no stack choice. They decide how a product takes the parts: the import from the package, the seam to SvelteKit, the modules with runes, the shared behaviour, and the props of a part from one release to the next. Each record follows the MADR 4.0 form. It gives the context, the decision drivers and the options. Then it gives the outcome with its consequences and its confirmation, and the pros and cons of each option.
 
 ## The preview
+
+The preview of the current release runs at https://stack.digitaldementia.co. It is the static build of the public copy of the newest tag, so it shows the components, the parts and the pages below, and no example of a product. The preview of v1.0.0, the last release of the 1.x line, runs at https://stack.digitaldementia.co/1.0.0/.
 
 The preview in `preview/` is a SvelteKit app. It reads `DESIGN.md`, `stack.css` and `themes/` from the folder above, so it never copies a value. It has these pages:
 

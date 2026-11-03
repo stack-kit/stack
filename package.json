@@ -1,6 +1,6 @@
 {
   "name": "@stack-kit/stack",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "private": true,
   "description": "The shared design file, its themes and its checks.",
   "license": "MIT",

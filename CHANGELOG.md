@@ -17,6 +17,27 @@ minor version. A fix that keeps the contract and the documented behaviour is
 a patch. The release step writes each entry from the commits since the last
 tag.
 
+## v2.1.1 - 2026-11-03
+
+### Breaking
+
+- None. A product changes no code at this update.
+
+### Behaviour
+
+- None. No part, no rule and no style changed.
+
+### Added
+
+- `README.md` links the preview of the current release at
+  https://stack.digitaldementia.co, in its head and in "The preview",
+  and the preview of v1.0.0, the last release of the 1.x line, at
+  https://stack.digitaldementia.co/1.0.0/.
+
+### Fixed
+
+- None.
+
 ## v2.1.0 - 2026-11-02
 
 ### Breaking
