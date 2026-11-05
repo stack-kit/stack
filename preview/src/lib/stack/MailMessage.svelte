@@ -9,18 +9,22 @@
 		id: string;
 		from: MailPerson;
 		to: MailPerson[];
+		/** The count of the people that the product left out of to, when it gives only the first people. It shows after the last person, as "and 90 more". */
+		toMore?: number;
 		cc?: MailPerson[];
+		/** The count of the people that the product left out of cc, as toMore. */
+		ccMore?: number;
 		/** Only a message that the product sent holds Bcc. A message that came in does not show it. */
 		bcc?: MailPerson[];
 		at: Date;
-		/** The paragraphs of the plain text part. A blank line ends a paragraph. */
+		/** The paragraphs of the plain text part. A blank line ends a paragraph, and a single line break stays in it as \n. */
 		body: string[];
 		/** The language of the body when it differs from the interface, and its direction. */
 		lang?: string;
 		dir?: 'ltr' | 'rtl' | 'auto';
-		/** The quoted part of an earlier message, which the product found at the end of the body. */
+		/** The quoted part of an earlier message, which the product found at the end of the body. Its paragraphs take the form of body. */
 		quote?: string[];
-		/** A translation from an agent, which no person confirmed: the agent and the paragraphs. */
+		/** A translation from an agent, which no person confirmed: the agent and the paragraphs, in the form of body. */
 		translation?: { by: string; lang: string; body: string[] };
 		files?: MailFile[];
 		/** The line of a message that the product sent, such as "Sent by Mail agent for Marko Ellis". */
@@ -75,11 +79,12 @@
 	// no side. The header holds the avatar of 20 px, the name of the sender at 500, the address, the
 	// time by its age and the unread mark. The recipients and the line of the sender follow in small
 	// type, at the left edge of the name. The body is running text in the reading step, at most
-	// 720 px wide, in the lang and dir of the mail. The quoted part of an earlier message folds
-	// behind a button, a translation from an agent takes the dashed edge and the badge of content
-	// that no person confirmed, and the files follow as attachments of size sm. A folded message is
-	// one line: the avatar, the name, the first words and the time, as a button that opens it. In
-	// print every message prints open, and a folded quote stays folded.
+	// 720 px wide, in the lang and dir of the mail. The body, the quote and the translation keep
+	// each single line break of a paragraph (whitespace-pre-line). The quoted part of an earlier
+	// message folds behind a button, a translation from an agent takes the dashed edge and the badge
+	// of content that no person confirmed, and the files follow as attachments of size sm. A folded
+	// message is one line: the avatar, the name, the first words and the time, as a button that
+	// opens it. In print every message prints open, and a folded quote stays folded.
 	let {
 		mail,
 		now,
@@ -109,6 +114,15 @@
 	});
 	const initial = (p: MailPerson) => label(p).trim().charAt(0).toUpperCase();
 	const full = $derived(new Intl.DateTimeFormat(locale, { timeZone, dateStyle: 'full', timeStyle: 'short' }));
+	const number = $derived(new Intl.NumberFormat(locale));
+	/** To, then Cc and Bcc when the mail holds them, each with the count of the people that the product left out. */
+	const groups = $derived(
+		[
+			{ word: 'To', list: mail.to, more: mail.toMore },
+			{ word: 'Cc', list: mail.cc ?? [], more: mail.ccMore },
+			{ word: 'Bcc', list: mail.bcc ?? [], more: undefined }
+		].filter((g) => g.list.length > 0)
+	);
 
 	async function unfold() {
 		folded = false;
@@ -132,8 +146,9 @@
 	</Tooltip.Root>
 {/snippet}
 
-{#snippet people(word: string, list: MailPerson[])}
-	{word}{' '}{#each list as p, i (i)}{#if i > 0},{' '}{/if}{#if p.name}<bdi>{p.name}</bdi> &lt;{p.address}&gt;{:else}{p.address}{/if}{/each}
+<!-- A list that the product cut ends with the count of the others, as plain text: the part does not hold those people. -->
+{#snippet people(word: string, list: MailPerson[], more = 0)}
+	{word}{' '}{#each list as p, i (i)}{#if i > 0},{' '}{/if}{#if p.name}<bdi>{p.name}</bdi> &lt;{p.address}&gt;{:else}{p.address}{/if}{/each}{#if more > 0}{' '}and {number.format(more)} more<span class="sr-only select-none">{' '}{more === 1 ? 'recipient' : 'recipients'}</span>{/if}
 {/snippet}
 
 <Tooltip.Provider>
@@ -177,11 +192,11 @@
 				</div>
 				<!-- To, then Cc and Bcc when the mail holds them, with a middle dot between the groups. -->
 				<p data-slot="mail-message-recipients" class="pl-7 text-xs wrap-break-word text-muted-foreground">
-					{#each [['To', mail.to], ['Cc', mail.cc], ['Bcc', mail.bcc]].filter(([, l]) => l?.length) as [word, list], g (word)}{#if g > 0}{' '}·{' '}{/if}{@render people(word as string, list as MailPerson[])}{/each}
+					{#each groups as { word, list, more }, g (word)}{#if g > 0}{' '}·{' '}{/if}{@render people(word, list, more)}{/each}
 				</p>
 				{#if mail.sentBy}<p data-slot="mail-message-sent-by" class="pl-7 text-xs text-muted-foreground">{mail.sentBy}</p>{/if}
 			</header>
-			<div data-slot="mail-message-body" lang={mail.lang} dir={mail.dir} class="flex max-w-180 flex-col gap-3 text-md wrap-break-word">
+			<div data-slot="mail-message-body" lang={mail.lang} dir={mail.dir} class="flex max-w-180 flex-col gap-3 text-md whitespace-pre-line wrap-break-word">
 				{#each mail.body as p, i (i)}<p>{p}</p>{/each}
 			</div>
 			{#if mail.quote}
@@ -189,13 +204,13 @@
 					<Button variant="ghost" size="xs" class="text-muted-foreground print:hidden" aria-expanded={quoteOpen} aria-controls="{uid}-quote" onclick={() => (quoteOpen = !quoteOpen)}>
 						{quoteOpen ? 'Hide the quoted text' : 'Show the quoted text'}
 					</Button>
-					<blockquote id="{uid}-quote" data-slot="mail-message-quote" lang={mail.lang} dir={mail.dir} class={cn('flex-col gap-3 border-l border-border pl-3 text-md wrap-break-word text-muted-foreground', quoteOpen ? 'flex' : 'hidden')}>
+					<blockquote id="{uid}-quote" data-slot="mail-message-quote" lang={mail.lang} dir={mail.dir} class={cn('flex-col gap-3 border-l border-border pl-3 text-md whitespace-pre-line wrap-break-word text-muted-foreground', quoteOpen ? 'flex' : 'hidden')}>
 						{#each mail.quote as p, i (i)}<p>{p}</p>{/each}
 					</blockquote>
 				</div>
 			{/if}
 			{#if mail.translation}
-				<div data-slot="mail-message-translation" lang={mail.translation.lang} class="flex max-w-180 flex-col items-start gap-3 rounded-lg border border-dashed border-input p-3 text-md text-muted-foreground">
+				<div data-slot="mail-message-translation" lang={mail.translation.lang} class="flex max-w-180 flex-col items-start gap-3 rounded-lg border border-dashed border-input p-3 text-md whitespace-pre-line text-muted-foreground">
 					<Badge variant="outline" class="border-input">Translated by {mail.translation.by}</Badge>
 					{#each mail.translation.body as p, i (i)}<p>{p}</p>{/each}
 				</div>

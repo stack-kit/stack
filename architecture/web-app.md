@@ -176,7 +176,7 @@ The vendored components bind some keys themselves. No product action takes these
 Every list and every pane has three states: empty, loading and error.
 
 - **Empty.** One sentence and one action. The look is the `empty` definition.
-- **Loading.** Skeleton rows at the height of the real rows, as the `skeleton` definition draws them. A list never shows a spinner (`DESIGN.md`, `## Do's and Don'ts`). A list that has cached data shows the cache, and never skeletons. When the refresh takes more than 2 s, the syncing banner shows. A local cache is the choice of each product.
+- **Loading.** Skeleton rows at the height of the real rows, as the `skeleton` definition draws them. A list never shows a spinner (`DESIGN.md`, `## Do's and Don'ts`). A list that has cached data shows the cache, and never skeletons. When the refresh takes more than 2 s, the syncing banner shows. A refresh that the list starts by itself shows no syncing banner, because a banner moves every row under the pointer ("Rows under the pointer" in `### Lists` of `DESIGN.md`). A local cache is the choice of each product.
 - **Error.** The error shows inline, where the content would be. It says what failed and how to fix it, and it has a retry button.
 
 ### A failed write
@@ -185,6 +185,8 @@ A product can show the result of a write before the server confirms it. When the
 
 - A field keeps its value, shows the edge of an invalid field (the `input` definition), and shows a message that names the retry.
 - A row keeps the state that the person chose. A line of 24 px under the row shows an icon, what failed, a retry button and a discard button.
+- A field of a form that saves itself keeps its value and takes no invalid edge, because the value itself is valid. The foot of the form shows the failure and the next try, as "Failed save" in `### Settings and forms` in `DESIGN.md` says.
+- A write whose result is not known is a case of its own. An example is a send that ends in a timeout after the request left. The server can have done the write, so the line never says that the write failed, such as "Not sent". It shows no retry button, because a second try can send the mail twice. It says that the result is not known and where the person checks it, such as "The mail may have gone out. Look in Sent before you send it again." The input stays. When the server can give the result later, the product asks for it and then shows that result.
 
 ### Connection banners
 

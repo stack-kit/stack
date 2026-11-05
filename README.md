@@ -338,8 +338,8 @@ An update is one change of the pin. The version number says what the release cha
 
 | Level | What the release changes | What the product does |
 |---|---|---|
-| Major | A change that a product must act on: a removed or renamed prop, callback, snippet, export or `data-slot`; a narrowed type; a new required input; a changed default that changes what a page shows; a behaviour that needs a new function from the product; a change of a rule of the frame. | It takes each step of the Breaking part of the change log entry. |
-| Minor | A new part; a new optional prop or snippet; a change of the look; a change of behaviour that needs no input from the product. | Nothing. It reads the Behaviour part, so that it knows what its users see. |
+| Major | A change that a product must act on: a removed or renamed prop, callback, snippet, export or `data-slot`; a narrowed type; a new required input; a change of a member of an exported object type other than a new optional member; a changed default that changes what a page shows; a behaviour that needs a new function from the product; a change of a rule of the frame. | It takes each step of the Breaking part of the change log entry. |
+| Minor | A new part; a new optional prop or snippet; a new optional member of an exported object type; a change of the look; a change of behaviour that needs no input from the product. | Nothing. It reads the Behaviour part, so that it knows what its users see. |
 | Patch | A fix that keeps the contract and the documented behaviour. | Nothing. |
 
 The contract of a part is its props, its callbacks, its snippets, its exported types and functions, its `data-slot` names and its documented behaviour. `preview/contract.json` holds the contract of each release, and a release stops when its level is below the level of the change of its contract.

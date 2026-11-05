@@ -115,6 +115,54 @@ test('a callback with a new required parameter, a narrower parameter or a narrow
   assert.equal(d.level, 'major');
 });
 
+// A contract with one exported name T of the kind kind and the type string type.
+const typed = (type, kind = 'type') => ({ exports: { './parts/P': { T: { kind, type } } } });
+
+test('a new optional member of an exported object type is Added, at any depth', () => {
+  const d = contract.diff(
+    typed('{ at: Date; to: Person[]; translation?: { body: string[]; lang: string; }; }'),
+    typed('{ at: Date; to: Person[]; toMore?: number; translation?: { body: string[]; lang: string; note?: string; }; }'),
+  );
+  assert.deepEqual(lines(d), ['Added: ./parts/P T: new optional member toMore: number', 'Added: ./parts/P T: new optional member translation.note: string']);
+  assert.equal(d.level, 'minor');
+  // An interface prints no ; at its end, and a generic type keeps its type parameters.
+  assert.deepEqual(lines(contract.diff(typed('<T> { id: string; items: T[] }'), typed('<T> { id: string; items: T[]; total?: number }'))), ['Added: ./parts/P T: new optional member total: number']);
+});
+
+test('each other change of a member of an exported object type is breaking', () => {
+  const old = "{ format?: (n: number) => string; id: string; note?: string; size: number; tone?: 'plain' | 'strong'; translation?: { lang: string; }; }";
+  // The lines of the diff from old to old with the text from replaced by to, at level major.
+  const change = (from, to) => {
+    assert.ok(old.includes(from));
+    const d = contract.diff(typed(old), typed(old.replace(from, to)));
+    assert.equal(d.level, 'major');
+    return lines(d);
+  };
+  assert.deepEqual(change('size: number;', 'rank: number; size: number;'), ['Breaking: ./parts/P T: new required member rank: number']);
+  assert.deepEqual(change('note?: string; ', ''), ['Breaking: ./parts/P T: member note removed']);
+  assert.deepEqual(change('note?: string;', 'label?: string;'), ['Breaking: ./parts/P T: member note renamed to label']);
+  assert.deepEqual(change('size: number;', 'size: string;'), ['Breaking: ./parts/P T: member size type changed: number -> string']);
+  assert.deepEqual(change("tone?: 'plain' | 'strong';", "tone?: 'plain';"), ["Breaking: ./parts/P T: member tone narrowed: 'plain' | 'strong' -> 'plain'"]);
+  assert.deepEqual(change('size: number;', 'size: number | string;'), ['Breaking: ./parts/P T: member size widened: number -> number | string']);
+  assert.deepEqual(change('note?: string;', 'note: string;'), ['Breaking: ./parts/P T: member note became required']);
+  assert.deepEqual(change('id: string;', 'id?: string;'), ['Breaking: ./parts/P T: member id became optional']);
+  assert.deepEqual(change('(n: number) => string', '(n: string) => string'), ['Breaking: ./parts/P T: member format type changed: (n: number) => string -> (n: string) => string']);
+  assert.deepEqual(change('{ lang: string; }', '{ by: string; lang: string; }'), ['Breaking: ./parts/P T: new required member translation.by: string']);
+});
+
+test('a type that is no plain object type, or a value, keeps the rule of the whole type string', () => {
+  const whole = (x, y, kind = 'type') => {
+    const d = contract.diff(typed(x, kind), typed(y, kind));
+    assert.equal(d.level, 'major');
+    return lines(d);
+  };
+  assert.deepEqual(whole('{ a: string; } | { b: string; }', '{ a: string; c?: number; } | { b: string; }'), ['Breaking: ./parts/P T: type changed: { a: string; } | { b: string; } -> { a: string; c?: number; } | { b: string; }']);
+  assert.deepEqual(whole('Base & { a: string; }', 'Base & { a: string; c?: number; }'), ['Breaking: ./parts/P T: type changed: Base & { a: string; } -> Base & { a: string; c?: number; }']);
+  assert.deepEqual(whole('{ (x: number): string; a: string; }', '{ (x: number): string; a: string; c?: number; }'), ['Breaking: ./parts/P T: type changed: { (x: number): string; a: string; } -> { (x: number): string; a: string; c?: number; }']);
+  assert.deepEqual(whole('<T> { a: T; }', '<T, U> { a: T; c?: U; }'), ['Breaking: ./parts/P T: type changed: <T> { a: T; } -> <T, U> { a: T; c?: U; }']);
+  assert.deepEqual(whole('{ a: string; }', '{ a: string; c?: number; }', 'value'), ['Breaking: ./parts/P T: value changed: { a: string; } -> { a: string; c?: number; }']);
+});
+
 test('an import that does not resolve stops the contract', async () => {
   await assert.rejects(build('missing-module'), /stack\/Broken\.svelte.*'#lib\/gone\.js'/);
 });

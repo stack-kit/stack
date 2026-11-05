@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	/** @behaviour item-in-address first-row read escape:item keys:next-row,previous-row,open-item */
+	/** @behaviour item-in-address first-row:kept read escape:item keys:next-row,previous-row,open-item */
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import type { ItemInAddress } from './behaviour/item.js';

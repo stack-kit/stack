@@ -13,9 +13,11 @@
 	// message that was unread keeps its mark while the case shows. The thread shows the oldest
 	// message first, and each read message but the last folds to one line. The thread holds a reply
 	// that a person sent, a quote that folds, a message in German with the translation of an agent,
-	// files, and a reply that the agent sent for a person. Under it, a second thread holds a message
-	// in Arabic and a reply that did not go out. Below 768 px the case is its own screen. Every
-	// person, address and case is invented.
+	// files, and a reply that the agent sent for a person. A signature and an address keep their
+	// line breaks. The second case is a notice to many suppliers, so its To and its Cc end with the
+	// count of the people that the product left out. Under it, a second thread holds a message in
+	// Arabic and a reply that did not go out. Below 768 px the case is its own screen. Every person,
+	// address and case is invented.
 	const ZONE = 'Europe/Belgrade';
 	const now = new Date('2026-11-18T14:20:00+01:00');
 	const at = (s: string) => new Date(`${s}+01:00`);
@@ -54,7 +56,7 @@
 					body: [
 						'Dear Ana,',
 						'Thank you for the photo, and we are sorry about the cups. We asked the courier for a report, and we answer within two working days.',
-						'Marko Ellis, Support'
+						'Marko Ellis\nSupport'
 					],
 					quote: ['On 12 Nov 2026 at 09:14, Ana Turner wrote:', 'The parcel of order 8841 came damaged, and two of the three cups are broken. I attach a photo of the box and the invoice.']
 				},
@@ -68,8 +70,7 @@
 						'Guten Tag,',
 						'die Sendung 8841 wurde am 11. November beschädigt zugestellt. Der Schaden ist auf dem Foto unseres Fahrers zu sehen.',
 						'Sie können die Erstattung beantragen. Das Formular liegt bei.',
-						'Mit freundlichen Grüßen',
-						'Hans Weber'
+						'Mit freundlichen Grüßen\nHans Weber'
 					],
 					translation: {
 						by: 'Mail agent',
@@ -78,8 +79,7 @@
 							'Good day,',
 							'The parcel 8841 was delivered damaged on 11 November. The photo of our driver shows the damage.',
 							'You can ask for the refund. The form is attached.',
-							'Kind regards',
-							'Hans Weber'
+							'Kind regards\nHans Weber'
 						]
 					},
 					files: [{ name: 'claim-form.pdf', size: '96 KB' }],
@@ -94,9 +94,9 @@
 					body: [
 						'Dear Ana,',
 						'The courier confirmed the damage. We sent a refund of €24.00 for the two cups to your card today, and it shows in your account within five working days.',
-						'Marko Ellis, Support'
+						'Marko Ellis\nSupport'
 					],
-					quote: ['On 12 Nov 2026 at 11:02, Support wrote:', 'Thank you for the photo, and we are sorry about the cups.']
+					quote: ['On 12 Nov 2026 at 11:02, Support wrote:', 'Thank you for the photo, and we are sorry about the cups.', 'Marko Ellis\nSupport']
 				}
 			]
 		},
@@ -107,9 +107,13 @@
 				{
 					id: 'n1',
 					from: { name: 'Jelena Brandt', address: 'jelena@example.net' },
-					to: [support],
+					// A notice to every supplier. The product gave only the first people of each list, and the counts of the others.
+					to: [support, { name: 'Sales', address: 'sales@example.org' }],
+					toMore: 90,
+					cc: [{ name: 'Accounts', address: 'accounts@example.net' }],
+					ccMore: 1,
 					at: at('2026-11-18T12:30:00'),
-					body: ['Hello,', 'From January our invoices go to the new office at 14 Mill Lane, Riverton. Please change the address for 2027.', 'Jelena Brandt'],
+					body: ['Hello,', 'From January our invoices go to the new office. Please change the address for 2027:', 'Brandt & Cole Ltd\n14 Mill Lane\nRiverton', 'Jelena Brandt'],
 					unread: true
 				}
 			]
@@ -198,7 +202,7 @@
 	<p class="max-w-3xl text-xs text-muted-foreground">
 		A shared inbox in the work form, with the mail thread of a case in the item column. Each read message but the last folds to one line, and a
 		click opens it. A quote folds behind a button. The German message shows the translation of an agent, and the last reply names the agent and
-		the person.
+		the person. A signature and an address keep their line breaks. The second case is a notice to many suppliers, so its lists end with a count.
 	</p>
 
 	<div class="flex h-[40rem] flex-col overflow-hidden rounded-lg border border-border print:h-auto">

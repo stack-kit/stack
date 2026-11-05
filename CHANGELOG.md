@@ -9,13 +9,77 @@ new part, export, prop and snippet, and Fixed each fix.
 
 A change that a product must act on is a major version: a removed or renamed
 prop, callback, snippet, export or `data-slot`, a narrowed type, a new
-required input, a changed default that changes what a page shows, a
+required input, a change of a member of an exported object type other than a
+new optional member, a changed default that changes what a page shows, a
 behaviour that needs a new function from the product, or a change of a rule
-of the frame. A new part, a new optional prop or snippet, a change of the
-look, or a change of behaviour that needs no input from the product is a
-minor version. A fix that keeps the contract and the documented behaviour is
-a patch. The release step writes each entry from the commits since the last
-tag.
+of the frame. A new part, a new optional prop or snippet, a new optional
+member of an exported object type, a change of the look, or a change of
+behaviour that needs no input from the product is a minor version. A fix that
+keeps the contract and the documented behaviour is a patch. The release step
+writes each entry from the commits since the last tag.
+
+## v2.2.0 - 2026-11-05
+
+### Breaking
+
+- None. A product changes no code at this update. It moves the pin, and
+  it runs the install line of "Install the packages" in `README.md`
+  again.
+
+### Behaviour
+
+- ListSplit: when the web address names no item, the item column keeps
+  the item that it shows when a refresh brings a new first row. The new
+  row comes in at the top with its unread mark, and the item in the
+  column stays unread. When the row of that item leaves the list, the
+  column shows the first row again. The `@behaviour` word `first-row` is
+  now `first-row:kept`.
+
+### Added
+
+- `parts/Gap`: the optional prop `withheld` shows the reason as muted
+  text at 400, with no em dash, for a value that the product withholds
+  on purpose, such as an erased address. The text prints.
+- `parts/MailMessage`: `Mail` takes the optional members `toMore` and
+  `ccMore`. A cut list of To or Cc ends with the count of the others,
+  such as "and 90 more", and a screen reader reads "and 90 more
+  recipients".
+- `### Lists` in `DESIGN.md`, "Rows that arrive": a list that other
+  people or a system fill loads its rows again by itself, and only while
+  its tab shows. The rows come in at their place, with no toast and no
+  banner, and they wait while a pointer is over the list. A refresh
+  never writes the key of an item into the address.
+- `### Lists` in `DESIGN.md`, "Owner in a row": a row shows the owner of
+  its item at the end of line 2, so that the owner also shows on a
+  phone, with "You" for the signed-in person.
+- `DESIGN.md`: the foot of a form that saves itself shows a failed save,
+  its next try and a line for a text over a server limit, also in the
+  foot bar below 768 px. The field keeps its look, and the list keys
+  wait while a save failed.
+- `DESIGN.md`: an alert dialog can hold one required field under its
+  facts. The action stays blocked while the field is empty, and the
+  focus goes into the field. A required control takes `aria-
+  required="true"`.
+- `### field` in `DESIGN.md`: text that the product adds to a value,
+  such as a signature, shows under the control as its description, with
+  its line breaks, after a solid edge.
+- `DESIGN.md`: an app with no user menu puts the mode switch last in the
+  foot of the sidebar, with the row "Use the system mode" before it
+  while a choice is stored.
+- `architecture/web-app.md`: a write whose result is not known is a case
+  of "A failed write", and a refresh that a list starts by itself shows
+  no syncing banner.
+- The release check compares an exported object type member by member. A
+  new optional member is level minor, as a new optional prop is, and
+  each other change of a member stays major.
+
+### Fixed
+
+- MailMessage: the body, the quote and the translation keep each single
+  line break of a paragraph, such as the lines of a signature or an
+  address.
+- The fixture checks of the menu wait until the focus is inside the menu
+  before the first key, so that a loaded machine no longer fails them.
 
 ## v2.1.1 - 2026-11-03
 

@@ -2,8 +2,10 @@
 // in ### Detail pane of DESIGN.md). The address names the item of the column with one key, such as
 // ?item=QUO-0042, so a reload and a link keep it. ?item= with no value is a column that the person
 // closed, so a reload keeps it closed. With no key in the address, the column shows the first row that
-// shows from 1024 px, the address does not change, and that item stays unread. Below 1024 px no item
-// opens by itself, because the item covers the list there.
+// shows from 1024 px, the address does not change, and that item stays unread. A refresh that brings a
+// new first row does not replace it: the column keeps the item until the person picks a row, or until
+// its row leaves the list ("Item in a refresh" in ### Lists). Below 1024 px no item opens by itself,
+// because the item covers the list there.
 //
 // A page calls itemInAddress in its script, where it holds the rows, and gives the result to ListSplit:
 //   const split = itemInAddress({ shown: () => rows.map((r) => r.id), onread: markRead });
@@ -41,11 +43,15 @@ export type ItemInAddressOptions = {
 };
 
 export interface ItemInAddress {
-	/** The item of the column. ?item=K gives K, and ?item= gives null. With no key in the address: the first row that shows from 1024 px, else null. */
+	/**
+	 * The item of the column. ?item=K gives K, and ?item= gives null. With no key in the address: from
+	 * 1024 px the first row that shows, which stays while its row is in the list, also when a refresh
+	 * brings a new first row. Else null.
+	 */
 	readonly key: string | null;
 	/** True while the column shows an item. */
 	readonly open: boolean;
-	/** True while the column shows the first row, because the address names no item. */
+	/** True while the column shows the first row, because the address names no item. A refresh that brings a new first row keeps the item. */
 	readonly firstRow: boolean;
 	/** True while the keysOff function of the page gives true. */
 	readonly keysOff: boolean;
@@ -66,10 +72,19 @@ export function itemInAddress(o: ItemInAddressOptions): ItemInAddress {
 	const param = o.param ?? 'item';
 	/** The value of the key in the address: null when the address has no key, and '' for ?item=. */
 	const named = () => (building ? null : page.url.searchParams.get(param));
+	// The key of the first row that the column shows while the address names no item. It stays in
+	// memory and never goes into the address, so onread does not run for it. A new first row of a
+	// refresh does not replace it. When its row leaves the list, the column takes the first row again:
+	// nobody chose that item, and the page holds the data of the rows that show. Each read of the key
+	// reads shown() first, so an effect that reads key also runs again when the rows change.
+	let held: string | null = null;
 	const key = () => {
 		const n = named();
 		if (n !== null) return n || null;
-		return bands.lg.current ? (o.shown()[0] ?? null) : null;
+		if (!bands.lg.current) return null;
+		const rows = o.shown();
+		if (held === null || !rows.includes(held)) held = rows[0] ?? null;
+		return held;
 	};
 	const rowId = (k: string) => `${param}-row-${k}`;
 	const write = (value: string) => {
@@ -95,8 +110,10 @@ export function itemInAddress(o: ItemInAddressOptions): ItemInAddress {
 
 	// An address that names an item opens it: at the load of the page, and at each navigation that
 	// changes the key, such as a click, J, K or a link. With ssr off, the first navigation has a from
-	// with no url.
+	// with no url. A key in the address, also ?item=, ends the first row that the column holds, so an
+	// address with no key later shows the first row of that moment.
 	afterNavigate(({ from, to }) => {
+		if (to?.url?.searchParams.has(param)) held = null;
 		const k = to?.url?.searchParams.get(param) || null;
 		const before = from?.url && from.url.pathname === to?.url?.pathname ? from.url.searchParams.get(param) || null : null;
 		if (k !== null && k !== before) o.onread?.(k);

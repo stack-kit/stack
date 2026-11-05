@@ -25,11 +25,14 @@
 // Added, level minor: a new export path, name, optional prop, callback, snippet or data-slot, a widened
 // type, a function type that takes an optional parameter at its end or returns a wider type, an
 // extension point that the root gains. A changed parameter type of a function stays major. A member of
-// a local type of a component follows the rules of a prop, and any change of a local type of a value, a
-// class or a type is major. Any type
-// change of a bindable prop is major, because its value flows back to the product. No change gives
-// level patch. A revision with no preview/contract.json, such as v1.0.0, gets its contract from git
-// archive, with the "exports" of that revision, or else of the files.
+// a local type of a component follows the rules of a prop. An exported type that is a plain object type
+// compares member by member: a new optional member is Added, and a removed or renamed member, a new
+// required member, a changed or widened member type and a member that becomes required or optional are
+// major. A member that is a plain object type in its turn follows the same rules, at any depth. Any
+// other change of the type of a value, a class or a type is major, and so is any change of a local type
+// that it names. Any type change of a bindable prop is major, because its value flows back to the
+// product. No change gives level patch. A revision with no preview/contract.json, such as v1.0.0, gets
+// its contract from git archive, with the "exports" of that revision, or else of the files.
 //
 // svelte2tsx writes the declarations of a copy of the shipped files, and TypeScript reads the types from
 // them. The parser of Svelte gives the defaults, the root and the data-slot names (scripts/parts.mjs).
@@ -653,6 +656,85 @@ function typeChange(label, x, y, major, added) {
   else major(`${label} type changed: ${text}`);
 }
 
+/** The index of the bracket that closes the bracket at s[i], or -1. A quote and the > of => close nothing. */
+function closeOf(s, i) {
+  if (!OPEN[s[i]]) return -1;
+  const stack = [];
+  let q = null;
+  for (let j = i; j < s.length; j++) {
+    const c = s[j];
+    if (q) { if (c === '\\') j++; else if (c === q) q = null; continue; }
+    if (c === '"' || c === "'" || c === '`') q = c;
+    else if (c === '=' && s[j + 1] === '>') j++;
+    else if (OPEN[c]) stack.push(OPEN[c]);
+    else if (c === stack[stack.length - 1]) {
+      stack.pop();
+      if (!stack.length) return j;
+    }
+  }
+  return -1;
+}
+
+const MEMBER = /^(readonly\s+)?([\w$]+|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")(\?)?:\s*([\s\S]+)$/;
+
+/**
+ * A plain object type string, such as <T> { a: T; b?: U; }, as { head, members }, or null. head is the
+ * type parameters before the brace, and members maps each name to { type, required, readonly }. Any
+ * other type gives null: a union, an intersection, a call, construct or index signature, a method, a
+ * getter, or an object with no member.
+ */
+function objectOf(t) {
+  const s = t.trim();
+  const end = s.startsWith('<') ? closeOf(s, 0) + 1 : 0;
+  const body = s.slice(end).trim();
+  if (!body.startsWith('{') || closeOf(body, 0) !== body.length - 1) return null;
+  const members = new Map();
+  for (const e of splitTop(body.slice(1, -1), ';').map((x) => x.trim()).filter(Boolean)) {
+    const m = MEMBER.exec(e);
+    if (!m) return null;
+    members.set(m[2], { type: sortUnions(m[4].trim()), required: !m[3], readonly: !!m[1] });
+  }
+  return members.size ? { head: s.slice(0, end).trim(), members } : null;
+}
+
+/**
+ * The changes of two plain object types, member by member, by the rules of an exported type. A new
+ * optional member is Added. Each other change of a member is Breaking, also a widened type or a member
+ * that becomes optional, because a product can read a value of the type as well as give one. A member
+ * whose type is a plain object type in both follows the same rules, at any depth, because its members
+ * belong to the same value. A member of any other type, such as an array or a union of objects,
+ * compares as a whole string. False when x or y is no plain object type, or when their type parameters
+ * differ: the caller then compares the whole strings.
+ */
+function objectChanges(x, y, major, added, path = '') {
+  const [a, b] = [objectOf(sortUnions(x)), objectOf(sortUnions(y))];
+  if (!a || !b || a.head !== b.head) return false;
+  const shape = (m) => `${m.readonly} ${m.type} ${m.required}`;
+  const gone = [...a.members.keys()].filter((k) => !b.members.has(k)).sort(byName);
+  const fresh = new Set([...b.members.keys()].filter((k) => !a.members.has(k)));
+  for (const name of gone) {
+    // A rename: one name goes, and one new name of the same type and need comes.
+    const same = [...fresh].filter((k) => shape(b.members.get(k)) === shape(a.members.get(name)));
+    const others = gone.filter((g) => shape(a.members.get(g)) === shape(a.members.get(name)));
+    if (same.length === 1 && others.length === 1) {
+      major(`member ${path}${name} renamed to ${path}${same[0]}`);
+      fresh.delete(same[0]);
+    } else major(`member ${path}${name} removed`);
+  }
+  for (const name of [...fresh].sort(byName)) {
+    const m = b.members.get(name);
+    (m.required ? major : added)(`new ${m.required ? 'required' : 'optional'} member ${path}${name}: ${m.type}`);
+  }
+  for (const name of [...a.members.keys()].filter((k) => b.members.has(k)).sort(byName)) {
+    const [p, q] = [a.members.get(name), b.members.get(name)];
+    const label = `member ${path}${name}`;
+    if (p.type !== q.type && !objectChanges(p.type, q.type, major, added, `${path}${name}.`)) typeChange(label, p.type, q.type, major, major);
+    if (p.required !== q.required) major(`${label} became ${q.required ? 'required' : 'optional'}`);
+    if (p.readonly !== q.readonly) major(`${label} ${q.readonly ? 'became readonly' : 'is no longer readonly'}`);
+  }
+  return true;
+}
+
 /**
  * The changes of the inputs of a component, or of the members of a local type. om and nm map each name
  * to { kind, word, type or args, required, default, bindable }. major(text) and added(text) take each
@@ -778,9 +860,12 @@ export function diff(a, b) {
       else if (isComponent(o)) componentChanges(where, o, n, out);
       else {
         const major = (t) => out('major', 'Breaking', `${where}: ${t}`);
-        if (sortUnions(o.type) !== sortUnions(n.type)) major(`${o.kind} changed: ${sortUnions(o.type)} -> ${sortUnions(n.type)}`);
-        // Any change of the type of a value, a class or a type is Breaking, and so is any change of
-        // a local type that it names.
+        const added = (t) => out('minor', 'Added', `${where}: ${t}`);
+        // A type that is a plain object type compares member by member, so that a new optional member
+        // is Added. Any other change of the type of a value, a class or a type is Breaking, and so is
+        // any change of a local type that it names.
+        const handled = o.kind === 'type' && objectChanges(o.type, n.type, major, added);
+        if (!handled && sortUnions(o.type) !== sortUnions(n.type)) major(`${o.kind} changed: ${sortUnions(o.type)} -> ${sortUnions(n.type)}`);
         typesChanges(o.types, n.types, major, major);
       }
     }

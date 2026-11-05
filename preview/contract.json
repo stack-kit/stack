@@ -1,5 +1,5 @@
 {
-	"stack": "2.1.1",
+	"stack": "2.2.0",
 	"tool": {
 		"svelte2tsx": "0.7.61",
 		"typescript": "6.0.3",
@@ -1625,6 +1625,11 @@
 						"required": false,
 						"default": "null",
 						"bindable": true
+					},
+					"withheld": {
+						"type": "boolean",
+						"required": false,
+						"default": "false"
 					}
 				},
 				"callbacks": {},
@@ -1959,7 +1964,7 @@
 				],
 				"behaviour": [
 					"escape:item",
-					"first-row",
+					"first-row:kept",
 					"item-in-address",
 					"keys:next-row,previous-row,open-item",
 					"read"
@@ -1973,7 +1978,7 @@
 		"./parts/MailMessage": {
 			"Mail": {
 				"kind": "type",
-				"type": "{ at: Date; bcc?: MailPerson[]; body: string[]; cc?: MailPerson[]; dir?: 'auto' | 'ltr' | 'rtl'; failed?: string; files?: MailFile[]; from: MailPerson; id: string; lang?: string; quote?: string[]; sentBy?: string; to: MailPerson[]; translation?: { body: string[]; by: string; lang: string; }; unread?: boolean; }"
+				"type": "{ at: Date; bcc?: MailPerson[]; body: string[]; cc?: MailPerson[]; ccMore?: number; dir?: 'auto' | 'ltr' | 'rtl'; failed?: string; files?: MailFile[]; from: MailPerson; id: string; lang?: string; quote?: string[]; sentBy?: string; to: MailPerson[]; toMore?: number; translation?: { body: string[]; by: string; lang: string; }; unread?: boolean; }"
 			},
 			"MailFile": {
 				"kind": "type",
