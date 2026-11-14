@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import type { Mail, MailFile } from './MailMessage.svelte';
 
@@ -13,6 +14,12 @@
 		label?: string;
 		headingLevel?: 2 | 3;
 		onopenfile?: (file: MailFile) => void;
+		/** Stops a reply that waits to go out. Each message whose mail has sendsAt shows Undo when the product gives it. */
+		onundo?: (mail: Mail) => void;
+		/** Sends a reply that waits at once. Each message whose mail has sendsAt shows Send now when the product gives it. */
+		onsendnow?: (mail: Mail) => void;
+		/** The HTML part of each mail with frame, in place of the HtmlFrame that each message draws. It takes the mail and the address of its page. */
+		body?: Snippet<[Mail, string]>;
 	};
 </script>
 
@@ -34,6 +41,9 @@
 		label = 'Messages',
 		headingLevel = 2,
 		onopenfile,
+		onundo,
+		onsendnow,
+		body,
 		ref = $bindable(null),
 		class: className,
 		...rest
@@ -41,7 +51,7 @@
 
 	const uid = $props.id();
 	const opened = new SvelteSet<string>();
-	const isFolded = (m: Mail, i: number) => !opened.has(m.id) && !m.unread && i < mails.length - 1;
+	const isFolded = (m: Mail, i: number) => !opened.has(m.id) && !m.unread && !m.sendsAt && i < mails.length - 1;
 </script>
 
 <section bind:this={ref} data-slot="mail-thread" aria-labelledby="{uid}-head" class={cn('flex flex-col', className)} {...rest}>
@@ -56,6 +66,9 @@
 			{timeZone}
 			headingLevel={headingLevel === 2 ? 3 : 4}
 			{onopenfile}
+			onundo={onundo && (() => onundo(m))}
+			onsendnow={onsendnow && (() => onsendnow(m))}
+			{body}
 			bind:folded={() => isFolded(m, i), (v) => (v ? opened.delete(m.id) : opened.add(m.id))}
 		/>
 	{/each}

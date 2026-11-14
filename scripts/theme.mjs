@@ -25,10 +25,10 @@
 // component itself carries. Four fixed rules follow: the touch target of the toast buttons, which set
 // no data-slot (TOUCH_PARTS), the rule that stops the loops of the nova components (LOOPS), the looks
 // that nova leaves to each page (looks()): a disabled link button at half strength, a dialog and an
-// alert dialog that fill the screen below breakpoints.md, an empty state at the top left and the text of
-// a toast, and the print rules of the kit (PRINT): a card stays on one page, a text area and a code
-// block print their whole text, and an open dialog, alert dialog, sheet, drawer, dropdown menu, context
-// menu or popover does not print.
+// alert dialog that fill the screen below breakpoints.md, an empty state at the top left, the text of a
+// toast and the colors of its Open button, and the print rules of the kit (PRINT): a card stays on one
+// page, a text area and a code block print their whole text, and an open dialog, alert dialog, sheet,
+// drawer, dropdown menu, context menu or popover does not print.
 //
 // stack-plain.css holds the tokens of stack.css as plain custom properties, with the same names and
 // values, for content that the build of a product never sees. It has no @theme, @layer or @apply,
@@ -124,8 +124,11 @@ const LOOPS = [
 // [data-size] too. The text of a toast takes the body step in font-sans, and its description
 // muted-foreground. svelte-sonner writes its font on the toaster, so a rule on the toast beats it with
 // no !important. svelte-sonner writes 13 px on the toast and a gray of its own on the description outside
-// the layers, so only !important beats those two. The selectors are in :where(), so that a class with !
-// that a product gives in toastOptions.classes still beats them.
+// the layers, so only !important beats those two. The Open button of a toast with Undo is the cancel
+// button of svelte-sonner, and it takes the colors of an outline button of nova (border, background and
+// foreground, and in dark an input edge on input at 30%) in place of a gray that is no token. The
+// selectors are in :where(), so that a class with ! that a product gives in toastOptions.classes still
+// beats them.
 function looks(front, phone) {
   const top = spacingRef(front, '{spacing.space-8}');
   const [body] = TEXT_TOKENS.find(([, token]) => token === 'body');
@@ -177,6 +180,19 @@ function looks(front, phone) {
     '  }',
     '  :where([data-sonner-toast] [data-description]) {',
     '    color: var(--color-muted-foreground) !important;',
+    '  }',
+    '}',
+    '',
+    '/* The Open button of a toast with Undo is the cancel button of svelte-sonner. It takes the colors of an outline button in place of the gray of svelte-sonner, which follows the mode of mode-watcher and is no token. svelte-sonner writes that gray and no edge outside the layers, so only !important beats them. The selectors are in :where(), so that a class with ! of a product beats them. */',
+    '@layer utilities {',
+    '  :where([data-sonner-toast] [data-cancel]) {',
+    '    border: 1px solid var(--color-border) !important;',
+    '    background: var(--color-background) !important;',
+    '    color: var(--color-foreground) !important;',
+    '  }',
+    '  :where(.dark [data-sonner-toast] [data-cancel]) {',
+    '    border-color: var(--color-input) !important;',
+    '    background: color-mix(in oklab, var(--color-input) 30%, transparent) !important;',
     '  }',
     '}',
     '',

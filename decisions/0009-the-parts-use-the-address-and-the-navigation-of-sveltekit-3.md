@@ -29,7 +29,7 @@ Chosen option: "The parts import `$app/state`, `$app/navigation` and `$app/env` 
 
 A part follows three rules:
 
-- It writes the address with `goto(url, { replace: true, reset: false })`. The options `keepFocus` and `noScroll` of SvelteKit 2 do not exist in SvelteKit 3.0.1.
+- It writes the address with `goto(url, { replace: true, reset: false })`. The options `keepFocus` and `noScroll` of SvelteKit 2 do not exist in SvelteKit 3.0.1. In the path form, Close also sends `state` with the closed mark and `persistState: true`, so that a reload keeps the closed column. The reload case of `fixture/check/s7.mjs` proves it.
 - It reads the address only when `building` of `$app/env` is false, or in `$effect` or `onMount`. A prerendered page then holds the empty state, and the value comes after hydration.
 - It imports `$app/env`, never `$app/environment`.
 

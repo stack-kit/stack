@@ -61,6 +61,7 @@ export const spacing: Record<string, string> = {
 	'header-phone': '52px',
 	'tab-bar-phone': '56px',
 	'reading-width': '720px',
+	'item-page': '1204px',
 	'settings-nav': '220px',
 	'settings-form': '640px',
 	'board-column': '288px',

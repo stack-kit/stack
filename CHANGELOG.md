@@ -7,16 +7,181 @@ one step for each part. Behaviour holds each change that reaches a product
 with no edit, so that the product knows what its users see. Added holds each
 new part, export, prop and snippet, and Fixed each fix.
 
-A change that a product must act on is a major version: a removed or renamed
-prop, callback, snippet, export or `data-slot`, a narrowed type, a new
-required input, a change of a member of an exported object type other than a
-new optional member, a changed default that changes what a page shows, a
-behaviour that needs a new function from the product, or a change of a rule
-of the frame. A new part, a new optional prop or snippet, a new optional
-member of an exported object type, a change of the look, or a change of
-behaviour that needs no input from the product is a minor version. A fix that
-keeps the contract and the documented behaviour is a patch. The release step
-writes each entry from the commits since the last tag.
+A change that a product must act on is a major version: a removed documented
+behaviour, such as a word that goes from an `@behaviour` line; a removed or
+renamed prop, callback, snippet, export or `data-slot`, a narrowed type, a
+new required input, a change of a member of an exported object type other
+than a new optional member, a changed default that changes what a page
+shows, a behaviour that needs a new function from the product, or a change
+of a rule of the frame. A new part, a new optional prop or snippet, a new
+optional member of an exported object type, a change of the look, or a
+change of behaviour that needs no input from the product is a minor version.
+A fix that keeps the contract and the documented behaviour is a patch. The
+release step writes each entry from the commits since the last tag.
+
+## v2.3.0 - 2026-11-14
+
+### Breaking
+
+- None. A product changes no code at this update. It moves the pin. The
+  peers of `package.json` do not change.
+
+### Behaviour
+
+- `### sonner`: every toast that waits stays until its own end. The
+  stack shows 3 toasts, and each toast after the third waits hidden, out
+  of reach of the pointer and the keyboard. From two toasts, a bar under
+  the stack holds Close all, which ends each toast as its close button
+  does, so each toast with Undo runs its `onend`. While more than 3
+  toasts wait, "+N more" opens the list of every toast, the newest next
+  to the bar. The list scrolls when it is taller than the window, and a
+  second press or Esc closes it. Below 600 px the bar takes 44 px
+  buttons.
+- Toasts: a new toast with the id of a toast that waits hidden takes its
+  place and stands in front. A toast that has the focus stays in view.
+  In the open list, a toast swipes only to its side, and a touch drag
+  scrolls the list.
+- `### sonner`: a part never shows a toast by itself. The product shows
+  each toast through `undoToast` and `plainToast`. `DESIGN.md` advises
+  Undo where a person can take an action back, and a failure that the
+  person must fix shows in place. Until the next major version, `board`
+  and `reorder-list` show their own toasts with their own failure words,
+  and `code-block` and `diff` keep their default failure words.
+- `### sonner` names `undoToast`, and its example uses it. A toast with
+  Undo lasts longer than 10000 ms only until a time that the product
+  knows, and its text never counts down.
+- The key rules of `architecture/web-app.md`: a key that moves the focus
+  into a text field takes the whole press, so a held key types no letter
+  there.
+- The shared keys of `architecture/web-app.md` and
+  `architecture/keys.json`: in the work form of the split, Esc closes
+  the open layer, then clears the selection, then goes back from a send
+  check, then closes the item column. On an item page, Esc goes back to
+  the list, and J, K, Down and Up show the next or the previous item.
+- `### Detail pane` "Item column", "First row", "Esc and Close" and
+  "Scroll" give the path form of the address. `### Lists` "Item in a
+  refresh" covers both forms of the address.
+- ListSplit: after Esc or Close, when the list holds no row of the
+  closed item, the focus goes to the empty state in the list column,
+  else to the list column. Before, it fell to the page. The target takes
+  `tabindex="-1"` and shows no focus ring. The `@behaviour` word
+  `close-focus:row,empty,list`.
+- FormDialog: every form dialog holds an empty, visually hidden status
+  region from the open. Nothing new shows. The `@behaviour` words
+  `live-region`, `reason:line` and `stopped-click`.
+- MailMessage: each file of a message stands at the top of its row, so a
+  file keeps its own height beside a picture.
+
+### Added
+
+- `parts/HtmlFrame` and `### html-frame`: an HTML frame shows HTML that
+  the product did not write, such as a report from an agent or the HTML
+  part of a mail. It is a sandboxed `<iframe>` (`allow-scripts
+  allow-popups allow-popups-to-escape-sandbox`, no referrer) that loads
+  one page from the host of the content that the product did not write.
+  The page has the special origin `"null"`. The part removes `srcdoc`,
+  `allow`, `name` and `csp`, and it renders no frame for an address that
+  is not `https:`, except `http:` on `localhost` and `127.0.0.1`. The
+  frame takes the height that the height script of the page gives, up to
+  `maxHeight` (25,000 px by default). A page with no script keeps
+  `height` (320 px by default) and scrolls inside the frame.
+- `frame-height`: `FRAME_HEIGHT_SCRIPT`, `FRAME_HEIGHT_HASH` and the
+  type tags of the messages of the frame, for the server of the host of
+  the content. The hash of the script of this release is
+  `'sha256-2BfSgBcw0ftsnn9SepeAClM9mEN+hl50Yug9m2hvADA='`. `npm run
+  frame` fails when the hash of the module or the hash in `DESIGN.md` is
+  not the hash of the script.
+- `architecture/web-app.md`, "The HTML part of a mail": the sandbox of
+  the frame, the cleaning of the sender HTML on the server, the
+  Content-Security-Policy of the host with its `sandbox` directive,
+  remote pictures off and the address checks of each copy of a remote
+  picture, the signed address of each page, `Cross-Origin-Opener-Policy:
+  same-origin` for the app, and the height message.
+- `parts/MailMessage`: `Mail.frame`, the signed address of the page of
+  the HTML part on the host of the content. The message shows the mail
+  as its sender designed it, in an `html-frame` in place of the body and
+  the quote, in a box with a dashed edge and the badge "Designed by the
+  sender" (`mail-message-designed`). One button switches between Show as
+  text and Show as designed. The optional snippet `body(mail, src)` of
+  `MailMessage` and `MailThread` takes the place of the frame.
+- `parts/SendCheck` and `### send-check`: a send may show its check in
+  the place of its form, as an option beside the alert dialog. The check
+  holds the question, the facts in the order of the alert dialog, the
+  optional snippet `preview` that shows what goes out, the warnings, the
+  reason of a failed or a blocked send, Back to edit and the send. The
+  form stays in the page and keeps its text. Esc and Back to edit go
+  back to the form. Cmd+Enter runs the send, and Cmd+Enter in another
+  field of the page or in a second check does not send from this check.
+  "Actions with a lasting effect" in `architecture/web-app.md` gives the
+  rule, and the Esc of the check is a key of the part.
+- `parts/ItemPage` and `### item-page`: a list can open its item as a
+  page in place of the list, from 768 px, through the new optional
+  member `pageForm` of `itemInAddress`. The top bar holds Back, the
+  crumbs, the position and the steps. The page binds J, K and Esc, holds
+  the item in one box of at most 1,204 px (`spacing.item-page`), and
+  takes no pointer input for 500 ms after it opens. Esc, Back and the
+  back button of the browser give the list its scroll and focus the row
+  of the item. `### breadcrumb` allows a crumb with no link.
+- `parts/ListSplit`: the snippet `item` is optional, and the item column
+  shows only with it.
+- `parts/ItemColumns`: the optional prop `stickyProperties` keeps the
+  properties in view while the item scrolls, from a box of 672 px. The
+  rule "Properties in view" in `### Detail pane`.
+- `behaviour/undo`: `plainToast` shows a toast with no Undo, such as a
+  failure. `PlainOptions` takes `id`, `duration`, `kind`, `description`
+  and `important`. A plain toast with the id of a toast with Undo takes
+  its place, and the `onend` of that toast runs once. `endToast(id)`
+  ends a toast of either kind by its id.
+- `behaviour/undo`: `UndoOptions.open` adds Open before Undo. Open ends
+  the toast, runs `onend` and then `open`, and runs no `undo`.
+  `stack.css` gives the Open button the colors of an outline button.
+- `behaviour/undo`: `UndoOptions.until` ends a toast with Undo at a
+  given time, and hover and focus do not pause it. `UndoOptions.onend`
+  runs once when the toast ends with no Undo.
+- `ui/sonner`: the `Toaster` takes `closeAllLabel` and `moreLabel(n)`,
+  so that a product gives the words of the bar in its own language. The
+  defaults are "Close all" and "+N more".
+- `## Components` in `DESIGN.md` names three layers: base, advanced and
+  custom.
+- `behaviour/keys`: `takePress(e)`. A key that moves the focus into a
+  text field takes the whole press, so a held key types no letter there.
+- `behaviour/item`: `itemInAddress` takes `path`. The address names the
+  item with the last segment of the path, such as `/quotes/QUO-0042`.
+- `parts/PropertyStrip` and `### property-strip`: the properties of an
+  item as one row of values under its title.
+- `parts/SplitRow`: the optional prop `oneLine` puts the row in one line
+  of 32 px from 768 px. Below 768 px the row keeps the phone row of two
+  lines.
+- `parts/MailMessage`: `Mail.direction` and `Mail.sendsAt`. An outline
+  badge says Sent, Received, Scheduled or Not sent, and a reply that
+  waits to go out shows the time left with Undo (`onundo`) and Send now
+  (`onsendnow`). `MailThread` passes both callbacks with the mail. A
+  reply that waits never folds.
+- `parts/MailMessage`: `MailFile.picture`. The file shows its picture,
+  and its button opens the picture large in a dialog. The picture sends
+  no referrer.
+- `parts/MailMessage`: `Mail.translationFirst`. The translation comes
+  first, and the original sits behind "Show the original"
+  (`mail-message-original`).
+- `parts/FormDialog`: the optional prop `note`, one line of plain text
+  between the body and the footer that stays in view while the body
+  scrolls. Below 768 px the line stands under the header. The optional
+  prop `reason`: the line gives the reason, and both actions stay in the
+  tab order with `aria-disabled`, described by the line
+  (`form-dialog-line`).
+- `### empty`: an empty state of a list takes `role="group"` and
+  `aria-labelledby` its description, so that the focus reads why no row
+  shows.
+- The release check: a word that goes from an `@behaviour` line is level
+  major, and a word that comes stays level minor.
+
+### Fixed
+
+- `### board`, `### reorder-list` and "A failed write" in
+  `architecture/web-app.md`: a save that fails puts the item back, as
+  the code does. Before, the text said that the item stays. The text now
+  gives the move back, the words in the live region and in the toast of
+  the part, and the focus after the move back.
 
 ## v2.2.0 - 2026-11-05
 

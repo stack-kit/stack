@@ -21,7 +21,8 @@
 // The levels follow the version rules of the release. Major: a removed export path, name, prop,
 // callback, snippet or data-slot; a narrowed or changed type; a changed type parameter of a component;
 // a new required input; a changed default, because a script cannot judge what a page shows; a root that
-// loses an extension point. Behaviour, level minor: a word of an @behaviour line that comes or goes.
+// loses an extension point; a word of an @behaviour line that goes, because a documented behaviour
+// is removed. Behaviour, level minor: a word of an @behaviour line that comes.
 // Added, level minor: a new export path, name, optional prop, callback, snippet or data-slot, a widened
 // type, a function type that takes an optional parameter at its end or returns a wider type, an
 // extension point that the root gains. A changed parameter type of a function stays major. A member of
@@ -826,7 +827,7 @@ function componentChanges(where, o, n, out) {
   }
   for (const s of (o.slots ?? []).filter((x) => !(n.slots ?? []).includes(x))) major(`data-slot '${s}' removed`);
   for (const s of (n.slots ?? []).filter((x) => !(o.slots ?? []).includes(x))) added(`new data-slot '${s}'`);
-  for (const w of (o.behaviour ?? []).filter((x) => !(n.behaviour ?? []).includes(x))) out('minor', 'Behaviour', `${where}: behaviour ${w} removed`);
+  for (const w of (o.behaviour ?? []).filter((x) => !(n.behaviour ?? []).includes(x))) out('major', 'Behaviour', `${where}: behaviour ${w} removed`);
   for (const w of (n.behaviour ?? []).filter((x) => !(o.behaviour ?? []).includes(x))) out('minor', 'Behaviour', `${where}: behaviour ${w} added`);
 }
 

@@ -3,7 +3,7 @@
 	import type { Dialog as DialogPrimitive } from 'bits-ui';
 	import type { WithoutChildrenOrChild } from '#lib/utils.js';
 
-	/** @behaviour keys:submit form-screen first-field */
+	/** @behaviour keys:submit form-screen first-field live-region reason:line stopped-click */
 	export type FormDialogProps = Omit<WithoutChildrenOrChild<DialogPrimitive.ContentProps>, 'id' | 'title' | 'onsubmit' | 'ref' | 'onOpenAutoFocus'> & {
 		/** The root, the content of the dialog in its layer over the page. It is null while the dialog is closed. */
 		ref?: HTMLDivElement | null;
@@ -22,6 +22,10 @@
 		wide?: boolean;
 		/** True while the form has nothing to save, such as an empty text: no reason to give, so disabled. */
 		disabled?: boolean;
+		/** One line of plain text between the body and the footer, such as the result of the action: "3 invoices get the tag." */
+		note?: string;
+		/** Why the action cannot run, as a sentence. The line gives it in place of the note, and the actions stay in the tab order with aria-disabled. Leave it undefined while the action may run. */
+		reason?: string;
 		/** True when Cmd+Enter runs the primary action from any field of the form. */
 		runKey?: boolean;
 		onOpenChange?: (open: boolean) => void;
@@ -50,6 +54,14 @@
 	// While the form is disabled, the part keeps Cmd+Enter and runs nothing, so that a binding of the
 	// page under the dialog does not run.
 	//
+	// The line gives the reason while there is one, or else the note. From 768 px it stands between
+	// the body and the footer, outside the scroll. Below 768 px it stands under the header, because the
+	// footer does not show and the keyboard covers the bottom of the screen. The line is a polite status
+	// region that is in the page from the open, empty and visually hidden with no text, so that a screen
+	// reader reads each change. With a reason, the two actions are disabled with a reason (### button):
+	// they stay in the tab order with aria-disabled, and aria-describedby names the line whenever it holds text, note or reason, and a click, Enter,
+	// Space, Enter in a field and Cmd+Enter run nothing. A reason wins over disabled.
+	//
 	// The root is the content of the dialog (dialog-content), which takes the rest attributes, the
 	// class and ref. So a page can give it escapeKeydownBehavior and interactOutsideBehavior while the
 	// action runs. The content is not in the page while the dialog is closed, so ref is null then. The
@@ -64,6 +76,8 @@
 		cancelLabel = 'Cancel',
 		wide = false,
 		disabled = false,
+		note,
+		reason,
 		runKey = false,
 		onOpenChange,
 		onsubmit,
@@ -75,6 +89,16 @@
 
 	let form = $state<HTMLFormElement | null>(null);
 
+	const uid = $props.id();
+	const lineId = `${uid}-line`;
+	const line = $derived(reason || note || '');
+	// Nova draws only :disabled, so an action with aria-disabled takes these two classes (### button).
+	const blocked = 'aria-disabled:cursor-not-allowed aria-disabled:opacity-50';
+	// The browser still fires the click of a submit button with aria-disabled, also on Enter in a field.
+	const stop = (e: MouseEvent) => {
+		if (reason) e.preventDefault();
+	};
+
 	/** The keys of submit in the form of aria-keyshortcuts, such as "Meta+Enter". "" when the key is off. */
 	const hint = $derived(runKey ? (keyHint('submit').split(' ')[0] ?? '') : '');
 	/** The keys of the hint as a Kbd shows them: glyphs on macOS, words on other systems. */
@@ -84,7 +108,7 @@
 	$effect(() => {
 		if (!open || !runKey) return;
 		return bindKey('submit', () => {
-			if (!disabled && form) form.requestSubmit();
+			if (!disabled && !reason && form) form.requestSubmit();
 		});
 	});
 
@@ -109,14 +133,16 @@
 			<Dialog.Close class="{buttonVariants({ variant: 'ghost' })} md:hidden">{cancelLabel}</Dialog.Close>
 			<Dialog.Title class="max-md:min-w-0 max-md:flex-1 max-md:truncate">{title}</Dialog.Title>
 			<Dialog.Description class="max-md:sr-only">{description}</Dialog.Description>
-			<Button size="sm" type="submit" form={id} {disabled} class="md:hidden">{short}</Button>
+			<Button size="sm" type="submit" form={id} disabled={disabled && !reason} aria-disabled={reason ? 'true' : undefined} aria-describedby={line ? lineId : undefined} onclick={stop} class="md:hidden {blocked}">{short}</Button>
 		</Dialog.Header>
 		<form {id} bind:this={form} data-slot="form-dialog-form" class="flex min-h-0 flex-1 flex-col gap-5" {onsubmit} novalidate>
 			<!-- The body scrolls between the header and the footer, with its scroll bar at the edge. -->
 			<div data-slot="form-dialog-body" class="-mx-4 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4">{@render children()}</div>
+			<!-- The line: outside the scroll, and below 768 px first in the form, under the header. -->
+			<p id={lineId} role="status" data-slot="form-dialog-line" class={line ? 'text-xs text-muted-foreground max-md:order-first' : 'sr-only'}>{line}</p>
 			<Dialog.Footer class="max-md:hidden">
 				<Dialog.Close class={buttonVariants({ variant: 'outline' })}>{cancelLabel}</Dialog.Close>
-				<Button type="submit" {disabled} aria-keyshortcuts={hint || undefined}>
+				<Button type="submit" disabled={disabled && !reason} aria-disabled={reason ? 'true' : undefined} aria-describedby={line ? lineId : undefined} onclick={stop} class={blocked} aria-keyshortcuts={hint || undefined}>
 					{action}
 					{#if shown.length}
 						<Kbd.Group class="max-md:hidden">

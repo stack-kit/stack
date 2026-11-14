@@ -250,6 +250,49 @@ export function onEscape(level: 'selection' | 'item', run: () => void): () => vo
 	});
 }
 
+/**
+ * Takes the rest of the press of a key that moves the focus into a text field, such as R that opens a
+ * reply and puts the focus in its text ("### Rules" in web-app.md). A held key repeats its keydown, and
+ * the field would type the letter. Call it only when the handler takes the key.
+ * bindKey gives the event to run, so a binding calls it there. bindKey calls e.preventDefault() after
+ * run returns, so a handler that takes the key needs no call of its own. Until the keyup of the same key, the
+ * window stops each keydown, keypress and typed character of the key in the capture phase, before a
+ * field or an editor sees it. The keyup ends it, and so does a window that loses the focus. A new press
+ * of the key that is no repeat also ends it and goes through, because the window missed the keyup.
+ */
+export function takePress(e: KeyboardEvent): void {
+	const { code } = e;
+	const key = e.key.toLowerCase();
+	// A soft keyboard can give an empty code, and then the key counts.
+	const same = (next: KeyboardEvent) => (code ? next.code === code : next.key.toLowerCase() === key);
+	const stop = (next: KeyboardEvent) => {
+		if (!same(next)) return;
+		if (next.type === 'keydown' && !next.repeat) return release();
+		next.preventDefault();
+		next.stopImmediatePropagation();
+	};
+	const typed = (next: InputEvent) => {
+		if (next.inputType !== 'insertText' || next.data?.toLowerCase() !== key) return;
+		next.preventDefault();
+		next.stopImmediatePropagation();
+	};
+	const up = (next: KeyboardEvent) => {
+		if (same(next)) release();
+	};
+	const release = () => {
+		removeEventListener('keydown', stop, true);
+		removeEventListener('keypress', stop, true);
+		removeEventListener('beforeinput', typed, true);
+		removeEventListener('keyup', up, true);
+		removeEventListener('blur', release);
+	};
+	addEventListener('keydown', stop, true);
+	addEventListener('keypress', stop, true);
+	addEventListener('beforeinput', typed, true);
+	addEventListener('keyup', up, true);
+	addEventListener('blur', release);
+}
+
 /** The keys of the action in the form of aria-keyshortcuts, such as "Meta+Z" or "J ArrowDown". "" when the key is off. */
 export function keyHint(action: KeyAction): string {
 	subscribe();

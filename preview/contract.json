@@ -1,5 +1,5 @@
 {
-	"stack": "2.2.0",
+	"stack": "2.3.0",
 	"tool": {
 		"svelte2tsx": "0.7.61",
 		"typescript": "6.0.3",
@@ -13,7 +13,7 @@
 			},
 			"ItemInAddressOptions": {
 				"kind": "type",
-				"type": "{ href?: (key: string) => string; itemParams?: readonly string[]; keysOff?: () => boolean; onread?: (key: string) => void; param?: string; shown: () => readonly string[]; }"
+				"type": "{ href?: (key: string) => string; itemParams?: readonly string[]; keysOff?: () => boolean; onread?: (key: string) => void; pageForm?: () => boolean; param?: string; path?: () => string; shown: () => readonly string[]; }"
 			},
 			"getItemContext": {
 				"kind": "value",
@@ -64,6 +64,10 @@
 			"provideKeys": {
 				"kind": "value",
 				"type": "(next: KeyOf): void"
+			},
+			"takePress": {
+				"kind": "value",
+				"type": "(e: KeyboardEvent): void"
 			}
 		},
 		"./behaviour/place": {
@@ -109,9 +113,21 @@
 			}
 		},
 		"./behaviour/undo": {
+			"PlainOptions": {
+				"kind": "type",
+				"type": "{ description?: string; duration?: number; id?: string; important?: boolean; kind?: 'error' | 'info' | 'success' | 'warning'; }"
+			},
 			"UndoOptions": {
 				"kind": "type",
-				"type": "{ duration?: number; id?: string; undo: () => Promise<void> | void; }"
+				"type": "{ duration?: number; id?: string; onend?: () => void; open?: () => Promise<void> | void; undo: () => Promise<void> | void; until?: Date; }"
+			},
+			"endToast": {
+				"kind": "value",
+				"type": "(id: string): void"
+			},
+			"plainToast": {
+				"kind": "value",
+				"type": "(text: string, o?: PlainOptions | undefined): void"
 			},
 			"undoToast": {
 				"kind": "value",
@@ -188,6 +204,24 @@
 			"text": {
 				"kind": "value",
 				"type": "(e: Email): string"
+			}
+		},
+		"./frame-height": {
+			"FRAME_HEIGHT_HASH": {
+				"kind": "value",
+				"type": "string"
+			},
+			"FRAME_HEIGHT_SCRIPT": {
+				"kind": "value",
+				"type": "string"
+			},
+			"FRAME_HEIGHT_TYPE": {
+				"kind": "value",
+				"type": "string"
+			},
+			"FRAME_MODE_TYPE": {
+				"kind": "value",
+				"type": "string"
 			}
 		},
 		"./hooks/is-mobile": {
@@ -1502,11 +1536,19 @@
 						"type": "string",
 						"required": true
 					},
+					"note": {
+						"type": "string",
+						"required": false
+					},
 					"open": {
 						"type": "boolean",
 						"required": false,
 						"default": "false",
 						"bindable": true
+					},
+					"reason": {
+						"type": "string",
+						"required": false
 					},
 					"ref": {
 						"type": "HTMLDivElement | null",
@@ -1559,12 +1601,16 @@
 				"slots": [
 					"dialog-content",
 					"form-dialog-body",
-					"form-dialog-form"
+					"form-dialog-form",
+					"form-dialog-line"
 				],
 				"behaviour": [
 					"first-field",
 					"form-screen",
-					"keys:submit"
+					"keys:submit",
+					"live-region",
+					"reason:line",
+					"stopped-click"
 				]
 			}
 		},
@@ -1814,6 +1860,53 @@
 				]
 			}
 		},
+		"./parts/HtmlFrame": {
+			"HtmlFrameProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"default": {
+				"props": {
+					"height": {
+						"type": "number",
+						"required": false,
+						"default": "320"
+					},
+					"maxHeight": {
+						"type": "number",
+						"required": false,
+						"default": "25_000"
+					},
+					"ref": {
+						"type": "HTMLIFrameElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"src": {
+						"type": "string",
+						"required": true
+					},
+					"title": {
+						"type": "string",
+						"required": true
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "Omit<HTMLIframeAttributes, 'allow' | 'children' | 'height' | 'referrerpolicy' | 'sandbox' | 'src' | 'srcdoc' | 'title'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"html-frame"
+				],
+				"behaviour": []
+			}
+		},
 		"./parts/ItemColumns": {
 			"ItemColumnsProps": {
 				"kind": "type",
@@ -1830,6 +1923,11 @@
 					"sideLabel": {
 						"type": "string",
 						"required": false
+					},
+					"stickyProperties": {
+						"type": "boolean",
+						"required": false,
+						"default": "false"
 					}
 				},
 				"callbacks": {},
@@ -1859,6 +1957,87 @@
 					"item-columns-properties"
 				],
 				"behaviour": []
+			}
+		},
+		"./parts/ItemPage": {
+			"ItemCrumb": {
+				"kind": "type",
+				"type": "{ href?: string; label: string; }"
+			},
+			"ItemPageProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"default": {
+				"props": {
+					"address": {
+						"type": "ItemInAddress",
+						"required": false
+					},
+					"count": {
+						"type": "number",
+						"required": false
+					},
+					"crumbs": {
+						"type": "readonly ItemCrumb[]",
+						"required": true
+					},
+					"key": {
+						"type": "string",
+						"required": false
+					},
+					"label": {
+						"type": "string",
+						"required": true
+					},
+					"position": {
+						"type": "number",
+						"required": false
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					}
+				},
+				"callbacks": {
+					"onback": {
+						"type": "() => void",
+						"required": false
+					},
+					"onstep": {
+						"type": "(by: -1 | 1) => void",
+						"required": false
+					}
+				},
+				"snippets": {
+					"children": {
+						"args": [],
+						"required": true
+					}
+				},
+				"rest": "Omit<HTMLAttributes<HTMLDivElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"item-page",
+					"item-page-bar",
+					"item-page-body",
+					"item-page-position",
+					"item-page-steps"
+				],
+				"behaviour": [
+					"click-guard",
+					"escape:item",
+					"item-in-address",
+					"keys:next-row,previous-row",
+					"place:top-bar"
+				]
 			}
 		},
 		"./parts/LineTile": {
@@ -1942,7 +2121,7 @@
 						"args": [
 							"ListSplitLayout"
 						],
-						"required": true
+						"required": false
 					},
 					"list": {
 						"args": [],
@@ -1963,6 +2142,7 @@
 					"list-split-list"
 				],
 				"behaviour": [
+					"close-focus:row,empty,list",
 					"escape:item",
 					"first-row:kept",
 					"item-in-address",
@@ -1978,11 +2158,11 @@
 		"./parts/MailMessage": {
 			"Mail": {
 				"kind": "type",
-				"type": "{ at: Date; bcc?: MailPerson[]; body: string[]; cc?: MailPerson[]; ccMore?: number; dir?: 'auto' | 'ltr' | 'rtl'; failed?: string; files?: MailFile[]; from: MailPerson; id: string; lang?: string; quote?: string[]; sentBy?: string; to: MailPerson[]; toMore?: number; translation?: { body: string[]; by: string; lang: string; }; unread?: boolean; }"
+				"type": "{ at: Date; bcc?: MailPerson[]; body: string[]; cc?: MailPerson[]; ccMore?: number; dir?: 'auto' | 'ltr' | 'rtl'; direction?: 'in' | 'out'; failed?: string; files?: MailFile[]; frame?: string; from: MailPerson; id: string; lang?: string; quote?: string[]; sendsAt?: Date; sentBy?: string; to: MailPerson[]; toMore?: number; translation?: { body: string[]; by: string; lang: string; }; translationFirst?: boolean; unread?: boolean; }"
 			},
 			"MailFile": {
 				"kind": "type",
-				"type": "{ image?: boolean; name: string; size: string; }"
+				"type": "{ image?: boolean; name: string; picture?: string; size: string; }"
 			},
 			"MailMessageProps": {
 				"kind": "type",
@@ -2041,9 +2221,25 @@
 					"onretry": {
 						"type": "() => void",
 						"required": false
+					},
+					"onsendnow": {
+						"type": "(() => void) | undefined",
+						"required": false
+					},
+					"onundo": {
+						"type": "(() => void) | undefined",
+						"required": false
 					}
 				},
-				"snippets": {},
+				"snippets": {
+					"body": {
+						"args": [
+							"Mail",
+							"string"
+						],
+						"required": false
+					}
+				},
 				"rest": "Omit<HTMLAttributes<HTMLElement>, 'children'>",
 				"root": {
 					"rest": true,
@@ -2055,14 +2251,17 @@
 					"mail-message",
 					"mail-message-address",
 					"mail-message-body",
+					"mail-message-designed",
 					"mail-message-fold",
 					"mail-message-header",
+					"mail-message-original",
 					"mail-message-quote",
 					"mail-message-recipients",
 					"mail-message-sender",
 					"mail-message-sent-by",
 					"mail-message-time",
-					"mail-message-translation"
+					"mail-message-translation",
+					"mail-message-waiting"
 				],
 				"behaviour": []
 			}
@@ -2112,9 +2311,25 @@
 					"onopenfile": {
 						"type": "(file: MailFile) => void",
 						"required": false
+					},
+					"onsendnow": {
+						"type": "(mail: Mail) => void",
+						"required": false
+					},
+					"onundo": {
+						"type": "(mail: Mail) => void",
+						"required": false
 					}
 				},
-				"snippets": {},
+				"snippets": {
+					"body": {
+						"args": [
+							"Mail",
+							"string"
+						],
+						"required": false
+					}
+				},
 				"rest": "Omit<HTMLAttributes<HTMLElement>, 'children'>",
 				"root": {
 					"rest": true,
@@ -2535,6 +2750,50 @@
 				},
 				"slots": [
 					"pattern-tile"
+				],
+				"behaviour": []
+			}
+		},
+		"./parts/PropertyStrip": {
+			"PropertyStripProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"StripProperty": {
+				"kind": "type",
+				"type": "{ label: string; value: Snippet<[]> | string; }"
+			},
+			"default": {
+				"props": {
+					"label": {
+						"type": "string",
+						"required": true
+					},
+					"properties": {
+						"type": "readonly StripProperty[]",
+						"required": true
+					},
+					"ref": {
+						"type": "HTMLElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "Omit<HTMLAttributes<HTMLElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"property-strip",
+					"property-strip-item",
+					"property-strip-label",
+					"property-strip-value"
 				],
 				"behaviour": []
 			}
@@ -3004,6 +3263,110 @@
 				"type": "(count: number, page: number, total: number, all: boolean): string"
 			}
 		},
+		"./parts/SendCheck": {
+			"SendCheckProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"default": {
+				"props": {
+					"action": {
+						"type": "string",
+						"required": true
+					},
+					"backLabel": {
+						"type": "string",
+						"required": false,
+						"default": "'Back to edit'"
+					},
+					"blocked": {
+						"type": "string",
+						"required": false
+					},
+					"description": {
+						"type": "string",
+						"required": false,
+						"default": "'Nothing goes out until you send it.'"
+					},
+					"facts": {
+						"type": "Fact[]",
+						"required": true
+					},
+					"failed": {
+						"type": "string",
+						"required": false
+					},
+					"note": {
+						"type": "string",
+						"required": false
+					},
+					"open": {
+						"type": "boolean",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"title": {
+						"type": "string",
+						"required": true
+					},
+					"working": {
+						"type": "boolean",
+						"required": false,
+						"default": "false"
+					}
+				},
+				"callbacks": {
+					"onsend": {
+						"type": "() => void",
+						"required": true
+					}
+				},
+				"snippets": {
+					"form": {
+						"args": [],
+						"required": true
+					},
+					"preview": {
+						"args": [],
+						"required": false
+					},
+					"warnings": {
+						"args": [],
+						"required": false
+					}
+				},
+				"rest": "Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"send-check",
+					"send-check-actions",
+					"send-check-content",
+					"send-check-failed",
+					"send-check-form",
+					"send-check-note",
+					"send-check-preview",
+					"send-check-warnings"
+				],
+				"behaviour": [
+					"escape:item",
+					"focus:check,back",
+					"kept-form",
+					"keys:submit"
+				]
+			}
+		},
 		"./parts/Sparkline": {
 			"SparklineProps": {
 				"kind": "type",
@@ -3082,6 +3445,11 @@
 						"type": "2 | 3",
 						"required": false,
 						"default": "2"
+					},
+					"oneLine": {
+						"type": "boolean",
+						"required": false,
+						"default": "false"
 					},
 					"ref": {
 						"type": "HTMLLIElement | null",
@@ -18761,8 +19129,20 @@
 		},
 		"./ui/sonner": {
 			"Toaster": {
-				"props": {},
-				"callbacks": {},
+				"props": {
+					"closeAllLabel": {
+						"type": "string",
+						"required": false,
+						"default": "\"Close all\""
+					}
+				},
+				"callbacks": {
+					"moreLabel": {
+						"type": "(n: number) => string",
+						"required": false,
+						"default": "(n: number) => `+${n} more`"
+					}
+				},
 				"snippets": {},
 				"rest": "ToasterProps",
 				"root": {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { toast } from 'svelte-sonner';
+	import * as Avatar from '#lib/components/ui/avatar/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -10,6 +10,7 @@
 	import { ScreenQuery } from '#lib/stack/screen-query.svelte.js';
 	import SplitRow from '#lib/stack/SplitRow.svelte';
 	import UnreadMark from '#lib/stack/UnreadMark.svelte';
+	import { undoToast } from '#lib/stack/behaviour/undo.js';
 	import BellIcon from '@lucide/svelte/icons/bell';
 	import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
 	import CheckCheckIcon from '@lucide/svelte/icons/check-check';
@@ -26,8 +27,9 @@
 	// arrow keys open a row, and it counts as read. Mark as unread in More gives the mark back.
 	// Mark 4 as read marks every unread row, and its toast offers Undo. Below 768 px the list is
 	// the whole screen, a tap counts as an open, and the action is an icon button in the header.
-	// Under the list: the mark on each ground of a row, the count of the sidebar and of its rail,
-	// and the count of the phone tab bar. Every notice, person and record is invented.
+	// Under the list: the mark on each ground of a row, a queue of cases in rows of one line from
+	// 768 px, the count of the sidebar and of its rail, and the count of the phone tab bar. Every
+	// notice, case, person and record is invented.
 	type Notice = { key: string; actor?: string; text: string; kind: string; record: string; at: Date; unread: boolean };
 	const ZONE = 'Europe/Belgrade';
 	/** A time in Belgrade in November, which is UTC+1. */
@@ -70,6 +72,17 @@
 	);
 	const unreadCount = $derived(notices.filter((n) => n.unread).length);
 
+	// A queue of cases at the full width of the list, in rows of one line from 768 px. owner is the
+	// short name of the person who took the case, and "You" for the signed-in person.
+	type Case = { key: string; title: string; values: string; owner?: string; time: string; datetime: string; unread: boolean };
+	const cases: Case[] = [
+		{ key: 'CASE-0142', title: 'Refund for order 8841', values: 'Open · High · Harbour Studio', owner: 'Emma', time: '13:52', datetime: '2026-11-18T13:52', unread: true },
+		{ key: 'CASE-0141', title: 'Change of the delivery address', values: 'Open · Normal · Northwind Bakery', owner: 'You', time: '13:10', datetime: '2026-11-18T13:10', unread: false },
+		{ key: 'CASE-0139', title: 'Damaged parcel on arrival, with photos of the box and of the goods inside it', values: 'Waiting · Normal · Pine Street Dental', time: '11:45', datetime: '2026-11-18T11:45', unread: true },
+		{ key: 'CASE-0137', title: 'Invoice sent to the wrong address', values: 'Closed · Low · Blue Fern Garden', owner: 'Oliver', time: '17 Nov 16:40', datetime: '2026-11-17T16:40', unread: false }
+	];
+	let checkedCases = $state<string[]>([]);
+
 	/** The notice that the person opened, '' after Esc or Close, and undefined before any choice. */
 	let opened = $state<string | undefined>(undefined);
 	const shown = $derived(opened === undefined ? (itemDocks.current && !phone.current ? notices[0].key : undefined) : opened || undefined);
@@ -110,9 +123,8 @@
 	async function markAll() {
 		const keys = notices.filter((n) => n.unread).map((n) => n.key);
 		for (const n of notices) n.unread = false;
-		toast(`${keys.length} marked as read`, {
-			action: { label: 'Undo', onClick: () => notices.forEach((n) => keys.includes(n.key) && (n.unread = true)) },
-			duration: 10000
+		undoToast(`${keys.length} marked as read`, {
+			undo: () => notices.forEach((n) => keys.includes(n.key) && (n.unread = true))
 		});
 		// The button goes with the last unread row, so the focus moves to the current row, or to the
 		// first row while the item column is closed.
@@ -237,6 +249,33 @@
 			{#snippet end1()}09:30{/snippet}
 			{#snippet line2()}No place for the mark{/snippet}
 		</SplitRow>
+	</ul>
+
+	<h3 class="text-xs font-medium text-muted-foreground">A queue of cases at the full width: one line from 768 px, and the phone row of two lines below 768 px</h3>
+	<ul role="list" aria-label="Cases" class="overflow-hidden rounded-lg border border-border">
+		{#each cases as c (c.key)}
+			<SplitRow
+				id="{uid}-case-{c.key}"
+				oneLine
+				unread={c.unread}
+				checked={checkedCases.includes(c.key)}
+				oncheck={(on) => (checkedCases = on ? [...checkedCases, c.key] : checkedCases.filter((k) => k !== c.key))}
+			>
+				{#snippet line1()}<span class="mr-1.5 font-medium tabular-nums">{c.key}</span>{c.title}{/snippet}
+				{#snippet end1()}<time datetime={c.datetime}>{c.time}</time>{/snippet}
+				{#snippet line2()}{c.values}{/snippet}
+				{#snippet end2()}
+					{#if c.owner}
+						<span class="inline-flex items-center gap-1">
+							<Avatar.Root size="sm" class="data-[size=sm]:size-5" aria-hidden="true">
+								<Avatar.Fallback class="font-medium group-data-[size=sm]/avatar:text-2xs">{c.owner.slice(0, 1)}</Avatar.Fallback>
+							</Avatar.Root>
+							<span class="max-w-24 truncate"><span class="sr-only">Owner: </span>{c.owner}</span>
+						</span>
+					{/if}
+				{/snippet}
+			</SplitRow>
+		{/each}
 	</ul>
 
 	<h3 class="text-xs font-medium text-muted-foreground">The count of the sidebar, the mark in its rail, and the phone tab bar</h3>

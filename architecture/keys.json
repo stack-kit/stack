@@ -3,11 +3,11 @@
   { "key": "/", "action": "Search in the current list", "scope": "Lists", "owner": "shared" },
   { "key": "?", "action": "Open the key sheet, which lists each key of the registry by scope", "scope": "Everywhere", "owner": "shared" },
   { "key": "G, then a letter", "action": "Go to a page. The product picks the letters.", "scope": "Everywhere", "owner": "shared" },
-  { "key": "Esc", "action": "Close the open layer or the pane. A second Esc clears the selection. In the work form of the split, Esc closes the open layer, then clears the selection, then closes the item column.", "scope": "Everywhere, except inside a code-editor that a person can edit, and on the handle of a lifted row of a reorder-list or of a lifted card of a board", "owner": "shared", "id": "escape" },
-  { "key": "J", "action": "Go to the next or the previous row. An open pane follows.", "scope": "Lists", "owner": "shared", "id": "next-row" },
-  { "key": "Down", "action": "Go to the next or the previous row. An open pane follows.", "scope": "Lists, except on the handle of a lifted row of a reorder-list or of a lifted card of a board, and on a day of a month-view", "owner": "shared", "id": "next-row" },
-  { "key": "K", "action": "Go to the next or the previous row. An open pane follows.", "scope": "Lists", "owner": "shared", "id": "previous-row" },
-  { "key": "Up", "action": "Go to the next or the previous row. An open pane follows.", "scope": "Lists, except on the handle of a lifted row of a reorder-list or of a lifted card of a board, and on a day of a month-view", "owner": "shared", "id": "previous-row" },
+  { "key": "Esc", "action": "Close the open layer or the pane. A second Esc clears the selection. In the work form of the split, Esc closes the open layer, then clears the selection, then goes back from a send check, then closes the item column. On an item page, Esc goes back to the list.", "scope": "Everywhere, except inside a code-editor that a person can edit, and on the handle of a lifted row of a reorder-list or of a lifted card of a board", "owner": "shared", "id": "escape" },
+  { "key": "J", "action": "Go to the next or the previous row. An open pane follows. On an item page, show the next or the previous item.", "scope": "Lists", "owner": "shared", "id": "next-row" },
+  { "key": "Down", "action": "Go to the next or the previous row. An open pane follows. On an item page, show the next or the previous item.", "scope": "Lists, except on the handle of a lifted row of a reorder-list or of a lifted card of a board, and on a day of a month-view", "owner": "shared", "id": "next-row" },
+  { "key": "K", "action": "Go to the next or the previous row. An open pane follows. On an item page, show the next or the previous item.", "scope": "Lists", "owner": "shared", "id": "previous-row" },
+  { "key": "Up", "action": "Go to the next or the previous row. An open pane follows. On an item page, show the next or the previous item.", "scope": "Lists, except on the handle of a lifted row of a reorder-list or of a lifted card of a board, and on a day of a month-view", "owner": "shared", "id": "previous-row" },
   { "key": "X", "action": "Select or clear the row that has focus", "scope": "Lists", "owner": "shared" },
   { "key": "Shift+X", "action": "Select the range from the last selected row to the row that has focus", "scope": "Lists", "owner": "shared" },
   { "key": "Shift+Down", "action": "Extend or shrink the selection by one row", "scope": "Lists", "owner": "shared" },
@@ -62,5 +62,6 @@
   { "key": "Enter", "action": "open the day in a popover with all its records", "scope": "A day of a month-view", "owner": "month-view" },
   { "key": "Space", "action": "open the day in a popover with all its records", "scope": "A day of a month-view", "owner": "month-view" },
   { "key": "Enter", "action": "fold or unfold the rows under a parent row of a tree", "scope": "The fold button of a parent row of a table", "owner": "table" },
-  { "key": "Space", "action": "fold or unfold the rows under a parent row of a tree", "scope": "The fold button of a parent row of a table", "owner": "table" }
+  { "key": "Space", "action": "fold or unfold the rows under a parent row of a tree", "scope": "The fold button of a parent row of a table", "owner": "table" },
+  { "key": "Esc", "action": "go back from the check of a send to its form, so that the form keeps its text and the item column stays open", "scope": "The open check of a send in the place of its form", "owner": "send-check" }
 ]

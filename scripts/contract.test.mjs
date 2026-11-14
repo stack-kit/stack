@@ -232,3 +232,14 @@ test('a diff of contracts from other tool versions gives a warning', () => {
   assert.match(contract.diff(a, b).warning ?? '', /tool versions.*svelte2tsx 0\.7\.61 -> 0\.7\.62.*false changes/);
   assert.equal(contract.diff(a, a).warning, null);
 });
+
+test('a word that goes from an @behaviour line gives major, and a word that comes gives minor', () => {
+  const part = (behaviour) => ({ exports: { './parts/P': { default: { props: {}, callbacks: {}, snippets: {}, rest: '', root: {}, slots: [], behaviour } } } });
+  const removed = contract.diff(part(['a', 'b']), part(['a']));
+  assert.equal(removed.level, 'major');
+  assert.equal(removed.changes.length, 1);
+  assert.equal(removed.changes[0].level, 'major');
+  const added = contract.diff(part(['a']), part(['a', 'b']));
+  assert.equal(added.level, 'minor');
+  assert.equal(added.changes[0].level, 'minor');
+});

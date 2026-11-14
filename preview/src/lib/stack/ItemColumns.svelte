@@ -10,6 +10,12 @@
 		properties?: Snippet;
 		/** The name of the properties, such as "Properties". With it, the properties are a named section. */
 		sideLabel?: string;
+		/**
+		 * True to keep the properties in view while the item scrolls: from a box of 672 px, where they
+		 * stand at the right of the content, they stick 16 px under the top of the box that scrolls, such
+		 * as the box of an item page.
+		 */
+		stickyProperties?: boolean;
 	};
 </script>
 
@@ -29,8 +35,11 @@
 	// properties in another form, such as the row of values of band 2, passes no properties. The item
 	// column is the aside of the page already, so the properties are a section with the name of
 	// sideLabel, and not an aside. The root has 16 px padding (p-4); a page that pads the item column
-	// itself gives class="p-0".
-	let { header, content, properties, sideLabel, class: className, ref = $bindable(null), ...rest }: ItemColumnsProps = $props();
+	// itself gives class="p-0". With stickyProperties, the properties column keeps its height and its
+	// edge, and a box in it sticks 16 px under the top of the box that scrolls (@2xl:sticky
+	// @2xl:top-4), so the properties stay in view while the content scrolls. Properties that are higher
+	// than that box stick too, so their end comes into view at the end of the content.
+	let { header, content, properties, sideLabel, stickyProperties = false, class: className, ref = $bindable(null), ...rest }: ItemColumnsProps = $props();
 </script>
 
 <div bind:this={ref} data-slot="item-columns" class={cn('flex flex-col gap-4 p-4 @container', className)} {...rest}>
@@ -46,7 +55,11 @@
 				aria-label={sideLabel}
 				class="flex flex-col gap-4 border-t border-border pt-4 @2xl:w-72 @2xl:shrink-0 @2xl:self-stretch @2xl:border-t-0 @2xl:border-l @2xl:pt-0 @2xl:pl-4 @6xl:w-105"
 			>
-				{@render properties()}
+				{#if stickyProperties}
+					<div class="flex flex-col gap-4 @2xl:sticky @2xl:top-4">{@render properties()}</div>
+				{:else}
+					{@render properties()}
+				{/if}
 			</svelte:element>
 		{/if}
 	</div>

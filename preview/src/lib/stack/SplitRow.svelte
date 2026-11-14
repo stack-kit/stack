@@ -28,6 +28,13 @@
 			ref?: HTMLLIElement | null;
 			/** Every row of one list has the same number of lines, so every row has one height. */
 			lines?: 2 | 3;
+			/**
+			 * True for a list that takes the whole width. From 768 px the row then puts its parts in one
+			 * line of 32 px, and below 768 px it keeps the phone row of two lines. lines and line 3 then do
+			 * not apply. A list in the work form docks its item from 1024 px, so it gives
+			 * oneLine={!itemDocks.current}.
+			 */
+			oneLine?: boolean;
 			/** True while the row is selected: the selected ground. */
 			selected?: boolean;
 			/** True while the check box of the row is on. The row then takes the selected ground too. */
@@ -75,10 +82,19 @@
 	// with the word "Unread" ("Unread mark" in ### Lists, and ### unread-mark).
 	// Inside a ListSplit with an address, Enter on the row button opens the item on its full page
 	// when the address has an href, and else it opens the item in the column.
+	// With oneLine, from 768 px the row is one line of 32 px (h-8, spacing.row), as the row of a list
+	// with data columns ("One line from 768 px" in ### Lists). The box of line 1 takes display
+	// contents, so its parts stand in the line of the body, and the order puts line 2 after the
+	// title. The title takes the rest of the width. Line 2 with its end takes a column of 240 px
+	// (md:w-60), and of 320 px from 1280 px (xl:w-80). The end of line 1 takes a column of 80 px
+	// (md:w-20), aligned to its end, so the key values and the times of the rows align. The body puts
+	// its parts 8 px apart, and line 2 takes 4 px more at each side, so the cells stand 12 px apart,
+	// and the place of the unread mark stays 8 px after the time.
 	let {
 		key,
 		id,
 		lines = 2,
+		oneLine = false,
 		current = false,
 		selected = false,
 		checked = false,
@@ -117,7 +133,7 @@
 	data-checked={checked || undefined}
 	class={cn(
 		'group/row relative flex gap-3 border-b border-border-faint pt-1.5 pr-4 pl-3 has-focus-visible:ring-3 has-focus-visible:ring-ring/50 has-focus-visible:ring-inset',
-		lines === 3 ? 'h-18 max-md:h-13' : 'h-13',
+		oneLine ? 'h-13 md:h-8 md:items-center md:pt-0' : lines === 3 ? 'h-18 max-md:h-13' : 'h-13',
 		ground ? 'bg-selected text-selected-foreground' : isCurrent ? 'bg-muted' : 'hover:bg-muted/50',
 		className
 	)}
@@ -141,26 +157,26 @@
 			{#if lead}{@render lead()}{/if}
 		</div>
 	{/if}
-	<div class="flex min-w-0 flex-1 flex-col">
-		<div class="flex h-5 min-w-0 items-center gap-2 text-sm">
+	<div class={cn('flex min-w-0 flex-1 flex-col', oneLine && 'md:flex-row md:items-center md:gap-2')}>
+		<div class={cn('flex h-5 min-w-0 items-center gap-2 text-sm', oneLine && 'md:contents')}>
 			<button
 				type="button"
 				id={buttonId}
 				aria-current={isCurrent ? 'true' : undefined}
 				data-keys-enter={key === undefined ? undefined : ''}
-				class={cn('min-w-0 flex-1 cursor-pointer truncate text-left outline-none after:absolute after:inset-0', unread && 'font-medium')}
+				class={cn('min-w-0 flex-1 cursor-pointer truncate text-left outline-none after:absolute after:inset-0', unread && 'font-medium', oneLine && 'md:-order-2')}
 				onclick={open}
 			>
 				{#if unread}<span class="sr-only">Unread,</span>{/if}<span id="{uid}-line1">{@render line1()}</span>
 			</button>
-			{#if end1}<span class={end}>{@render end1()}</span>{/if}
+			{#if end1}<span class={cn(end, oneLine && 'md:w-20 md:truncate md:text-right')}>{@render end1()}</span>{/if}
 			{#if unread}<UnreadMark />{:else if unread === false}<span class="size-2 shrink-0" aria-hidden="true"></span>{/if}
 		</div>
-		<div class="flex h-5 min-w-0 items-center gap-2 text-xs">
+		<div class={cn('flex h-5 min-w-0 items-center gap-2 text-xs', oneLine && 'md:-order-1 md:mx-1 md:w-60 md:shrink-0 xl:w-80')}>
 			<p class="min-w-0 flex-1 truncate">{@render line2()}</p>
 			{#if end2}<span class={end}>{@render end2()}</span>{/if}
 		</div>
-		{#if lines === 3}
+		{#if lines === 3 && !oneLine}
 			<div class="flex h-5 min-w-0 items-center gap-2 text-xs text-muted-foreground max-md:hidden">
 				<p class="min-w-0 flex-1 truncate">{#if line3}{@render line3()}{/if}</p>
 				{#if end3}<span class={end}>{@render end3()}</span>{/if}

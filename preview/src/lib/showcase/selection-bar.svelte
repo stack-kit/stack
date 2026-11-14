@@ -2,12 +2,12 @@
 	import { tick } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { ScreenQuery } from '#lib/stack/screen-query.svelte.js';
-	import { toast } from 'svelte-sonner';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import SelectionBar, { fmt, selectionText, type SelectionAction } from '#lib/stack/SelectionBar.svelte';
+	import { undoToast } from '#lib/stack/behaviour/undo.js';
 	import { cn } from '#lib/utils.js';
 	import ArchiveIcon from '@lucide/svelte/icons/archive';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
@@ -140,15 +140,16 @@
 	async function archive() {
 		const sent = sentInFilter;
 		const { gone, n, wasAll } = await takeOut();
-		toast(`${noun(n)} archived`, { action: { label: 'Undo', onClick: () => putBack(gone, n, wasAll, sent) }, duration: 10000 });
+		undoToast(`${noun(n)} archived`, { undo: () => putBack(gone, n, wasAll, sent) });
 	}
 	function markPaid() {
 		const changed = chosen.filter((r) => r.status === 'Sent').map((r) => r.id);
 		const n = count;
 		rows = rows.map((r) => (changed.includes(r.id) ? { ...r, status: 'Paid' } : r));
-		toast(`${noun(n)} marked as paid`, {
-			action: { label: 'Undo', onClick: () => (rows = rows.map((r) => (changed.includes(r.id) ? { ...r, status: 'Sent' } : r))) },
-			duration: 10000
+		undoToast(`${noun(n)} marked as paid`, {
+			undo: () => {
+				rows = rows.map((r) => (changed.includes(r.id) ? { ...r, status: 'Sent' } : r));
+			}
 		});
 	}
 

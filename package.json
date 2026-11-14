@@ -1,6 +1,6 @@
 {
   "name": "@stack-kit/stack",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "description": "The shared design file, its themes and its checks.",
   "license": "MIT",
@@ -56,6 +56,7 @@
     "./utils": "./preview/src/lib/utils.ts",
     "./hooks/*": "./preview/src/lib/hooks/*.svelte.js",
     "./patterns": "./preview/src/lib/stack/patterns.ts",
+    "./frame-height": "./preview/src/lib/stack/frame-height.ts",
     "./email": "./preview/src/lib/email/email.ts",
     "./stack.css": "./stack.css",
     "./stack-plain.css": "./stack-plain.css",
@@ -82,9 +83,10 @@
     "index": "node scripts/index.mjs",
     "parts": "node scripts/parts.mjs",
     "contract": "node scripts/contract.mjs",
+    "frame": "node scripts/frame-height.mjs",
     "preversion": "node scripts/parts.mjs --release && node scripts/contract.mjs gate \"$npm_new_version\"",
     "version": "node scripts/index.mjs && node scripts/component-lock.mjs && node scripts/contract.mjs write && git add DESIGN.index.md package.json preview/components.lock.json preview/contract.json",
-    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run && npm run parts && node --test scripts/parts.test.mjs"
+    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run && npm run parts && node --test scripts/parts.test.mjs && npm run frame && node --test scripts/frame-height.test.mjs"
   },
   "devDependencies": {
     "@google/design.md": "0.4.0",

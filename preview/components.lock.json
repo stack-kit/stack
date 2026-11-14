@@ -1,5 +1,5 @@
 {
-	"stack": "2.2.0",
+	"stack": "2.3.0",
 	"packages": {
 		"@codemirror/commands": "6.11.1",
 		"@codemirror/state": "6.7.6",
@@ -81,6 +81,11 @@
 			"edited": []
 		},
 		"./email": {
+			"uses": [],
+			"packages": [],
+			"edited": []
+		},
+		"./frame-height": {
 			"uses": [],
 			"packages": [],
 			"edited": []
@@ -447,11 +452,45 @@
 			],
 			"edited": []
 		},
+		"./parts/HtmlFrame": {
+			"uses": [
+				"./frame-height"
+			],
+			"packages": [
+				"cn",
+				"svelte"
+			],
+			"edited": []
+		},
 		"./parts/ItemColumns": {
 			"uses": [],
 			"packages": [
 				"cn",
 				"svelte"
+			],
+			"edited": []
+		},
+		"./parts/ItemPage": {
+			"uses": [
+				"./behaviour/item",
+				"./behaviour/keys",
+				"./behaviour/place",
+				"./behaviour/width",
+				"./ui/breadcrumb",
+				"./ui/button",
+				"./ui/kbd",
+				"./ui/tooltip"
+			],
+			"packages": [
+				"@internationalized/date",
+				"@lucide/svelte",
+				"@sveltejs/kit",
+				"@sveltejs/vite-plugin-svelte",
+				"bits-ui",
+				"cn",
+				"svelte",
+				"tailwind-variants",
+				"vite"
 			],
 			"edited": []
 		},
@@ -482,11 +521,14 @@
 		},
 		"./parts/MailMessage": {
 			"uses": [
+				"./frame-height",
+				"./parts/HtmlFrame",
 				"./parts/UnreadMark",
 				"./ui/attachment",
 				"./ui/avatar",
 				"./ui/badge",
 				"./ui/button",
+				"./ui/dialog",
 				"./ui/tooltip"
 			],
 			"packages": [
@@ -501,12 +543,15 @@
 		},
 		"./parts/MailThread": {
 			"uses": [
+				"./frame-height",
+				"./parts/HtmlFrame",
 				"./parts/MailMessage",
 				"./parts/UnreadMark",
 				"./ui/attachment",
 				"./ui/avatar",
 				"./ui/badge",
 				"./ui/button",
+				"./ui/dialog",
 				"./ui/tooltip"
 			],
 			"packages": [
@@ -592,6 +637,14 @@
 			"uses": [
 				"./patterns"
 			],
+			"packages": [
+				"cn",
+				"svelte"
+			],
+			"edited": []
+		},
+		"./parts/PropertyStrip": {
+			"uses": [],
 			"packages": [
 				"cn",
 				"svelte"
@@ -693,6 +746,23 @@
 				"svelte",
 				"tailwind-variants",
 				"vite"
+			],
+			"edited": []
+		},
+		"./parts/SendCheck": {
+			"uses": [
+				"./behaviour/keys",
+				"./outside/Facts",
+				"./ui/alert",
+				"./ui/button",
+				"./ui/kbd",
+				"./ui/spinner"
+			],
+			"packages": [
+				"@lucide/svelte",
+				"cn",
+				"svelte",
+				"tailwind-variants"
 			],
 			"edited": []
 		},
@@ -1436,14 +1506,20 @@
 			]
 		},
 		"./ui/sonner": {
-			"uses": [],
+			"uses": [
+				"./ui/button"
+			],
 			"packages": [
 				"@lucide/svelte",
+				"cn",
 				"mode-watcher",
 				"svelte",
-				"svelte-sonner"
+				"svelte-sonner",
+				"tailwind-variants"
 			],
-			"edited": []
+			"edited": [
+				"sonner.svelte"
+			]
 		},
 		"./ui/spinner": {
 			"uses": [],

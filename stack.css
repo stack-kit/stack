@@ -419,6 +419,19 @@
   }
 }
 
+/* The Open button of a toast with Undo is the cancel button of svelte-sonner. It takes the colors of an outline button in place of the gray of svelte-sonner, which follows the mode of mode-watcher and is no token. svelte-sonner writes that gray and no edge outside the layers, so only !important beats them. The selectors are in :where(), so that a class with ! of a product beats them. */
+@layer utilities {
+  :where([data-sonner-toast] [data-cancel]) {
+    border: 1px solid var(--color-border) !important;
+    background: var(--color-background) !important;
+    color: var(--color-foreground) !important;
+  }
+  :where(.dark [data-sonner-toast] [data-cancel]) {
+    border-color: var(--color-input) !important;
+    background: color-mix(in oklab, var(--color-input) 30%, transparent) !important;
+  }
+}
+
 /* In print: a card of the kit stays on one page. It sits in the base layer, so that a utility class of a product wins. */
 @layer base {
   @media print {

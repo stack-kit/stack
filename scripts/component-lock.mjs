@@ -50,6 +50,7 @@ export const EDITED = [
   'radio-group/radio-group-item.svelte',
   'sidebar/context.svelte.js',
   'slider/slider.svelte',
+  'sonner/sonner.svelte',
   'switch/switch.svelte',
 ];
 // The peers that a product must have, besides the packages of ./stack.css and ./behaviour/*. The parts

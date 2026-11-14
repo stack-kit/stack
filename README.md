@@ -12,7 +12,7 @@ This README has two readers. An agent or a person in a product reads the section
 
 | Path | What it holds | Who reads it | In the npm package |
 |---|---|---|---|
-| `DESIGN.md` | The design file: the tokens in the YAML front matter, the rules in prose, and the definitions of 61 components and of 15 parts that STACK adds | A product, before each UI task | Yes |
+| `DESIGN.md` | The design file: the tokens in the YAML front matter, the rules in prose, and the definitions of 61 components and of 19 parts that STACK adds | A product, before each UI task | Yes |
 | `DESIGN.index.md` | The first and the last line of the front matter, of each of its top-level keys, and of each `##` section and `###` heading of `DESIGN.md`. The head names the version and the first 12 hex digits of the SHA-256 of the `DESIGN.md` that it indexes. `npm version` writes it at each release. | A product, to find a section of `DESIGN.md` | Yes |
 | `stack.css` | The CSS that maps the tokens to Tailwind: the color roles, the type steps, the breakpoints, the radius levels and the phone rules. `scripts/theme.mjs` writes it from the front matter. | The global CSS file of a product | Yes |
 | `stack-plain.css` | The tokens of `stack.css` as plain CSS custom properties, with no `@theme`, `@layer` or `@apply`. `scripts/theme.mjs` writes it from the front matter. | A page or a fragment that no Tailwind build reads | Yes |
@@ -198,6 +198,7 @@ The `exports` map of `package.json` names these paths:
 | `@stack-kit/stack/utils` and `@stack-kit/stack/hooks/<name>` | `cn` and the other shared helpers, for a part of the product | `import { cn } from '@stack-kit/stack/utils';` |
 | `@stack-kit/stack/patterns` | The chart patterns and the chart colors, for a chart of the product | `import { PATTERNS } from '@stack-kit/stack/patterns';` |
 | `@stack-kit/stack/email` | The plain text part and the HTML part of an email of `## Email` in `DESIGN.md` | `import { html, text } from '@stack-kit/stack/email';` |
+| `@stack-kit/stack/frame-height` | The height script of an HTML frame, its hash and the type tags of its messages, for the server of the host of the content (`### html-frame` in `DESIGN.md`) | `import { FRAME_HEIGHT_HASH, FRAME_HEIGHT_SCRIPT } from '@stack-kit/stack/frame-height';` |
 | `@stack-kit/stack/architecture/keys.json` | The keys of `architecture/web-app.md` as data, which the key test of the product reads | |
 | `@stack-kit/stack/stack.css` and the other CSS paths | The CSS files of "Import the CSS" | |
 
@@ -231,7 +232,7 @@ The root layout of the product sets up the parts once:
 <Toaster />
 ```
 
-The frame stays code of the product: the sidebar, the top bar and the phone tab bar. The frame wraps the content of its top bar in `<FramePlace name="top-bar">`, and the content of its phone header in `<FramePlace name="phone-header">`, from `@stack-kit/stack/parts/FramePlace`. A part such as the selection bar then takes that place while it shows. With no `FramePlace`, the selection bar shows where the page puts it.
+The frame stays code of the product: the sidebar, the top bar and the phone tab bar. The frame wraps the content of its top bar in `<FramePlace name="top-bar">`, and the content of its phone header in `<FramePlace name="phone-header">`, from `@stack-kit/stack/parts/FramePlace`. A part such as the selection bar or the item page then takes that place while it shows. With no `FramePlace`, the selection bar shows where the page puts it.
 
 The frame gives each page a column that is as high as the window, such as a column with `h-svh`, which holds the top bar and the `main` element. On a page with ListSplit or PageColumns, `main` and each box between it and the part take `flex min-h-0 flex-1 flex-col`. Then each column of the part scrolls on its own, and the document does not scroll.
 
@@ -338,7 +339,7 @@ An update is one change of the pin. The version number says what the release cha
 
 | Level | What the release changes | What the product does |
 |---|---|---|
-| Major | A change that a product must act on: a removed or renamed prop, callback, snippet, export or `data-slot`; a narrowed type; a new required input; a change of a member of an exported object type other than a new optional member; a changed default that changes what a page shows; a behaviour that needs a new function from the product; a change of a rule of the frame. | It takes each step of the Breaking part of the change log entry. |
+| Major | A change that a product must act on: a removed documented behaviour, such as a word that goes from an `@behaviour` line; a removed or renamed prop, callback, snippet, export or `data-slot`; a narrowed type; a new required input; a change of a member of an exported object type other than a new optional member; a changed default that changes what a page shows; a behaviour that needs a new function from the product; a change of a rule of the frame. | It takes each step of the Breaking part of the change log entry. |
 | Minor | A new part; a new optional prop or snippet; a new optional member of an exported object type; a change of the look; a change of behaviour that needs no input from the product. | Nothing. It reads the Behaviour part, so that it knows what its users see. |
 | Patch | A fix that keeps the contract and the documented behaviour. | Nothing. |
 
@@ -566,7 +567,7 @@ The first eight sections are the standard sections of the spec, in the order of 
 
 ### The components
 
-`## Components` defines the 61 components of the registry snapshot of shadcn-svelte 1.7.0 of 2026-10-13, in the nova style, and fifteen parts that STACK adds because the registry lacks them: `code-editor`, `code-block`, `diff`, `time-field`, `time-zone-field`, `selection-bar`, `reorder-list`, `stepper`, `board`, `month-view`, `day-log`, `unread-mark`, `mail-message`, `figure-band` and `qr-code`. Each definition has a `###` heading with its registry name, such as `### button`. A definition has nine parts, in this order: Purpose, Anatomy, Variants, Sizes, States, Tokens, Accessibility, Example and Phone. `npm run components` checks that each component has a definition with the nine parts, and that each key in a Tokens part exists in `components`.
+`## Components` defines the 61 components of the registry snapshot of shadcn-svelte 1.7.0 of 2026-10-13, in the nova style, and nineteen parts that STACK adds because the registry lacks them: `code-editor`, `code-block`, `diff`, `time-field`, `time-zone-field`, `selection-bar`, `reorder-list`, `stepper`, `board`, `month-view`, `day-log`, `unread-mark`, `mail-message`, `html-frame`, `send-check`, `figure-band`, `qr-code`, `property-strip` and `item-page`. Each definition has a `###` heading with its registry name, such as `### button`. A definition has nine parts, in this order: Purpose, Anatomy, Variants, Sizes, States, Tokens, Accessibility, Example and Phone. `npm run components` checks that each component has a definition with the nine parts, and that each key in a Tokens part exists in `components`.
 
 ### The width bands
 
@@ -729,7 +730,7 @@ The preview in `preview/` is a SvelteKit app. It reads `DESIGN.md`, `stack.css` 
 
 | Route | What it shows |
 |---|---|
-| `/` | The 61 components and the 15 parts that STACK adds, each in every variant and size, and in each state that a prop can force. A side menu lists the components. |
+| `/` | The 61 components and the 19 parts that STACK adds, each in every variant and size, and in each state that a prop can force. A side menu lists the components. |
 | `/tokens` | The colors, the type steps, the spacing and the radius levels. A swatch follows the theme and the mode, and the value columns show the front matter. |
 | `/themes/compare` | A theme of this repository beside the theme that the generator writes from three inputs, the two scales of the generated theme, the values that the generator lifted, and the difference of each role in L, C, h and alpha. The inputs start at the inputs of the theme that the page compares. |
 | `/charts` | The pattern style, stacked bars, stacked areas, a donut of eight, lines over time, the color pattern style, the color style, a heat map, sparklines, a flow, and the eight patterns |
@@ -768,7 +769,8 @@ The checks run with Node 18 or later, the minimum of the CLI `@google/design.md`
 | `npm run lock -- --check` | Writes nothing. It fails when the record `preview/components.lock.json` or the peers of `package.json` differ from the files: an export path, a path of `uses`, a package, its version or an edited file. It names the first ten differences. Run `npm run lock`, and commit the record and `package.json` with the change of the files. |
 | `npm run parts` | Fails when a part of `stack/` or `outside/` lacks one of its five extension points: the `<Name>Props` type, `...rest`, `class` through `cn(`, a root `data-slot` and `ref = $bindable(`. It also fails when `DESIGN.md` does not name a shipped part by its export path. `npm run parts -- --release` also fails on a part that still holds the pending marker. |
 | `npm run keys` | Fails when `architecture/keys.json` and the two key tables of `architecture/web-app.md` disagree. The tables are the shared keys and the keys that the components own. |
-| `npm run check` | Runs the lint, the theme check, the contrast check, the contrast check of each example layer, the self-test of the generator, the names check, the markers check, the completeness check, the lock check, the key check and the dry run of the index, in this order, and stops at the first failure. |
+| `npm run frame` | Fails when `FRAME_HEIGHT_HASH` of `preview/src/lib/stack/frame-height.ts` or a hash in `DESIGN.md` is not the SHA-256 of the height script of an HTML frame. It also fails when the script holds a backslash, a backtick, a dollar sign, a character that is not ASCII, `<script`, `</script` or `<!--`, or when it lacks a type tag of the module. The last line gives the hash. |
+| `npm run check` | Runs the lint, the theme check, the contrast check, the contrast check of each example layer, the self-test of the generator, the names check, the markers check, the completeness check, the lock check, the key check, the dry run of the index, the parts check and the check of the frame script, in this order, and stops at the first failure. |
 | `npm run theme` | Not a check. It writes `themes/default.css`, `stack.css`, `stack-plain.css` and `chart-patterns.svg` from the front matter. |
 | `npm run generate -- --out <file>` | Not a check. It writes a theme file from `--base`, `--accent` and `--contrast`, and then runs the contrast check on it. An input that it lacks comes from `theme-inputs`. `--charts <theme>` takes the chart colors of a theme of `themes/`, such as `graphite`, in place of the default set. `--compare <theme file>` also prints the difference of each role. `## Themes` in `DESIGN.md` gives the rules, and "Make a theme with the generator" gives the command of a product. |
 | `npm run index` | Not a check. It writes `DESIGN.index.md`: the first and the last line of the front matter, of each of its top-level keys, and of each `##` section and `###` heading of `DESIGN.md`, in the order of the file. The head names the version of `package.json` and the first 12 hex digits of the SHA-256 of `DESIGN.md`. The `version` script of `package.json` runs it, so that `npm version` puts a fresh index into the release commit. |

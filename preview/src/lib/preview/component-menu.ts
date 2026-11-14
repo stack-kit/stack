@@ -20,7 +20,7 @@ export const MENU_GROUPS = [
 	{
 		label: 'Navigation, structure and dates',
 		names: [
-			'sidebar', 'tabs', 'breadcrumb', 'stepper', 'pagination', 'accordion', 'collapsible', 'card', 'separator',
+			'sidebar', 'tabs', 'breadcrumb', 'item-page', 'stepper', 'pagination', 'accordion', 'collapsible', 'card', 'separator',
 			'aspect-ratio', 'resizable', 'scroll-area', 'carousel', 'calendar', 'range-calendar', 'month-view', 'time-field',
 			'time-zone-field'
 		]
@@ -29,8 +29,8 @@ export const MENU_GROUPS = [
 		label: 'Data, feedback and messages',
 		names: [
 			'table', 'selection-bar', 'reorder-list', 'board', 'day-log', 'badge', 'unread-mark', 'avatar', 'item', 'empty', 'kbd', 'alert', 'sonner', 'progress', 'skeleton', 'spinner',
-			'figure-band',
-			'attachment', 'bubble', 'marker', 'message', 'mail-message', 'message-scroller', 'questionnaire'
+			'figure-band', 'property-strip',
+			'attachment', 'bubble', 'marker', 'message', 'mail-message', 'html-frame', 'send-check', 'message-scroller', 'questionnaire'
 		]
 	},
 	{ label: 'Charts', names: ['chart'] }

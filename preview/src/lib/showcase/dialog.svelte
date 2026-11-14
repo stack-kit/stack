@@ -23,6 +23,14 @@
 		days: 3 + ((i * 5) % 40)
 	}));
 	let picked = $state(DUE.map((d) => d.number));
+
+	// A dialog of one form with a line between the body and the footer. The note says what the action
+	// does, and it changes with each check box. While the action cannot run, the line gives the reason.
+	let openLine = $state(forcedOpen('dialog-form-line'));
+	let tag = $state('');
+	let tagged = $state(DUE.slice(0, 3).map((d) => d.number));
+	const tagNote = $derived(`${tagged.length} ${tagged.length === 1 ? 'invoice gets' : 'invoices get'} the tag. You can undo this.`);
+	const tagReason = $derived(!tag.trim() ? 'Give the tag a name first.' : tagged.length === 0 ? 'Check one invoice or more.' : undefined);
 </script>
 
 <section id="showcase-dialog" data-showcase="dialog" class="flex flex-col gap-4 border-t border-border py-8">
@@ -114,6 +122,44 @@
 				<Label for="dialog-form-about">What it is for</Label>
 				<Textarea id="dialog-form-about" bind:value={about} rows={3} />
 			</div>
+		</FormDialog>
+		<!-- The line stays in view while the list scrolls. Below 768 px it stands under the header. -->
+		<Button variant="outline" data-open-id="dialog-form-line" onclick={() => (openLine = true)}>A form, with a line</Button>
+		<FormDialog
+			bind:open={openLine}
+			id="showcase-dialog-form-line"
+			title="Tag invoices"
+			description="Each checked invoice gets the tag."
+			action="Tag invoices"
+			short="Tag"
+			wide
+			note={tagNote}
+			reason={tagReason}
+			onsubmit={(e) => {
+				e.preventDefault();
+				openLine = false;
+			}}
+		>
+			<div class="flex flex-col gap-2">
+				<Label for="dialog-line-tag">Tag</Label>
+				<Input id="dialog-line-tag" bind:value={tag} />
+			</div>
+			<ul class="flex flex-col" aria-label="Overdue invoices">
+				{#each DUE as d (d.number)}
+					{@const id = `dialog-line-${d.number}`}
+					<li class="flex h-8 items-center gap-3 border-b border-border-faint text-sm">
+						<Checkbox
+							{id}
+							checked={tagged.includes(d.number)}
+							onCheckedChange={(on) => (tagged = on ? [...tagged, d.number] : tagged.filter((n) => n !== d.number))}
+						/>
+						<label for={id} class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+							<span class="w-20 shrink-0 font-medium">INV-<span class="tabular-nums">{d.number.slice(4)}</span></span>
+							<span class="min-w-0 flex-1 truncate">{d.client}</span>
+						</label>
+					</li>
+				{/each}
+			</ul>
 		</FormDialog>
 	</div>
 </section>

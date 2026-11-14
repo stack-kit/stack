@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	/** @behaviour item-in-address first-row:kept read escape:item keys:next-row,previous-row,open-item */
+	/** @behaviour item-in-address first-row:kept read escape:item close-focus:row,empty,list keys:next-row,previous-row,open-item */
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import type { ItemInAddress } from './behaviour/item.js';
@@ -38,8 +38,11 @@
 			/** The name of the item column, such as "Ticket QUO-0042". */
 			itemLabel: string;
 			list: Snippet;
-			/** The item, with the form of its column. */
-			item: Snippet<[ListSplitLayout]>;
+			/**
+			 * The item, with the form of its column. With no item, the column never shows, and the list
+			 * takes the whole width, as in the page form of itemInAddress.
+			 */
+			item?: Snippet<[ListSplitLayout]>;
 			/** A band across both columns, such as the key figures of the list. */
 			head?: Snippet;
 		};
@@ -49,6 +52,7 @@
 	import { cn } from '#lib/utils.js';
 	import { setItemContext } from './behaviour/item.js';
 	import { bindKey, onEscape } from './behaviour/keys.js';
+	import { listColumns } from './list-column.js';
 
 	// The work form of the split, from 768 px ("Two forms of the split" in ### App shell, and
 	// "Work form" in ### Width bands of DESIGN.md). The list takes a column of 340 px from 1024 px
@@ -75,6 +79,8 @@
 	// when the address has an href. While the focus is in a dialog or a menu, the keys of the list do
 	// nothing, so a letter there does not change the item behind the layer. They also do nothing while
 	// the keysOff function of the address gives true, such as while the item holds an open form.
+	// Close and Esc put the focus on the row of the item. With no row of the item in the list, they put
+	// it on the empty state in the list column, else on the list column, which its heading names.
 	let {
 		address,
 		open,
@@ -89,12 +95,19 @@
 		...rest
 	}: ListSplitProps = $props();
 
-	// The address of a split stays for its life, so the rows take it once.
+	/** The list column, where close() of the address looks for the focus when the list holds no row of the item. */
+	let listColumn = $state<HTMLElement>();
+	// The address of a split stays for its life, so the rows and close() take it once.
 	// svelte-ignore state_referenced_locally
-	if (address) setItemContext(address);
+	if (address) {
+		setItemContext(address);
+		listColumns.set(address, () => listColumn);
+	}
 
 	const uid = $props.id();
-	const shows = $derived(address ? address.open : !!open);
+	// The column shows only with an item snippet. In the page form the page gives none, so an address
+	// with a key that names no row, such as a deleted item or a bad link, shows the list at the whole width.
+	const shows = $derived(!!item && (address ? address.open : !!open));
 	const shownKey = $derived(address ? address.key : key);
 	let column = $state<HTMLElement>();
 
@@ -137,7 +150,7 @@
 	// Esc reaches the item column last: after an open layer and after the selection.
 	$effect(() => {
 		const a = address;
-		if (!a || !a.open || !bands.md.current || a.keysOff) return;
+		if (!a || !shows || !bands.md.current || a.keysOff) return;
 		return onEscape('item', () => {
 			void a.close();
 		});
@@ -148,6 +161,7 @@
 	{#if head}<div data-slot="list-split-head" class="shrink-0">{@render head()}</div>{/if}
 	<div class="relative flex min-h-0 flex-1">
 		<section
+			bind:this={listColumn}
 			data-slot="list-split-list"
 			aria-labelledby="{uid}-list"
 			class={['safe-bottom relative flex min-h-0 min-w-0 flex-col overflow-y-auto md:overscroll-contain', shows ? 'flex-1 lg:w-85 lg:flex-none xl:w-100' : 'flex-1']}
@@ -162,7 +176,7 @@
 				aria-label={itemLabel}
 				class="safe-bottom absolute inset-y-0 right-0 z-30 w-105 overflow-y-auto overscroll-contain border-l border-border bg-popover shadow-lg max-md:hidden lg:relative lg:z-auto lg:w-auto lg:min-w-0 lg:flex-1 lg:bg-background lg:shadow-none print:max-lg:hidden"
 			>
-				{@render item(itemDocks.current ? 'item' : 'pane')}
+				{@render item?.(itemDocks.current ? 'item' : 'pane')}
 			</aside>
 		{/if}
 	</div>
@@ -173,5 +187,12 @@
 	   safe area (### Width bands). Tailwind has no utility for env(), so the inset is written here. */
 	.safe-bottom {
 		padding-bottom: env(safe-area-inset-bottom);
+	}
+	/* close() of behaviour/item can put the focus on the empty state of the list or on the list column,
+	   with tabindex -1. Neither one is a control, so neither one shows a focus ring then. Without
+	   tabindex, a list column that scrolls and holds no control takes Tab, and it keeps its ring. */
+	[data-slot='list-split-list']:global([tabindex='-1']:focus),
+	[data-slot='list-split-list'] :global([data-slot='empty'][tabindex='-1']:focus) {
+		outline: none;
 	}
 </style>
