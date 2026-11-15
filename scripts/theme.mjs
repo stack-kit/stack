@@ -56,7 +56,7 @@ const VALUES = 'preview/src/lib/stack/design-values.ts';
 // lines. A path is relative to stack.css, so the lines hold in the repository and in node_modules.
 const SOURCES = [
   '/* The classes of the components and the parts. Tailwind does not scan node_modules, so these lines name the folders of the package. */',
-  ...['components/ui', 'stack', 'outside'].map((d) => `@source "./preview/src/lib/${d}";`),
+  ...['components/ui', 'stack', 'rich-text', 'outside'].map((d) => `@source "./preview/src/lib/${d}";`),
 ];
 
 // The type tokens of stack.css. Each Tailwind text size takes one typography token (decision on type).

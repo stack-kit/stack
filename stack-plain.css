@@ -148,6 +148,9 @@
   --color-tag-green: var(--tag-green, var(--muted-foreground));
   --color-diff-added: var(--diff-added, var(--muted-foreground));
   --color-diff-removed: var(--diff-removed, var(--muted-foreground));
+  --color-rich-text-paper: var(--rich-text-paper, oklch(1 0 0));
+  --color-rich-text-ink: var(--rich-text-ink, oklch(0.145 0 0));
+  --color-rich-text-link: var(--rich-text-link, oklch(0.5 0.17 265));
 }
 
 /* Below 768 px: the phone steps of typography, as the same text tokens. */

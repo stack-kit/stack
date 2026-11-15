@@ -18,6 +18,14 @@
 	"folded" stands for lines that the product does not have: it shows the count and the context of the
 	hunk that follows, and it is no button.
 
+	kind="text" can mark a block that changed, as a word of its line with `block`: a new paragraph break
+	(split), a paragraph break that went (join), a line that became a list item (item) and a heading
+	(heading). The product computes the marks and puts each at its place among the words. A mark is a
+	chip on the tint of a changed word: a split, an item and a heading are inserted, and a join is
+	deleted. Its sign does not reach a screen reader or a copy, and words that only a screen reader reads
+	say what it is. A line of kind "same" with a mark is a change of its own. A diff with a mark is
+	unified, and it has no copy buttons, because its lines follow the new version.
+
 	The sides row names the two versions and holds a copy button for each when the product marks the
 	diff as `complete`, and the buttons to the previous and the next change when the diff holds two
 	changes or more. N and Shift+N do the same while the focus is in the diff. A polite live region says
@@ -29,7 +37,19 @@
 <script lang="ts" module>
 	import type { HTMLAttributes } from 'svelte/elements';
 
-	export type DiffWord = { text: string; changed?: boolean };
+	/** A block of a text that changed: a new paragraph break, a break that went, a new list item, a new heading. */
+	export type DiffBlock = 'split' | 'join' | 'item' | 'heading';
+
+	export type DiffWord = {
+		text: string;
+		changed?: boolean;
+		/**
+		 * kind="text": the word is the mark of a block that changed, at its place among the words, and its
+		 * text is empty. A split stands at the end of the line that the new break ends, a join where the
+		 * break stood, and an item and a heading at the start of the line.
+		 */
+		block?: DiffBlock;
+	};
 	export type DiffLine =
 		| {
 				kind: 'same' | 'added' | 'removed';
@@ -67,7 +87,36 @@
 		position: (at: number, of: number) => string;
 		fold: (n: number) => string;
 		folded: (n: number) => string;
+		/** The words that a screen reader says for each mark of a block in text. */
+		insertedBreak?: string;
+		deletedBreak?: string;
+		insertedItem?: string;
+		insertedHeading?: string;
 	};
+
+	/** True for a line of text that holds a mark of a block. */
+	function blocks(l: DiffLine, kind: 'code' | 'text'): boolean {
+		return kind === 'text' && l.kind !== 'folded' && !!l.words?.some((w) => w.block);
+	}
+
+	/**
+	 * The changes of a diff, each as the index of its first and its last line: each run of added and
+	 * removed lines, and in text each other line with a mark of a block. N and Shift+N move through them,
+	 * and their count is the count of the changes, such as in a bar above the diff. Give the kind of the
+	 * diff: code, the default, draws no mark, so it counts no line with a mark.
+	 */
+	export function diffChanges(lines: readonly DiffLine[], kind: 'code' | 'text' = 'code'): { from: number; to: number }[] {
+		const out: { from: number; to: number }[] = [];
+		lines.forEach((l, i) => {
+			const own = l.kind === 'same' && blocks(l, kind);
+			if (!own && l.kind !== 'added' && l.kind !== 'removed') return;
+			const last = out.at(-1);
+			const before = lines[i - 1]?.kind;
+			if (!own && last && last.to === i - 1 && (before === 'added' || before === 'removed')) last.to = i;
+			else out.push({ from: i, to: i });
+		});
+		return out;
+	}
 
 	/** @behaviour next-change:N previous-change:Shift+N */
 	export type DiffProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> & {
@@ -123,7 +172,7 @@
 	}: DiffProps = $props();
 
 	const unit = $derived(kind === 'code' ? 'lines' : 'paragraphs');
-	const w: DiffWords = $derived({
+	const w: Required<DiffWords> = $derived({
 		added: 'Added',
 		removed: 'Removed',
 		oldVersion: 'Old version',
@@ -139,11 +188,18 @@
 		position: (at, of) => `Change ${at} of ${of}`,
 		fold: (n) => `Show ${n} unchanged ${n === 1 ? unit.slice(0, -1) : unit}`,
 		folded: (n) => `${n} unchanged ${n === 1 ? unit.slice(0, -1) : unit}`,
+		insertedBreak: 'inserted paragraph break',
+		deletedBreak: 'deleted paragraph break',
+		insertedItem: 'inserted list item',
+		insertedHeading: 'inserted heading',
 		...given
 	});
 
 	const id = $props.id();
-	const split = $derived(view === 'split' && bands.lg.current);
+	/** A diff with a mark of a block follows the new version, so it is unified and copies no side. */
+	const marked = $derived(lines.some((l) => blocks(l, kind)));
+	const split = $derived(view === 'split' && bands.lg.current && !marked);
+	const copyable = $derived(complete && !marked);
 	const keep = $derived(context ?? (kind === 'code' ? 3 : 1));
 	const SIGN = { same: '', added: '+', removed: '−' } as const;
 
@@ -153,17 +209,7 @@
 		| { type: 'fold'; from: number; to: number }
 		| { type: 'folded'; count: number; context?: string | undefined; i: number };
 
-	/** The changes: each run of added and removed lines, as the index of its first and its last line. */
-	const changes = $derived.by(() => {
-		const out: { from: number; to: number }[] = [];
-		lines.forEach((l, i) => {
-			if (l.kind !== 'added' && l.kind !== 'removed') return;
-			const last = out.at(-1);
-			if (last && last.to === i - 1) last.to = i;
-			else out.push({ from: i, to: i });
-		});
-		return out;
-	});
+	const changes = $derived(diffChanges(lines, kind));
 	const changeAt = $derived(new Map(changes.map((c, k) => [c.from, k])));
 
 	// The folds that the person opened, by the index of their first line.
@@ -180,13 +226,13 @@
 				i++;
 				continue;
 			}
-			if (l.kind !== 'same') {
+			if (l.kind !== 'same' || blocks(l, kind)) {
 				out.push({ type: 'line', line: l, i });
 				i++;
 				continue;
 			}
 			let end = i;
-			while (end + 1 < lines.length && lines[end + 1]!.kind === 'same') end++;
+			while (end + 1 < lines.length && lines[end + 1]!.kind === 'same' && !blocks(lines[end + 1]!, kind)) end++;
 			// A run keeps `keep` lines next to each change around it, and folds the rest when that hides
 			// two lines or more. A diff with no change folds nothing.
 			const before = i > 0 && lines[i - 1]!.kind !== 'folded';
@@ -400,18 +446,32 @@
 		l.kind === 'added' ? 'bg-diff-added/30 underline underline-offset-2' : 'bg-diff-removed/30 line-through';
 	const focusRing = 'outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset';
 	const gutter = 'shrink-0 w-(--diff-gutter) pr-2 pl-1 text-right text-muted-foreground select-none max-md:hidden';
-	const showSides = $derived(Boolean(oldName || newName) || complete || changes.length > 1);
+	const showSides = $derived(Boolean(oldName || newName) || copyable || changes.length > 1);
+	const SIGN_OF_BLOCK: Record<DiffBlock, string> = { split: '¶', join: '¶', item: '•', heading: 'H' };
+	const chip = 'mx-0.5 rounded-sm px-1 text-xs font-semibold';
 </script>
 
 <!-- A changed word is an ins or a del element. In text, a word that does not show comes before it, so
      that a screen reader finds the change in a long paragraph. An empty line holds a br, so that a
-     copy by hand keeps it. -->
+     copy by hand keeps it. A word of an unchanged line is no change, unless it marks a block. -->
 {#snippet text(l: Line)}
 	<span class="sr-only select-none">{l.kind === 'added' ? `${w.added}: ` : l.kind === 'removed' ? `${w.removed}: ` : ''}</span
-	>{#if l.words && l.kind !== 'same'}{#each l.words as word, j (j)}{#if !word.changed}{word.text}{:else if l.kind === 'added'}<ins class={mark(l)}
+	>{#if l.words && (l.kind !== 'same' || blocks(l, kind))}{#each l.words as word, j (j)}{#if word.block && kind === 'text'}{@render blockMark(word.block)}{:else if !word.changed || l.kind === 'same'}{word.text}{:else if l.kind === 'added'}<ins class={mark(l)}
 					>{#if kind === 'text'}<span class="sr-only select-none">{`${w.inserted} `}</span>{/if}{word.text}</ins
 				>{:else}<del class={mark(l)}>{#if kind === 'text'}<span class="sr-only select-none">{`${w.deleted} `}</span>{/if}{word.text}</del
 				>{/if}{/each}{:else if l.text}{l.text}{:else}<br />{/if}
+{/snippet}
+
+<!-- A mark of a block is an ins or a del chip on the tint of a changed word. Its sign skips a screen
+     reader and a copy, and words that only a screen reader reads say what changed. -->
+{#snippet blockMark(b: DiffBlock)}
+	{#if b === 'join'}<del data-slot="diff-mark" data-block={b} class={cn(chip, 'bg-diff-removed/30 line-through')}
+			><span class="sr-only select-none">{`${w.deletedBreak} `}</span><span aria-hidden="true" class="select-none">{SIGN_OF_BLOCK[b]}</span></del
+		>{:else}<ins data-slot="diff-mark" data-block={b} class={cn(chip, 'bg-diff-added/30 underline underline-offset-2')}
+			><span class="sr-only select-none">{`${b === 'split' ? w.insertedBreak : b === 'item' ? w.insertedItem : w.insertedHeading} `}</span><span aria-hidden="true" class="select-none"
+				>{SIGN_OF_BLOCK[b]}</span
+			></ins
+		>{/if}
 {/snippet}
 
 {#snippet sign(l: Line)}
@@ -475,7 +535,7 @@
 	<span class="flex min-w-0 items-center gap-1">
 		<span aria-hidden="true" class="font-mono">{which === 'old' ? '−' : '+'}</span><span class="sr-only">{which === 'old' ? w.oldVersion : w.newVersion}{name ? ': ' : ''}</span>
 		{#if name}<span class="min-w-0 truncate">{name}</span>{:else}<span aria-hidden="true">{which === 'old' ? w.oldVersion : w.newVersion}</span>{/if}
-		{#if complete}{@render copyButton(which)}{/if}
+		{#if copyable}{@render copyButton(which)}{/if}
 	</span>
 {/snippet}
 

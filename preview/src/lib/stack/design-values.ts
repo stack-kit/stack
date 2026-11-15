@@ -104,6 +104,9 @@ export const themeFallbacks: Record<string, string> = {
 	'tag-green': 'muted-foreground',
 	'diff-added': 'muted-foreground',
 	'diff-removed': 'muted-foreground',
+	'rich-text-paper': 'oklch(1 0 0)',
+	'rich-text-ink': 'oklch(0.145 0 0)',
+	'rich-text-link': 'oklch(0.5 0.17 265)',
 };
 
 /** breakpoints: the width line of each band in px (see "### Width bands" in DESIGN.md). behaviour/width.ts reads them. */

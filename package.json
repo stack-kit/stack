@@ -1,6 +1,6 @@
 {
   "name": "@stack-kit/stack",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
   "description": "The shared design file, its themes and its checks.",
   "license": "MIT",
@@ -32,6 +32,7 @@
     "preview/src/lib/hooks/",
     "preview/src/lib/utils.ts",
     "preview/src/lib/stack/",
+    "preview/src/lib/rich-text/",
     "preview/src/lib/outside/",
     "preview/src/lib/email/email.ts",
     "preview/src/lib/print/chart-width.ts",
@@ -57,6 +58,7 @@
     "./hooks/*": "./preview/src/lib/hooks/*.svelte.js",
     "./patterns": "./preview/src/lib/stack/patterns.ts",
     "./frame-height": "./preview/src/lib/stack/frame-height.ts",
+    "./rich-text": "./preview/src/lib/stack/rich-text.ts",
     "./email": "./preview/src/lib/email/email.ts",
     "./stack.css": "./stack.css",
     "./stack-plain.css": "./stack-plain.css",
@@ -86,7 +88,7 @@
     "frame": "node scripts/frame-height.mjs",
     "preversion": "node scripts/parts.mjs --release && node scripts/contract.mjs gate \"$npm_new_version\"",
     "version": "node scripts/index.mjs && node scripts/component-lock.mjs && node scripts/contract.mjs write && git add DESIGN.index.md package.json preview/components.lock.json preview/contract.json",
-    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run && npm run parts && node --test scripts/parts.test.mjs && npm run frame && node --test scripts/frame-height.test.mjs"
+    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run && npm run parts && node --test scripts/parts.test.mjs scripts/rich-text-diff.test.mjs scripts/rich-text-writing.test.mjs scripts/keys.test.mjs scripts/rich-text-field.test.mjs && npm run frame && node --test scripts/frame-height.test.mjs"
   },
   "devDependencies": {
     "@google/design.md": "0.4.0",
@@ -110,6 +112,7 @@
     "lean-qr": "^2.7.4",
     "mode-watcher": "^1.1.0",
     "paneforge": "^1.0.2",
+    "squire-rte": "~2.4.10",
     "svelte": "^5.57.2",
     "svelte-sonner": "^1.2.1",
     "sveltekit-superforms": "^3.1.0",
@@ -148,6 +151,9 @@
       "optional": true
     },
     "paneforge": {
+      "optional": true
+    },
+    "squire-rte": {
       "optional": true
     },
     "sveltekit-superforms": {

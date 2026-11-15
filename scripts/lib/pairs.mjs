@@ -39,6 +39,9 @@ export const MARK_GROUNDS = ['background', 'card', 'popover', 'muted', 'selected
  *   primary/80 (hover:bg-primary/80), destructive on destructive/10 and /20 (the destructive button and
  *   menu item), and in dark only destructive on destructive/30 (dark:hover:bg-destructive/30 on the
  *   destructive button) and foreground on input/30 (dark:bg-input/30 on inputs and outline buttons);
+ * - in dark only, muted-foreground on input/30 over background, card and popover, at 4.5: the text of an
+ *   addon of an input group, the placeholder of a select, and the request bar, the rows of the proposed
+ *   changes and the status line of a rich-text-field, which all stand on the ground of the input group;
  * - the icon of the copy button of a code block, an outline button on the muted ground of the block, at 3
  *   in dark only: foreground on input/30 over muted at rest and on input/50 over muted under the pointer.
  *   In light the button has the background ground and the muted hover, which the rules above read;
@@ -64,7 +67,14 @@ export const MARK_GROUNDS = ['background', 'card', 'popover', 'muted', 'selected
  * - each tag-<color> role, the dot of a label, at 3 on the same six grounds;
  * - the text of a diff, at 4.5: foreground on the tint of an added or a removed line (diff-added/10 and
  *   diff-removed/10) and on the tint of a changed word (/37), over muted, background, card and popover,
- *   and muted-foreground, the line numbers, on the tint of a line over muted.
+ *   and muted-foreground, the line numbers, on the tint of a line over muted. foreground on the tint at
+ *   30% right on background, card and popover: a mark of a block on an unchanged line of a diff of text,
+ *   and the word marks and the key of the tints of a rich-text-field;
+ * - the text of a rich-text-field with a color tool on its paper, at 4.5: rich-text-ink on
+ *   rich-text-paper, at 75% for a read-only text, and on diff-removed/30 and /60 over the paper, the marks
+ *   of a proposed change, and rich-text-link, a link. In light, muted-foreground (the placeholder and a
+ *   quote), and the ink on muted over the paper (code). In dark, the ink at 70% (the placeholder and a
+ *   quote), and the ink on rich-text-ink/6 over the paper (code).
  *
  * A pair is { id, bg, fg, min, alpha, fgAlpha, modes, under }. alpha scales the alpha of bg, as Tailwind
  * does when it mixes the role with transparent, and fgAlpha scales the alpha of fg in the same way. modes
@@ -137,6 +147,10 @@ export function pairs(front) {
   add('destructive on destructive/20', 'destructive', 'destructive', 4.5, { alpha: 0.2 });
   add('destructive on destructive/30', 'destructive', 'destructive', 4.5, { alpha: 0.3, modes: ['dark'] });
   add('foreground on input/30', 'input', 'foreground', 4.5, { alpha: 0.3, modes: ['dark'] });
+  for (const ground of ['background', 'card', 'popover']) {
+    const under = ground === 'background' ? null : ground;
+    add(`muted-foreground on input/30${under ? ` over ${under}` : ''}`, 'input', 'muted-foreground', 4.5, { alpha: 0.3, modes: ['dark'], under });
+  }
   add('foreground on input/30 over muted', 'input', 'foreground', 3, { alpha: 0.3, modes: ['dark'], under: 'muted' });
   add('foreground on input/50 over muted', 'input', 'foreground', 3, { alpha: 0.5, modes: ['dark'], under: 'muted' });
   add('muted-foreground on popover', 'popover', 'muted-foreground', 4.5);
@@ -178,9 +192,23 @@ export function pairs(front) {
       const under = ground === 'background' ? null : ground;
       add(`foreground on ${role}/10 over ${ground}`, role, 'foreground', 4.5, { alpha: 0.1, under });
       add(`foreground on ${role}/37 over ${ground}`, role, 'foreground', 4.5, { alpha: 0.37, under });
+      // A mark of a block on an unchanged line has no tint of a line under it. A diff of text has no muted box.
+      if (ground !== 'muted') add(`foreground on ${role}/30 over ${ground}`, role, 'foreground', 4.5, { alpha: 0.3, under });
     }
     add(`muted-foreground on ${role}/10 over muted`, role, 'muted-foreground', 4.5, { alpha: 0.1, under: 'muted' });
   }
+  // The text of a rich-text-field with a color tool stands on rich-text-paper, which stays light in both
+  // modes. A link takes rich-text-link in both modes. In light the rest of the content keeps the roles of
+  // the theme, and in dark it takes them from the ink.
+  add('rich-text-ink on rich-text-paper', 'rich-text-paper', 'rich-text-ink', 4.5);
+  add('rich-text-ink/75 on rich-text-paper', 'rich-text-paper', 'rich-text-ink', 4.5, { fgAlpha: 0.75 });
+  add('rich-text-ink on diff-removed/30 over rich-text-paper', 'diff-removed', 'rich-text-ink', 4.5, { alpha: 0.3, under: 'rich-text-paper' });
+  add('rich-text-ink on diff-removed/60 over rich-text-paper', 'diff-removed', 'rich-text-ink', 4.5, { alpha: 0.6, under: 'rich-text-paper' });
+  add('rich-text-link on rich-text-paper', 'rich-text-paper', 'rich-text-link', 4.5);
+  add('muted-foreground on rich-text-paper', 'rich-text-paper', 'muted-foreground', 4.5, { modes: ['light'] });
+  add('rich-text-ink on muted over rich-text-paper', 'muted', 'rich-text-ink', 4.5, { under: 'rich-text-paper', modes: ['light'] });
+  add('rich-text-ink/70 on rich-text-paper', 'rich-text-paper', 'rich-text-ink', 4.5, { fgAlpha: 0.7, modes: ['dark'] });
+  add('rich-text-ink on rich-text-ink/6 over rich-text-paper', 'rich-text-ink', 'rich-text-ink', 4.5, { alpha: 0.06, under: 'rich-text-paper', modes: ['dark'] });
   return out;
 }
 

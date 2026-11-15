@@ -3,6 +3,7 @@
 /* The classes of the components and the parts. Tailwind does not scan node_modules, so these lines name the folders of the package. */
 @source "./preview/src/lib/components/ui";
 @source "./preview/src/lib/stack";
+@source "./preview/src/lib/rich-text";
 @source "./preview/src/lib/outside";
 
 @custom-variant dark (&:is(.dark *));
@@ -81,6 +82,9 @@
   --color-tag-green: var(--tag-green, var(--muted-foreground));
   --color-diff-added: var(--diff-added, var(--muted-foreground));
   --color-diff-removed: var(--diff-removed, var(--muted-foreground));
+  --color-rich-text-paper: var(--rich-text-paper, oklch(1 0 0));
+  --color-rich-text-ink: var(--rich-text-ink, oklch(0.145 0 0));
+  --color-rich-text-link: var(--rich-text-link, oklch(0.5 0.17 265));
 }
 
 @theme {

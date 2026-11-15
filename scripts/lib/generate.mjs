@@ -134,6 +134,9 @@ const ROLES = {
   'tag-green': { fixed: true },
   'diff-added': { fixed: true },
   'diff-removed': { fixed: true },
+  'rich-text-paper': { fixed: true, still: true },
+  'rich-text-ink': { fixed: true },
+  'rich-text-link': { fixed: true },
 };
 
 /** True when the lift may change the role: a text, an edge, a mark or a fill, never a ground or a divider. */

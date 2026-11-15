@@ -1,6 +1,8 @@
 // The key check. It fails when architecture/keys.json and the two key tables of
 // architecture/web-app.md disagree, so that the data and the prose never drift apart. It also fails
-// when DEFAULT_KEYS of the behaviour module keys.ts and the entries of keys.json with an id disagree.
+// when DEFAULT_KEYS of the behaviour module keys.ts and the entries of keys.json with an id disagree,
+// and when RICH_TEXT_KEYS of the module rich-text.ts and the entries whose id starts with "rich-text."
+// disagree.
 //
 //   node scripts/keys.mjs   exit 1 on a difference; the last line counts the entries that match
 //
@@ -12,15 +14,21 @@
 //
 // An entry may also hold an id: the KeyAction of the behaviour module that the key runs, such as
 // "next-row". The tables have no id, so the id takes no part in the comparison with web-app.md. For
-// each action of DEFAULT_KEYS, the keys of the entries with its id are the keys of the action. The
-// script reads DEFAULT_KEYS from the source of keys.ts, one line for each action, because the root
-// check runs before the install of the preview and has no TypeScript.
+// each action of DEFAULT_KEYS, the keys of the entries with its id are the keys of the action. An id
+// "rich-text.<command>" names a RichTextCommand of the rich text field instead, and the keys of the
+// entries with that id are the keys of the command in RICH_TEXT_KEYS; a command with no key has no
+// entry. The script reads DEFAULT_KEYS from the source of keys.ts and RICH_TEXT_KEYS from the source of
+// rich-text.ts, one line for each action or command, because the root check runs before the install of
+// the preview and has no TypeScript.
 import { pathToFileURL } from 'node:url';
 import { readSource } from './lib/design.mjs';
 
 export const PROSE = 'architecture/web-app.md';
 export const DATA = 'architecture/keys.json';
 export const DEFAULTS = 'preview/src/lib/stack/behaviour/keys.ts';
+export const RICH_TEXT = 'preview/src/lib/stack/rich-text.ts';
+/** The prefix of the id of an entry that names a command of the rich text field. */
+export const RICH_TEXT_ID = 'rich-text.';
 export const FIELDS = ['key', 'action', 'scope', 'owner'];
 const TABLES = [
   { heading: 'Shared keys', owner: 'shared' },
@@ -101,35 +109,50 @@ export function validate(data) {
   });
 }
 
-/** DEFAULT_KEYS of the source of keys.ts: each action with its keys, from the lines up to the closing "})". */
-export function defaultKeys(source) {
+/** DEFAULT_KEYS of the source of keys.ts, or the object `name` of the source `file`: each action with its keys, from the lines up to the closing "})". */
+export function defaultKeys(source, name = 'DEFAULT_KEYS', file = DEFAULTS) {
   const lines = source.split('\n');
-  const start = lines.findIndex((l) => /^export const DEFAULT_KEYS\b.*\{\s*$/.test(l));
-  if (start < 0) throw new Error(`${DEFAULTS} has no line that starts with "export const DEFAULT_KEYS" and ends with "{".`);
+  const start = lines.findIndex((l) => new RegExp(`^export const ${name}\\b.*\\{\\s*$`).test(l));
+  if (start < 0) throw new Error(`${file} has no line that starts with "export const ${name}" and ends with "{".`);
+  // A string of a key, in single or double quotes, can hold "]" and an escaped character, such as 'Cmd+\\'.
+  const STRING = /'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"/g;
   const out = {};
   for (let i = start + 1; i < lines.length; i++) {
     if (/^\s*\}\)?;?\s*$/.test(lines[i])) return out;
-    const m = /^\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\s*:\s*\[([^\]]*)\]\s*,?\s*$/.exec(lines[i]);
-    const rest = m ? m[4].replace(/'[^']*'|"[^"]*"/g, '').replace(/[\s,]/g, '') : '';
-    if (!m || rest) throw new Error(`${DEFAULTS}:${i + 1}: a line of DEFAULT_KEYS holds one action and the strings of its keys, such as "undo: ['Cmd+Z'],".`);
-    out[m[1] ?? m[2] ?? m[3]] = [...m[4].matchAll(/'([^']*)'|"([^"]*)"/g)].map((k) => k[1] ?? k[2]);
+    const m = /^\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\s*:\s*\[((?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^\]'"])*)\]\s*,?\s*$/.exec(lines[i]);
+    const rest = m ? m[4].replace(STRING, '').replace(/[\s,]/g, '') : '';
+    if (!m || rest) throw new Error(`${file}:${i + 1}: a line of ${name} holds one action and the strings of its keys, such as "undo: ['Cmd+Z'],".`);
+    out[m[1] ?? m[2] ?? m[3]] = [...m[4].matchAll(STRING)].map((k) => (k[1] ?? k[2]).replace(/\\(.)/g, '$1'));
   }
-  throw new Error(`${DEFAULTS}: DEFAULT_KEYS has no closing line "})" or "}".`);
+  throw new Error(`${file}: ${name} has no closing line "})" or "}".`);
 }
 
-/** The differences between DEFAULT_KEYS and the keys of the entries of the data with an id. */
-export function compareDefaults(defaults, data) {
+/**
+ * The differences between DEFAULT_KEYS and the keys of the entries of the data with an id, and between
+ * RICH_TEXT_KEYS and the keys of the entries whose id starts with "rich-text.". With no richText, the
+ * entries of the rich text field take no part.
+ */
+export function compareDefaults(defaults, data, richText = null) {
   const problems = [];
-  const byId = new Map(Object.keys(defaults).map((a) => [a, []]));
+  const sets = [
+    { label: 'DEFAULT_KEYS', file: DEFAULTS, prefix: '', defaults, byId: new Map(Object.keys(defaults).map((a) => [a, []])) },
+    ...(richText ? [{ label: 'RICH_TEXT_KEYS', file: RICH_TEXT, prefix: RICH_TEXT_ID, defaults: richText, byId: new Map(Object.keys(richText).map((a) => [a, []])) }] : []),
+  ];
   data.forEach((e, i) => {
     if (!('id' in e)) return;
-    if (byId.has(e.id)) byId.get(e.id).push(e.key);
-    else problems.push(`${DATA}: entry ${i + 1} ${name(e)} has the id "${e.id}", and DEFAULT_KEYS of ${DEFAULTS} has no such action`);
+    const rich = e.id.startsWith(RICH_TEXT_ID);
+    if (rich && !richText) return;
+    const set = sets.find((t) => t.prefix === (rich ? RICH_TEXT_ID : ''));
+    const action = e.id.slice(set.prefix.length);
+    if (set.byId.has(action)) set.byId.get(action).push(e.key);
+    else problems.push(`${DATA}: entry ${i + 1} ${name(e)} has the id "${e.id}", and ${set.label} of ${set.file} has no such ${rich ? 'command' : 'action'}`);
   });
-  for (const [action, keys] of byId) {
-    const want = [...defaults[action]].sort().join(', ') || 'no key';
-    const have = [...keys].sort().join(', ') || 'no key';
-    if (want !== have) problems.push(`${DEFAULTS}: DEFAULT_KEYS gives "${action}" the keys ${want}, and the entries of ${DATA} with the id "${action}" give ${have}`);
+  for (const set of sets) {
+    for (const [action, keys] of set.byId) {
+      const want = [...set.defaults[action]].sort().join(', ') || 'no key';
+      const have = [...keys].sort().join(', ') || 'no key';
+      if (want !== have) problems.push(`${set.file}: ${set.label} gives "${action}" the keys ${want}, and the entries of ${DATA} with the id "${set.prefix}${action}" give ${have}`);
+    }
   }
   return problems;
 }
@@ -155,7 +178,8 @@ function main() {
   const text = readSource(PROSE);
   const json = readSource(DATA);
   const source = readSource(DEFAULTS);
-  if (text === null || json === null || source === null) throw new Error(`${PROSE}, ${DATA} or ${DEFAULTS} not found. Run this from the root of the repository.`);
+  const richSource = readSource(RICH_TEXT);
+  if (text === null || json === null || source === null || richSource === null) throw new Error(`${PROSE}, ${DATA}, ${DEFAULTS} or ${RICH_TEXT} not found. Run this from the root of the repository.`);
   let data;
   try {
     data = JSON.parse(json);
@@ -164,12 +188,13 @@ function main() {
   }
   validate(data);
   const defaults = defaultKeys(source);
-  const problems = [...compare(tableEntries(text), data), ...compareDefaults(defaults, data)];
+  const richText = defaultKeys(richSource, 'RICH_TEXT_KEYS', RICH_TEXT);
+  const problems = [...compare(tableEntries(text), data), ...compareDefaults(defaults, data, richText)];
   for (const p of problems) console.error(`keys: ${p}`);
   console.log(
     problems.length
-      ? `keys: ${problems.length} ${problems.length === 1 ? 'difference' : 'differences'}. Change the table, ${DATA} and DEFAULT_KEYS of ${DEFAULTS} in the same commit.`
-      : `keys: the ${data.length} entries of ${DATA} match the two tables of ${PROSE}, and the ${Object.keys(defaults).length} actions of DEFAULT_KEYS in ${DEFAULTS} match their ids`,
+      ? `keys: ${problems.length} ${problems.length === 1 ? 'difference' : 'differences'}. Change the table, ${DATA}, DEFAULT_KEYS of ${DEFAULTS} and RICH_TEXT_KEYS of ${RICH_TEXT} in the same commit.`
+      : `keys: the ${data.length} entries of ${DATA} match the two tables of ${PROSE}, the ${Object.keys(defaults).length} actions of DEFAULT_KEYS in ${DEFAULTS} match their ids, and the ${Object.keys(richText).length} commands of RICH_TEXT_KEYS in ${RICH_TEXT} match theirs`,
   );
   return problems.length ? 1 : 0;
 }

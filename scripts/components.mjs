@@ -32,7 +32,7 @@ export const COMPONENTS = [
 // parts and a showcase, and no folder in preview/src/lib/components/ui/. Each ships as a file of
 // preview/src/lib/stack/, and a product imports it from the package, such as code-editor from
 // @stack-kit/stack/parts/CodeEditor.
-export const STACK_PARTS = ['code-editor', 'code-block', 'diff', 'time-field', 'time-zone-field', 'selection-bar', 'reorder-list', 'stepper', 'board', 'month-view', 'day-log', 'unread-mark', 'mail-message', 'html-frame', 'send-check', 'figure-band', 'qr-code', 'property-strip', 'item-page'];
+export const STACK_PARTS = ['code-editor', 'rich-text-field', 'rich-text-in-place', 'rich-text-view', 'code-block', 'diff', 'time-field', 'time-zone-field', 'selection-bar', 'reorder-list', 'stepper', 'board', 'month-view', 'day-log', 'unread-mark', 'mail-message', 'html-frame', 'send-check', 'figure-band', 'qr-code', 'property-strip', 'item-page'];
 export const DEFINED = [...COMPONENTS, ...STACK_PARTS];
 export const PARTS = ['Purpose', 'Anatomy', 'Variants', 'Sizes', 'States', 'Tokens', 'Accessibility', 'Example', 'Phone'];
 

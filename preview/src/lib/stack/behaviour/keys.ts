@@ -50,9 +50,10 @@ const ACTIVATES =
 	'button, input[type=button], input[type=submit], input[type=reset], input[type=image], a[href], summary, [role=button], [role=link]';
 /** The KeyboardEvent.key of each arrow key, which a range or radio input uses by itself. */
 const ARROWS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
-/** The name of a key in architecture/keys.json, and its KeyboardEvent.key. */
+/** The name of a key in architecture/keys.json, and its KeyboardEvent.key. F1 to F24 are named too (isFunctionKey). */
 const NAMED: Readonly<Record<string, string>> = {
 	esc: 'Escape',
+	escape: 'Escape',
 	up: 'ArrowUp',
 	down: 'ArrowDown',
 	left: 'ArrowLeft',
@@ -65,6 +66,8 @@ const NAMED: Readonly<Record<string, string>> = {
 	'page up': 'PageUp',
 	'page down': 'PageDown'
 };
+/** The physical key (KeyboardEvent.code) of a punctuation key, which a key with Shift, or with Option on macOS, matches. */
+const CODES: Readonly<Record<string, string>> = { '[': 'BracketLeft', ']': 'BracketRight', '\\': 'Backslash', '-': 'Minus', '=': 'Equal' };
 
 type Binding = { action: KeyAction; level: number; run: (e: KeyboardEvent) => void | false };
 
@@ -79,8 +82,12 @@ const subscribe = createSubscriber((update) => {
 	return () => (keysChanged = undefined);
 });
 
-/** Cmd is the Command key on macOS, and Ctrl on every other system. */
-function onMac(): boolean {
+/**
+ * True on macOS and iOS. Cmd is the Command key there, and Ctrl on every other system. It reads the
+ * navigator, so call it in the browser only: during server rendering it gives the system of the server,
+ * and with no navigator it gives false.
+ */
+export function onMac(): boolean {
 	return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 }
 
@@ -131,56 +138,110 @@ function nativeKey(target: EventTarget | null, key: string | undefined): boolean
 }
 
 /**
- * True when the event gives the letter or the digit. A layout such as Greek gives a letter outside
- * ASCII, such as "ξ" on the J key, so for a letter the physical key counts there, such as KeyJ.
+ * True when the event gives the letter. A layout such as Greek gives a letter outside ASCII, such as "ξ"
+ * on the J key, and Option on macOS gives another character, such as "∫" for Option+B. The physical key
+ * counts then, such as KeyJ.
  */
-function sameCharacter(e: KeyboardEvent, base: string): boolean {
-	if (/^[a-z]$/i.test(base) && e.key.length === 1 && e.key.charCodeAt(0) > 0x7f) return e.code === `Key${base.toUpperCase()}`;
-	return e.key.toLowerCase() === base.toLowerCase();
+function sameLetter(e: KeyboardEvent, base: string, mac: boolean): boolean {
+	if (e.key.toLowerCase() === base.toLowerCase()) return true;
+	const other = e.key.length === 1 && (e.key.charCodeAt(0) > 0x7f || (mac && e.altKey));
+	return other && e.code === `Key${base.toUpperCase()}`;
 }
 
-/** The modifiers and the base of a key such as "Cmd+Z", "Shift+X" or "Down". */
-function parse(key: string) {
+/** True for a function key, F1 to F24, such as the base "F10" of "Alt+F10". A function key types no character. */
+export function isFunctionKey(base: string): boolean {
+	return /^f(?:[1-9]|1[0-9]|2[0-4])$/i.test(base);
+}
+
+/** The KeyboardEvent.key of a named key, such as "Escape" for "Esc" or "F10" for "F10"; undefined for a character. */
+function namedKey(base: string): string | undefined {
+	return NAMED[base.toLowerCase()] ?? (isFunctionKey(base) ? base.toUpperCase() : undefined);
+}
+
+/** A key such as "Cmd+Shift+Z" in its parts: the base, such as "Z", and each modifier. */
+export type ParsedKey = { base: string; cmd: boolean; ctrl: boolean; shift: boolean; alt: boolean };
+
+/**
+ * The parts of a key such as "Cmd+Z", "Shift+X", "Alt+F10" or "Down", as architecture/keys.json writes
+ * it. This is the one parser of the keys of STACK: matches(), isKey(), ariaKey() and the rich text field
+ * read each key through it.
+ */
+export function parseKey(key: string): ParsedKey {
 	const parts = key.split('+');
 	const base = parts.pop() ?? '';
 	const mods = new Set(parts.map((p) => p.toLowerCase()));
-	const mac = onMac();
-	return {
-		base,
-		meta: mods.has('cmd') && mac,
-		ctrl: mods.has('ctrl') || (mods.has('cmd') && !mac),
-		shift: mods.has('shift'),
-		alt: mods.has('alt')
-	};
+	return { base, cmd: mods.has('cmd'), ctrl: mods.has('ctrl'), shift: mods.has('shift'), alt: mods.has('alt') };
 }
 
 /**
- * True when the event is the key, such as "Cmd+Z", "J" or "Down". A key with no Cmd and no Ctrl never
- * matches in a text field, and a key with Cmd matches there only as Cmd+K, Cmd+S or Cmd+Enter
- * (web-app.md, "### Rules"). A sequence such as "G, then a letter" never matches. Enter and Space never
- * match on a button, a link or a summary, and the arrow keys never match on a range or radio input.
+ * True when the event is the key, wherever the focus is: the rule of a text field and the rules of a
+ * control that runs its own keys do not apply, as in a part that owns the key, such as the rich text
+ * field. matches() adds those rules. A key matches its character, as matches() did before this function
+ * came, and the physical key (event.code) counts only where the character cannot match:
+ * - The modifiers match exactly. Cmd is the Command key on macOS and Ctrl elsewhere.
+ * - A letter matches the character of the layout, and the physical key when the layout gives a character
+ *   outside ASCII or Option on macOS gives another character (sameLetter).
+ * - A digit matches the character and the physical key, such as Digit1 for "&" on the key of 1 in a
+ *   French layout, and Digit7 for "&" of Shift+7. Shift counts.
+ * - A punctuation key with Cmd or Ctrl and no Shift and no Alt, or with no modifier, matches the
+ *   character only, such as "-" on the key Slash of a German layout. The keys [ ] \ - = with Shift, or
+ *   with Option on macOS, also match the physical key, because Shift and Option change the character,
+ *   such as "_" for Shift+- and "–" for Option+-. Alt on Windows and Linux keeps the character.
+ * - Any other character matches the character, and Shift does not count, because a character such as
+ *   "?" takes Shift on most keyboards. Shift counts on a letter, a digit and a named key.
+ * - On Windows and Linux, Ctrl+Alt with AltGraph down is AltGr, which types a character on many layouts,
+ *   so it matches no key.
+ * - A sequence such as "G, then a letter" never matches, and no key matches while an input method composes.
  */
-export function matches(e: KeyboardEvent, key: string): boolean {
+export function isKey(e: KeyboardEvent, key: string): boolean {
 	if (e.isComposing || key.includes(', then ')) return false;
-	const k = parse(key);
-	const named = NAMED[k.base.toLowerCase()];
-	const letter = /^[a-z0-9]$/i.test(k.base);
-	if (named !== undefined) {
-		if (e.key !== named) return false;
-	} else if (letter) {
-		if (!sameCharacter(e, k.base)) return false;
-	} else if (e.key !== k.base) return false;
-	// A character such as "?" takes Shift on most keyboards, so Shift counts only on a letter or a named key.
-	if ((named !== undefined || letter) && e.shiftKey !== k.shift) return false;
-	if (e.metaKey !== k.meta || e.ctrlKey !== k.ctrl || e.altKey !== k.alt) return false;
-	const target = targetOf(e);
-	if (nativeKey(target, named)) return false;
-	if (!textField(target)) return true;
-	return (k.meta || k.ctrl) && CMD_IN_TEXT.has(k.base.toLowerCase());
+	const k = parseKey(key);
+	const mac = onMac();
+	if (e.metaKey !== (k.cmd && mac) || e.ctrlKey !== (k.ctrl || (k.cmd && !mac)) || e.altKey !== k.alt) return false;
+	if (!mac && e.ctrlKey && e.altKey && e.getModifierState?.('AltGraph')) return false;
+	const named = namedKey(k.base);
+	if (named !== undefined) return e.key === named && e.shiftKey === k.shift;
+	if (/^[a-z]$/i.test(k.base)) return sameLetter(e, k.base, mac) && e.shiftKey === k.shift;
+	if (/^[0-9]$/.test(k.base)) return (e.key === k.base || e.code === `Digit${k.base}`) && e.shiftKey === k.shift;
+	if (e.key === k.base) return true;
+	const code = CODES[k.base];
+	return code !== undefined && (k.shift || (k.alt && mac)) && e.code === code && e.shiftKey === k.shift;
 }
 
-/** The keys of the action: the keys that keyOf gives, else DEFAULT_KEYS. */
-function keysOf(action: KeyAction): readonly string[] {
+/**
+ * True when the event is the key, such as "Cmd+Z", "J" or "Down", and the place of the focus allows it.
+ * The key matches its character: a punctuation key with Cmd or Ctrl and no Shift and no Alt compares the
+ * character, as before, so "Cmd+-" is the key of "-" in each layout. The physical key counts only where
+ * the character cannot match: with Option on macOS, with Shift on a digit or on [ ] \ - =, and for a
+ * digit, such as "&" on the key of 1 in a French layout (isKey gives each rule). A key with no Cmd and
+ * no Ctrl never matches in a text field, and a key with Cmd matches there only as Cmd+K, Cmd+S or
+ * Cmd+Enter (web-app.md, "### Rules"). Enter and Space never match on a button, a link or a summary, and
+ * the arrow keys never match on a range or radio input.
+ */
+export function matches(e: KeyboardEvent, key: string): boolean {
+	if (!isKey(e, key)) return false;
+	const k = parseKey(key);
+	const target = targetOf(e);
+	if (nativeKey(target, namedKey(k.base))) return false;
+	if (!textField(target)) return true;
+	return (k.cmd || k.ctrl) && CMD_IN_TEXT.has(k.base.toLowerCase());
+}
+
+/** The key in the form of aria-keyshortcuts, such as "Meta+Shift+Z", "Control+B" or "ArrowDown". */
+export function ariaKey(key: string): string {
+	const k = parseKey(key);
+	const mac = onMac();
+	const named = namedKey(k.base);
+	const base = named === ' ' ? 'Space' : (named ?? k.base.toUpperCase());
+	return [(k.ctrl || (k.cmd && !mac)) && 'Control', k.cmd && mac && 'Meta', k.alt && 'Alt', k.shift && 'Shift', base].filter(Boolean).join('+');
+}
+
+/**
+ * The keys of the action: the keys that the person chose (provideKeys), else DEFAULT_KEYS; [] when the
+ * key is off. A part that takes the key of an action on its own elements reads it at each keydown, such as
+ * the rich text in place for the key of submit.
+ */
+export function actionKeys(action: KeyAction): readonly string[] {
 	return keyOf(action) ?? DEFAULT_KEYS[action];
 }
 
@@ -196,7 +257,7 @@ function onKeydown(e: KeyboardEvent): void {
 	if (e.defaultPrevented) return;
 	for (const action of ACTIONS) {
 		const queue = inOrder(action);
-		if (queue.length === 0 || !keysOf(action).some((key) => matches(e, key))) continue;
+		if (queue.length === 0 || !actionKeys(action).some((key) => matches(e, key))) continue;
 		for (const binding of queue) {
 			if (binding.run(e) === false) continue;
 			e.preventDefault();
@@ -296,13 +357,8 @@ export function takePress(e: KeyboardEvent): void {
 /** The keys of the action in the form of aria-keyshortcuts, such as "Meta+Z" or "J ArrowDown". "" when the key is off. */
 export function keyHint(action: KeyAction): string {
 	subscribe();
-	return keysOf(action)
+	return actionKeys(action)
 		.filter((key) => !key.includes(', then '))
-		.map((key) => {
-			const k = parse(key);
-			const named = NAMED[k.base.toLowerCase()];
-			const base = named === ' ' ? 'Space' : (named ?? k.base.toUpperCase());
-			return [k.ctrl && 'Control', k.meta && 'Meta', k.alt && 'Alt', k.shift && 'Shift', base].filter(Boolean).join('+');
-		})
+		.map(ariaKey)
 		.join(' ');
 }

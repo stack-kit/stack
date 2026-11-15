@@ -19,6 +19,137 @@ change of behaviour that needs no input from the product is a minor version.
 A fix that keeps the contract and the documented behaviour is a patch. The
 release step writes each entry from the commits since the last tag.
 
+## v2.4.0 - 2026-11-15
+
+### Breaking
+
+- None. A product changes no code at this update. It moves the pin.
+  `package.json` gets one new optional peer, `squire-rte` `~2.4.10`, which
+  a product installs only when it shows the rich text field. A product
+  takes only the patch releases of Squire 2.4.
+
+### Behaviour
+
+- `behaviour/keys`: `matches()` reads each key through the one parser of
+  STACK, which the rich text field uses too. A key matches its character,
+  as before. A punctuation key with Cmd or Ctrl and no Shift and no Alt
+  compares the character only, so Cmd+- is the key of "-" in each layout.
+  A key also matches its physical key only where the character cannot
+  match: a digit, such as "&" on the key of 1 in a French layout; Shift
+  on a digit or on `[`, `]`, `\`, `-` and `=`, such as "&" for Shift+7;
+  and Option on macOS, which gives another character, also on a letter.
+  On Windows and Linux, Ctrl+Alt with AltGr down matches no key, because
+  AltGr types a character. `Esc` and `Escape` name the same key, and F1
+  to F24 are named keys. Each key of `DEFAULT_KEYS` matches as before.
+- The shared keys of `architecture/web-app.md` and
+  `architecture/keys.json`: Cmd+K opens the palette everywhere, except
+  inside the text of a `rich-text-field` in the full preset while a person
+  can edit the text, where it makes a link. Cmd+B of the `sidebar` fires
+  everywhere except inside the text of a `rich-text-field` that a person
+  can edit. Esc stays inside a `rich-text-field` and the field of a
+  `rich-text-in-place` that a person can edit, so a layer around it stays
+  open.
+- The key rules of `architecture/web-app.md`: a function key, such as F2,
+  that a page gives a command of a `rich-text-field` fires alone in its
+  text, because a function key types no character.
+- `themes/graphite.css`: the dark `muted-foreground` goes from L 0.67 to
+  0.7, so the text of an addon of an `input-group` and the placeholder of
+  a `select` read at 4.5:1 on `input/30` over `background`, `card` and
+  `popover`. `npm run contrast` checks the new pair in both themes.
+
+### Added
+
+- `parts/RichTextField` and `### rich-text-field`: a field for a text that
+  people read with its look, such as the reply to a mail or a note, on
+  Squire 2.4.10 (record 0013). It keeps bold, headings, lists, links,
+  colors and pictures, in the presets `full` and `simple`. Each HTML that
+  enters goes through the load list or the paste list of
+  `@stack-kit/stack/rich-text`. A product reads the field through
+  `bind:editor`: `html()`, `words()`, `selection()`, `load()` and
+  `focus()`. The engine and each smaller part load with `import()` in
+  chunks of their own, so a field loads at its mount only what it mounts.
+  A page with one field of the simple preset has 115.0 KB of static JS
+  beyond the shared chunks.
+- `parts/RichTextField`: `writing`, the writing tools. The page gives one
+  function, `run(request, signal)`, and STACK owns the rest: Check,
+  Rewrite with the modes of the page, Structure and the instruction row,
+  the states of a request, Stop, a request of another view (`pending`),
+  the numbering and the state of each change, Left out with Take after
+  all, and the diff of a whole text, which the field computes. `ondecide`
+  gives each decision to the product. The types `WritingRequest`,
+  `WritingResult`, `WritingChange`, `WritingMode`, `WritingDecision`,
+  `WritingWords` and `RichTextWriting` (record 0014).
+- `parts/RichTextField`: `onfailure`. The field writes no failure text of
+  its own. It calls `onfailure` with each `RichTextFailure`, and shows the
+  words that the function gives in place.
+- `parts/RichTextField`: `paper`, the paper, the ink and the link of one
+  field, each a CSS color. In development the field warns when a text of
+  the content reads under 4.5:1 on it, and calls `onfailure` with the kind
+  `paper`.
+- `parts/RichTextField`: `keys`, the keys of each command. Each command
+  has its default keys in `RICH_TEXT_KEYS` and the id
+  `rich-text.<command>` in `architecture/keys.json`. `undefined` keeps the
+  default keys, and an empty list turns the key of the command off. The
+  tooltips, the menus and `aria-keyshortcuts` show the keys of the page.
+  When two commands get one key, the move to the toolbar takes it first,
+  then the tool that comes first in the toolbar. A command that loses its
+  key shows it nowhere, and in development the field warns once in the
+  console. A key that no command takes reaches the page, and Cmd+B, Cmd+I,
+  Cmd+U, Cmd+Z, Cmd+Shift+Z and Cmd+Y arrive with their default
+  prevented, because the field stops the edit of the browser.
+- `parts/RichTextField`: `toolbar`, `full` by default, or `none` for a
+  field with no toolbar. The keys, the bar over selected text and the
+  forms still work, and the writing tools and `toolbarEnd` do not show. A
+  form that a key opens follows the selected words when the page
+  scrolls, and stands at the field from a caret in an empty line.
+- `parts/RichTextView` and `### rich-text-view`: a stored rich text, read
+  only, with the look that it had in the field. It cleans the HTML with
+  the load list, and loads no engine. `lines` clamps the text to a count
+  of lines, and `paper` gives it the paper of the field that wrote it.
+- `parts/RichTextInPlace` and `### rich-text-in-place`: a stored rich text
+  that a person edits in its place, such as a description in a properties
+  panel. The text shows as a view, and a click on it or Edit puts a field
+  in its place at the same width, with the caret at the click. Save calls
+  `onsave`, and so does the key of submit, Cmd+Enter by default, wherever
+  the focus is in the part, except on Cancel and in the alert dialog. A
+  failed save keeps the draft and calls `onfailure` with the kind `save`,
+  and Cancel with changes asks in an alert dialog. `editing` and `dirty`
+  are bindable, so a page gives `dirty` to its `keysOff`. A read-only
+  part opens no field, also for a page that sets `editing`. `empty`
+  shows for a text that the view cleans to nothing. A page of 50 parts
+  in place has 91.2 KB of static JS beyond the shared chunks and loads no
+  engine until the pointer enters one.
+- `rich-text`: the types of the parts, the content colors `TEXT_COLORS`
+  and `HIGHLIGHT_COLORS`, `parseHex`, `toHex`, `contrastRatio`,
+  `paperContrast`, the sanitizer `sanitizeRichText` and
+  `richTextFragment`, `defaultPicture`, `RichTextCommand` and
+  `RICH_TEXT_KEYS`.
+- The roles `rich-text-paper`, `rich-text-ink` and `rich-text-link` in
+  each theme and mode, so the text of a field with a color tool stays on a
+  light paper in dark mode. `npm run contrast` checks each text color on
+  the paper and the ink on each highlight at 4.5:1.
+- `parts/Diff`: a diff of text marks the blocks that changed: a new
+  paragraph break, a break that went, a new list item and a new heading
+  (`DiffBlock`, `DiffWord.block`, `diff-mark`). `DiffWords` takes
+  `insertedBreak`, `deletedBreak`, `insertedItem` and `insertedHeading`.
+  `diffChanges(lines, kind)` counts the changes of a diff.
+- `behaviour/keys`: `parseKey`, `isKey`, `ariaKey`, `onMac`,
+  `actionKeys`, `isFunctionKey` and the type `ParsedKey`. `isKey` matches
+  a key wherever the focus is, and `matches` adds the rule of a text
+  field. `actionKeys` gives the keys of an action that the person chose,
+  else `DEFAULT_KEYS`. `onMac` reads the navigator, so a page calls it in
+  the browser only.
+- `architecture/keys.json` and the table of `architecture/web-app.md`: an
+  entry for each key of a command of the rich text field, with its id, and
+  the fixed keys inside its toolbar. `npm run keys` also compares the ids
+  `rich-text.` with `RICH_TEXT_KEYS`.
+- Records 0013, Squire for the rich text field, and 0014, the public
+  surface of the rich text field and the writing request that STACK owns.
+
+### Fixed
+
+- None.
+
 ## v2.3.0 - 2026-11-14
 
 ### Breaking

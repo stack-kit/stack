@@ -115,6 +115,19 @@
 -A part that is older than 24 hours goes again.`
 	);
 
+	// A new layout of a note, with the words kept. The product computed the marks of the blocks: the first
+	// line becomes a heading, a new break splits the second line, a new heading comes before the list, two
+	// lines become list items, and the last two lines join.
+	const layout: DiffLine[] = [
+		{ kind: 'same', text: 'Delivery update', words: [{ text: '', block: 'heading' }, { text: 'Delivery update' }] },
+		{ kind: 'same', text: 'Hello team,', words: [{ text: 'Hello team,' }, { text: '', block: 'split' }] },
+		{ kind: 'same', text: 'the new shelves arrive on Thursday.' },
+		{ kind: 'added', text: 'What arrives', words: [{ text: '', block: 'heading' }, { text: 'What arrives' }] },
+		{ kind: 'same', text: 'Two shelving units', words: [{ text: '', block: 'item' }, { text: 'Two shelving units' }] },
+		{ kind: 'same', text: 'One bracket set', words: [{ text: '', block: 'item' }, { text: 'One bracket set' }] },
+		{ kind: 'same', text: 'Kind regards, Sam', words: [{ text: 'Kind regards,' }, { text: '', block: 'join' }, { text: ' Sam' }] }
+	];
+
 	let view = $state<'unified' | 'split'>('unified');
 </script>
 
@@ -157,6 +170,10 @@
 		<div class="flex min-w-0 flex-col gap-2" data-diff-case="text">
 			<h3 id="diff-spec" class="text-xs font-semibold text-muted-foreground">The upload spec, changes from version 2</h3>
 			<Diff kind="text" lines={prose} {view} complete oldName="Version 2, approved" newName="Version 3, draft" aria-labelledby="diff-spec" class="max-w-180" />
+		</div>
+		<div class="flex min-w-0 flex-col gap-2" data-diff-case="blocks">
+			<h3 id="diff-layout" class="text-xs font-semibold text-muted-foreground">A new layout of the delivery note, with the marks of the blocks</h3>
+			<Diff kind="text" lines={layout} {view} context={layout.length} aria-labelledby="diff-layout" class="max-w-180" />
 		</div>
 	</div>
 </section>

@@ -12,7 +12,7 @@ This README has two readers. An agent or a person in a product reads the section
 
 | Path | What it holds | Who reads it | In the npm package |
 |---|---|---|---|
-| `DESIGN.md` | The design file: the tokens in the YAML front matter, the rules in prose, and the definitions of 61 components and of 19 parts that STACK adds | A product, before each UI task | Yes |
+| `DESIGN.md` | The design file: the tokens in the YAML front matter, the rules in prose, and the definitions of 61 components and of 22 parts that STACK adds | A product, before each UI task | Yes |
 | `DESIGN.index.md` | The first and the last line of the front matter, of each of its top-level keys, and of each `##` section and `###` heading of `DESIGN.md`. The head names the version and the first 12 hex digits of the SHA-256 of the `DESIGN.md` that it indexes. `npm version` writes it at each release. | A product, to find a section of `DESIGN.md` | Yes |
 | `stack.css` | The CSS that maps the tokens to Tailwind: the color roles, the type steps, the breakpoints, the radius levels and the phone rules. `scripts/theme.mjs` writes it from the front matter. | The global CSS file of a product | Yes |
 | `stack-plain.css` | The tokens of `stack.css` as plain CSS custom properties, with no `@theme`, `@layer` or `@apply`. `scripts/theme.mjs` writes it from the front matter. | A page or a fragment that no Tailwind build reads | Yes |
@@ -37,7 +37,7 @@ This README has two readers. An agent or a person in a product reads the section
 | `.github/` | The files that GitHub reads, such as the settings of the issue form. A proposal comes as a pull request, not as an issue. | GitHub | No |
 | `preview/` | A SvelteKit app that shows the components, the tokens and the charts | The maintainer and a reviewer | Only the files of the next six rows |
 | `preview/src/lib/components/ui/` | The component files that STACK tested, one folder for each of the 61 components of shadcn-svelte 1.7.0 in the nova style. `LICENSE.md` is the licence notice of shadcn-svelte. STACK changed five of the files. `shadcn-svelte.css` is the `tailwind.css` of shadcn-svelte 1.7.0. | A product, which imports each component from the package, as "Import a part" says, and imports `shadcn-svelte.css`, as "Import the CSS" says | Yes |
-| `preview/src/lib/stack/` and `preview/src/lib/outside/` | The parts that STACK adds, the behaviour modules in `stack/behaviour/`, the chart helpers in `stack/patterns.ts`, and the pages outside the frame of a product, such as the sign-in page | A product, which imports them from the package, as "Import a part" says | Yes |
+| `preview/src/lib/stack/` and `preview/src/lib/outside/` | The parts that STACK adds, the behaviour modules in `stack/behaviour/`, the chart helpers in `stack/patterns.ts`, the data and the sanitizer of the rich text field in `stack/rich-text.ts`, and the pages outside the frame of a product, such as the sign-in page | A product, which imports them from the package, as "Import a part" says | Yes |
 | `preview/src/lib/print/chart-width.ts`, `pattern-fills.ts` and `marks.ts` | The print fit of a chart, which the chart parts and `behaviour/print` import | The chart parts | Yes |
 | `preview/src/lib/utils.ts` and `preview/src/lib/hooks/` | The shared files that the component files import | A product, for a part of its own | Yes |
 | `preview/components.lock.json` | The record of the tested versions. For each export path that holds code, and for `./stack.css`, it gives the other export paths that it uses, the packages that it needs and the files that STACK changed after the copy from the registry. It also gives the exact version of each package. The peers of `package.json` come from it. `npm version` writes it at each release. | A product, at the install and at each update, as "Install the packages" says | Yes |
@@ -197,6 +197,7 @@ The `exports` map of `package.json` names these paths:
 | `@stack-kit/stack/outside/<Name>` | A page outside the frame, such as the sign-in page, and the code helpers of `outside/codes` | `import SignInPage from '@stack-kit/stack/outside/SignInPage';` |
 | `@stack-kit/stack/utils` and `@stack-kit/stack/hooks/<name>` | `cn` and the other shared helpers, for a part of the product | `import { cn } from '@stack-kit/stack/utils';` |
 | `@stack-kit/stack/patterns` | The chart patterns and the chart colors, for a chart of the product | `import { PATTERNS } from '@stack-kit/stack/patterns';` |
+| `@stack-kit/stack/rich-text` | The types, the content colors and the sanitizer of the rich text field, for a page that stores or shows its HTML | `import { sanitizeRichText } from '@stack-kit/stack/rich-text';` |
 | `@stack-kit/stack/email` | The plain text part and the HTML part of an email of `## Email` in `DESIGN.md` | `import { html, text } from '@stack-kit/stack/email';` |
 | `@stack-kit/stack/frame-height` | The height script of an HTML frame, its hash and the type tags of its messages, for the server of the host of the content (`### html-frame` in `DESIGN.md`) | `import { FRAME_HEIGHT_HASH, FRAME_HEIGHT_SCRIPT } from '@stack-kit/stack/frame-height';` |
 | `@stack-kit/stack/architecture/keys.json` | The keys of `architecture/web-app.md` as data, which the key test of the product reads | |
@@ -567,7 +568,7 @@ The first eight sections are the standard sections of the spec, in the order of 
 
 ### The components
 
-`## Components` defines the 61 components of the registry snapshot of shadcn-svelte 1.7.0 of 2026-10-13, in the nova style, and nineteen parts that STACK adds because the registry lacks them: `code-editor`, `code-block`, `diff`, `time-field`, `time-zone-field`, `selection-bar`, `reorder-list`, `stepper`, `board`, `month-view`, `day-log`, `unread-mark`, `mail-message`, `html-frame`, `send-check`, `figure-band`, `qr-code`, `property-strip` and `item-page`. Each definition has a `###` heading with its registry name, such as `### button`. A definition has nine parts, in this order: Purpose, Anatomy, Variants, Sizes, States, Tokens, Accessibility, Example and Phone. `npm run components` checks that each component has a definition with the nine parts, and that each key in a Tokens part exists in `components`.
+`## Components` defines the 61 components of the registry snapshot of shadcn-svelte 1.7.0 of 2026-10-13, in the nova style, and twenty-two parts that STACK adds because the registry lacks them: `code-editor`, `rich-text-field`, `rich-text-in-place`, `rich-text-view`, `code-block`, `diff`, `time-field`, `time-zone-field`, `selection-bar`, `reorder-list`, `stepper`, `board`, `month-view`, `day-log`, `unread-mark`, `mail-message`, `html-frame`, `send-check`, `figure-band`, `qr-code`, `property-strip` and `item-page`. Each definition has a `###` heading with its registry name, such as `### button`. A definition has nine parts, in this order: Purpose, Anatomy, Variants, Sizes, States, Tokens, Accessibility, Example and Phone. `npm run components` checks that each component has a definition with the nine parts, and that each key in a Tokens part exists in `components`.
 
 ### The width bands
 
@@ -718,9 +719,10 @@ The products draw charts with LayerChart 2.7.0 on its SVG layer, in the chart pa
 | shadcn-svelte on Bits UI | shadcn-svelte 1.7.0 on Bits UI 2.19.5, as the components that each release ships, with the record of the tested versions | [0003](decisions/0003-shadcn-svelte-and-bits-ui.md), [0008](decisions/0008-a-product-imports-every-part-from-the-package.md) |
 | LayerChart on its SVG layer | 2.7.0, pinned exactly together with its four prerelease `@layerstack` packages | [0004](decisions/0004-layerchart-svg-layer.md) |
 | CodeMirror 6 for a code editor | `@codemirror/state` 6.7.6, `@codemirror/view` 6.43.15 and `@codemirror/commands` 6.11.1, pinned exactly | [0005](decisions/0005-codemirror-6.md) |
+| Squire for a rich text field | 2.4.10, pinned exactly | [0013](decisions/0013-squire-for-rich-text.md) |
 | lean-qr for a QR code | 2.7.4, pinned exactly | [0007](decisions/0007-lean-qr.md) |
 
-Each record in `decisions/` has a status and a `date` in its front matter. The status is `accepted`, or `superseded by` the record that replaces it. Records 0008 to 0012 are no stack choice. They decide how a product takes the parts: the import from the package, the seam to SvelteKit, the modules with runes, the shared behaviour, and the props of a part from one release to the next. Each record follows the MADR 4.0 form. It gives the context, the decision drivers and the options. Then it gives the outcome with its consequences and its confirmation, and the pros and cons of each option.
+Each record in `decisions/` has a status and a `date` in its front matter. The status is `accepted`, or `superseded by` the record that replaces it. Records 0008 to 0012 are no stack choice. They decide how a product takes the parts: the import from the package, the seam to SvelteKit, the modules with runes, the shared behaviour, and the props of a part from one release to the next. Record 0014 is no stack choice either: it decides the public parts of the rich text field, and that STACK owns a request of its writing tools and the diff of the result. Each record follows the MADR 4.0 form. It gives the context, the decision drivers and the options. Then it gives the outcome with its consequences and its confirmation, and the pros and cons of each option.
 
 ## The preview
 
@@ -730,7 +732,7 @@ The preview in `preview/` is a SvelteKit app. It reads `DESIGN.md`, `stack.css` 
 
 | Route | What it shows |
 |---|---|
-| `/` | The 61 components and the 19 parts that STACK adds, each in every variant and size, and in each state that a prop can force. A side menu lists the components. |
+| `/` | The 61 components and the 22 parts that STACK adds, each in every variant and size, and in each state that a prop can force. A side menu lists the components. |
 | `/tokens` | The colors, the type steps, the spacing and the radius levels. A swatch follows the theme and the mode, and the value columns show the front matter. |
 | `/themes/compare` | A theme of this repository beside the theme that the generator writes from three inputs, the two scales of the generated theme, the values that the generator lifted, and the difference of each role in L, C, h and alpha. The inputs start at the inputs of the theme that the page compares. |
 | `/charts` | The pattern style, stacked bars, stacked areas, a donut of eight, lines over time, the color pattern style, the color style, a heat map, sparklines, a flow, and the eight patterns |

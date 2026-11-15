@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute, relative } from 'node:path';
 
-const SHIPPED_DIRS = ['src/lib/stack/', 'src/lib/outside/'];
+const SHIPPED_DIRS = ['src/lib/stack/', 'src/lib/rich-text/', 'src/lib/outside/'];
 const SHIPPED_FILES = ['src/lib/print/chart-width.ts', 'src/lib/print/pattern-fills.ts', 'src/lib/print/marks.ts', 'src/lib/email/email.ts'];
 const REGISTRY_DIR = 'src/lib/components/ui/';
 

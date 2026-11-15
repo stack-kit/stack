@@ -7,7 +7,7 @@ export const MENU_GROUPS = [
 		label: 'Actions and forms',
 		names: [
 			'button', 'button-group', 'toggle', 'toggle-group', 'input', 'input-group', 'input-otp', 'textarea',
-			'code-editor', 'code-block', 'diff', 'qr-code', 'label', 'field', 'form', 'native-select', 'select', 'checkbox', 'radio-group', 'switch', 'slider'
+			'code-editor', 'rich-text-field', 'rich-text-in-place', 'rich-text-view', 'code-block', 'diff', 'qr-code', 'label', 'field', 'form', 'native-select', 'select', 'checkbox', 'radio-group', 'switch', 'slider'
 		]
 	},
 	{

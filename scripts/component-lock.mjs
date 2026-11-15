@@ -26,8 +26,9 @@
 // folder that STACK changed after the copy from the registry. The entry ./stack.css holds the packages
 // that the CSS lines of a product need, from the global CSS of the preview.
 //
-// Each package of the record is a peer with the range "^<version>". It is optional, unless ./stack.css
-// or a ./behaviour/* entry needs it, or CORE names it, or a package of these three requires it as a peer.
+// Each package of the record is a peer with the range "^<version>", or "~<version>" when PATCH_ONLY names
+// it. It is optional, unless ./stack.css or a ./behaviour/* entry needs it, or CORE names it, or a package
+// of these three requires it as a peer.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -56,6 +57,9 @@ export const EDITED = [
 // The peers that a product must have, besides the packages of ./stack.css and ./behaviour/*. The parts
 // import $app/* of @sveltejs/kit, and nearly every component imports the other five.
 export const CORE = ['@lucide/svelte', '@sveltejs/kit', 'bits-ui', 'cn', 'svelte', 'tailwind-variants'];
+// The packages whose undocumented members a part reads, so a product takes only their patch releases.
+// The engine of the rich text field reads four members of Squire (decision record 0013).
+export const PATCH_ONLY = ['squire-rte'];
 const SPEC = /\bfrom\s*['"]([^'"]+)['"]|\bimport\s*\(?\s*['"]([^'"]+)['"]/g;
 // The imports that SPEC cannot read: an import() whose argument is not one string literal, and import.meta.glob.
 const UNREAD = /(?<![\w$.])import\s*\((?!\s*(['"])[^'"\n]*\1\s*[,)])|(?<![\w$.])import\.meta\.glob\b/;
@@ -263,7 +267,7 @@ export function peers(record, lock) {
   );
   const names = Object.keys(record.packages).sort();
   return {
-    peerDependencies: Object.fromEntries(names.map((n) => [n, `^${record.packages[n]}`])),
+    peerDependencies: Object.fromEntries(names.map((n) => [n, `${PATCH_ONLY.includes(n) ? '~' : '^'}${record.packages[n]}`])),
     peerDependenciesMeta: Object.fromEntries(names.filter((n) => !core.has(n)).map((n) => [n, { optional: true }])),
   };
 }

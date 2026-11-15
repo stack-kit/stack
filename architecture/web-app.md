@@ -82,7 +82,7 @@ The app is keyboard first. The command palette reaches every action, and a frequ
 - The palette, the tooltips, the menus and the key sheet show the key of the person. An action whose key is off shows no key, and the palette still reaches it.
 - Each key shows beside its action in the palette, in a tooltip and in a menu, with the `kbd` component. The look of a key is the `kbd` definition.
 - A test of the product fails when two entries have the same key in the same scope, or when an entry takes a key that a component owns (see [Keys that the components own](#keys-that-the-components-own)). The test reads `architecture/keys.json` of the pinned release together with the registry of the product. A key collides with a key of a component only where their scopes overlap, and the test reads Cmd as Ctrl off macOS, so Cmd+K and Ctrl+K are one key.
-- `architecture/keys.json` holds the two tables of this part as data, one entry for each key, with the key, the action, the scope and the owner. An entry of a shared key can also have an `id`. The `id` names the `KeyAction` of `@stack-kit/stack/behaviour/keys` that the key runs, such as `next-row`. The owner of a shared key is `shared`. The owner of a key of a component is the text before the colon in the table of [Keys that the components own](#keys-that-the-components-own), such as `sidebar`. A cell with two keys gives two entries, such as J and Down, and "The arrow keys" gives Up, Down, Left and Right. A check in this repository fails when the file and the tables disagree.
+- `architecture/keys.json` holds the two tables of this part as data, one entry for each key, with the key, the action, the scope and the owner. An entry of a shared key can also have an `id`. The `id` names the `KeyAction` of `@stack-kit/stack/behaviour/keys` that the key runs, such as `next-row`. An entry of a key of a command of the `rich-text-field` has the `id` `rich-text.` and the command, such as `rich-text.bold`: the `RichTextCommand` of `@stack-kit/stack/rich-text`, whose default keys `RICH_TEXT_KEYS` gives. A command with no default key, such as Quote, has no entry. The owner of a shared key is `shared`. The owner of a key of a component is the text before the colon in the table of [Keys that the components own](#keys-that-the-components-own), such as `sidebar`. A cell with two keys gives two entries, such as J and Down, and "The arrow keys" gives Up, Down, Left and Right. A check in this repository fails when the file and the tables disagree.
 - A person can turn off each key that uses only characters, such as `/`, `?`, X, Shift+X and the sequence G, then a letter. Shift prints no character of its own, but the criterion counts an upper-case letter as a character, so Shift+X is a key of characters only. This meets WCAG 2.2 success criterion 2.1.4, Character Key Shortcuts (level A). The criterion covers a shortcut of letters, punctuation, numbers or symbols only, and a sequence of them too. It asks for a way to turn the shortcut off, or for a way to change it so that it includes a key that prints no character, such as Ctrl or Alt. A shortcut that fires only while its control has focus needs neither.
 - The registry is code of the product. This file names no key library.
 
@@ -92,11 +92,11 @@ Each product binds these keys to these actions. A product adds the keys of its o
 
 | Key | Action | Scope |
 |---|---|---|
-| Cmd+K | Open the command palette | Everywhere, a text field too |
+| Cmd+K | Open the command palette | Everywhere, a text field too, except inside the text of a `rich-text-field` in the full preset, while a person can edit the text |
 | `/` | Search in the current list | Lists |
 | `?` | Open the key sheet, which lists each key of the registry by scope | Everywhere |
 | G, then a letter | Go to a page. The product picks the letters. | Everywhere |
-| Esc | Close the open layer or the pane. A second Esc clears the selection. In the work form of the split, Esc closes the open layer, then clears the selection, then goes back from a send check, then closes the item column. On an item page, Esc goes back to the list. | Everywhere, except inside a `code-editor` that a person can edit, and on the handle of a lifted row of a `reorder-list` or of a lifted card of a `board` |
+| Esc | Close the open layer or the pane. A second Esc clears the selection. In the work form of the split, Esc closes the open layer, then clears the selection, then goes back from a send check, then closes the item column. On an item page, Esc goes back to the list. | Everywhere, except inside a `code-editor`, a `rich-text-field` or the field of a `rich-text-in-place` that a person can edit, and on the handle of a lifted row of a `reorder-list` or of a lifted card of a `board` |
 | J or K | Go to the next or the previous row. An open pane follows. On an item page, show the next or the previous item. | Lists |
 | Down or Up | Go to the next or the previous row. An open pane follows. On an item page, show the next or the previous item. | Lists, except on the handle of a lifted row of a `reorder-list` or of a lifted card of a `board`, and on a day of a `month-view` |
 | X | Select or clear the row that has focus | Lists |
@@ -112,9 +112,10 @@ Each product binds these keys to these actions. A product adds the keys of its o
 
 ### Rules
 
-- A single key, with or without Shift, never fires while focus is in a text field, a text area, a select, an editable region or the palette.
+- A single key, with or without Shift, never fires while focus is in a text field, a text area, a select, an editable region or the palette. The one exception is a function key, such as F2, that a page gives a command of a `rich-text-field`: the field takes it in its text, because a function key types no character.
 - A key that moves the focus into a text field takes the whole press, such as R for a reply that opens with the focus in its text. A key that the person holds repeats, and the field would type the letter. So from the keydown to the keyup of that key, no keydown, keypress or typed character of the key reaches the field. The keyup ends it, and so does a window that loses the focus, so the next press types the letter. `takePress(e)` of `@stack-kit/stack/behaviour/keys` does this, and the handler of the key calls it only when the handler takes the key. A handler in `bindKey` returns and `bindKey` then calls `e.preventDefault()`, so the handler needs no call of its own.
-- A key with Cmd fires in a text field only when its entry allows it. Cmd+K, Cmd+S and Cmd+Enter fire there. Cmd+A and Cmd+Z do not, because the text field owns them.
+- A key with Cmd fires in a text field only when its entry allows it. Cmd+K, Cmd+S and Cmd+Enter fire there, except Cmd+K in a `rich-text-field` (see the next rule). Cmd+A and Cmd+Z do not, because the text field owns them.
+- Cmd+K has one exception. In the text of a `rich-text-field` in the full preset, while a person can edit the text, Cmd+K makes a link of the selected text, and the palette does not open. Everywhere else Cmd+K opens the palette, also in the simple preset, which has no Link tool, and in a read-only text. A page that gives Link another key through `keys` of the field gives Cmd+K back to the palette in the text too.
 - A two-key sequence waits 1 s for the second key. While it waits, a chip of 20 px (`spacing.chip`) at the bottom left of the window shows the first key.
 - Each kind of input has one send key, and it is the same in every product. A one-line field submits with Enter. A text area, such as a comment or a chat message, adds a line with Enter and sends with Cmd+Enter.
 
@@ -139,15 +140,38 @@ The vendored components bind some keys themselves. No product action takes these
 
 | Key | Component and use | Where it fires |
 |---|---|---|
-| Cmd+B | `sidebar`: collapse or expand the sidebar | The whole window, a text field too |
+| Cmd+B | `sidebar`: collapse or expand the sidebar | The whole window, a text field too, except inside the text of a `rich-text-field` that a person can edit |
 | Ctrl+N or Ctrl+J, Ctrl+P or Ctrl+K | `command`: move the highlight down or up | Inside the palette, while `vimBindings` is on |
 | Space, Enter | A button, a check box, a switch, a toggle, a menu item or a select item: run or change it | The control that has focus |
 | The arrow keys | A menu, a select, a tab list, a radio group or a slider: move inside it | The control that has focus |
 | A letter | An open menu or select: go to the first item that starts with the letter | The open list |
-| Esc | An open menu, popover, select or dialog: close it, except from inside a `code-editor` that a person can edit, or from the handle of a lifted row or card | The open layer |
+| Esc | An open menu, popover, select or dialog: close it, except from inside a `code-editor`, a `rich-text-field` or the field of a `rich-text-in-place` that a person can edit, or from the handle of a lifted row or card | The open layer |
 | Tab, Shift+Tab | The browser: move focus to the next or the previous control | Everywhere |
 | Tab, Shift+Tab | `code-editor`: indent or outdent the line | Inside the editor |
 | Esc | `code-editor`: stop Esc, so that a layer around the editor stays open, and let a Tab or a Shift+Tab within 2 s leave the editor | Inside the editor, when a person can edit it |
+| Cmd+Z | `rich-text-field`: undo the last change of the text | Inside the text of the field, while a person can edit the text |
+| Cmd+Shift+Z or Cmd+Y | `rich-text-field`: redo the change that undo took back | Inside the text of the field, while a person can edit the text |
+| Cmd+B | `rich-text-field`: make the selected text bold | Inside the text of the field, while a person can edit the text |
+| Cmd+I | `rich-text-field`: make the selected text italic | Inside the text of the field, while a person can edit the text |
+| Cmd+U | `rich-text-field`: make the selected text underlined | Inside the text of the field, while a person can edit the text |
+| Cmd+K | `rich-text-field`: add or change the link of the selected text | Inside the text of the field in the full preset, while a person can edit the text |
+| Cmd+Alt+0 | `rich-text-field`: set the line to Normal | Inside the text of the field in the full preset |
+| Cmd+Alt+1 | `rich-text-field`: set the line to Heading 1 | Inside the text of the field in the full preset |
+| Cmd+Alt+2 | `rich-text-field`: set the line to Heading 2 | Inside the text of the field in the full preset |
+| Cmd+Alt+3 | `rich-text-field`: set the line to Heading 3 | Inside the text of the field in the full preset |
+| Cmd+Shift+7 | `rich-text-field`: make the lines a numbered list | Inside the text of the field in the full preset |
+| Cmd+Shift+8 | `rich-text-field`: make the lines a bulleted list | Inside the text of the field in the full preset |
+| Cmd+Shift+X | `rich-text-field`: make the selected text struck through | Inside the text of the field in the full preset |
+| Cmd+E | `rich-text-field`: make the selected text inline code | Inside the text of the field in the full preset |
+| Cmd+\ | `rich-text-field`: clear the formatting of the selected text | Inside the text of the field in the full preset, while text is selected |
+| Cmd+[ | `rich-text-field`: move the list item a level out | Inside a list item of the field in the full preset |
+| Cmd+] | `rich-text-field`: move the list item a level in | Inside a list item of the field in the full preset |
+| Alt+F10 | `rich-text-field`: move the focus to the toolbar of the field | Inside the text of the field |
+| Left or Right | `rich-text-field`: move the focus to the next or the previous tool, in the direction of the text | The toolbar of the field |
+| Home or End | `rich-text-field`: move the focus to the first or the last tool | The toolbar of the field |
+| Esc | `rich-text-field`: move the focus back to the text | The toolbar of the field |
+| Tab, Shift+Tab | `rich-text-field`: move the list item a level in or out | Inside a list item of the field |
+| Esc | `rich-text-field`: stop Esc, so that a layer around the field stays open, and let a Tab or a Shift+Tab within 2 s leave a list item | Inside the text, when a person can edit it |
 | Up, Down, Home or End | `reorder-list`: move the lifted row one place, or to the first or the last place | The handle of a lifted row |
 | Esc | `reorder-list`: put the lifted row back in its place, so that the pane and the selection stay | The handle of a lifted row |
 | N, Shift+N | `diff`: move the focus to the next or the previous change, and wrap at each end | Inside a diff |
@@ -162,6 +186,8 @@ The vendored components bind some keys themselves. No product action takes these
 | Esc | `send-check`: go back from the check of a send to its form, so that the form keeps its text and the item column stays open | The open check of a send in the place of its form |
 
 `[` and Cmd+B both collapse the sidebar: `[` is the shared key, and Cmd+B is the key of the component.
+
+Each key of a command of the `rich-text-field` is a default. The `keys` function of the field gives a command other keys, or turns its key off. The key that the command gave up then passes to the page (see `### rich-text-field` in `DESIGN.md`). The keys inside the toolbar of the field are fixed.
 
 ## Command palette
 

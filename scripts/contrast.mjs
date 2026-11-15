@@ -6,7 +6,9 @@
 // the ratio of each pair, in the light mode of each theme. For a theme file with no column there, such
 // as the theme of a product, it prints the values to copy. With no file named, it checks the print
 // colors of "### Print colors" once: each value a gray, each pair at its ratio, and the css block of
-// "### Print template" with those values only.
+// "### Print template" with those values only. It also checks the content colors of "### rich-text-field"
+// on the pair of each theme in each mode: each text color on rich-text-paper, and rich-text-ink on each
+// highlight, at 4.5:1.
 //
 //   node scripts/contrast.mjs [files]   default: every themes/*.css; exit 1 on any failure
 //   node scripts/contrast.mjs --self-test
@@ -428,6 +430,76 @@ export function printAudit(body) {
   return failures;
 }
 
+// The content colors of "### rich-text-field": the colors that a person writes into content, in the
+// file that the field and the color picker read. They keep their value in every theme and mode, so the
+// text of a field with a color tool stands on rich-text-paper, which stays light in both modes.
+const CONTENT_FILE = 'preview/src/lib/stack/rich-text.ts';
+
+/** CONTENT_PAPER, CONTENT_INK, TEXT_COLORS and HIGHLIGHT_COLORS of the file. Throws when one is missing. */
+function contentColors(source) {
+  const constant = (name) => {
+    const m = new RegExp(`export const ${name} = '(#[0-9a-f]{6})';`).exec(source);
+    if (!m) throw new Error(`${CONTENT_FILE} has no line "export const ${name} = '#rrggbb';", so the content colors are not checked.`);
+    return m[1];
+  };
+  const list = (name) => {
+    const m = new RegExp(`export const ${name}: readonly ColorSwatch\\[\\] = \\[([\\s\\S]*?)\\];`).exec(source);
+    const swatches = m ? [...m[1].matchAll(/\{ hex: '(#[0-9a-f]{6})', name: '([^']+)' \}/g)].map((s) => ({ hex: s[1], name: s[2] })) : [];
+    if (!swatches.length) throw new Error(`${CONTENT_FILE} has no list ${name} of { hex: '#rrggbb', name: '...' }, so the content colors are not checked.`);
+    return swatches;
+  };
+  return { paper: constant('CONTENT_PAPER'), ink: constant('CONTENT_INK'), text: list('TEXT_COLORS'), highlights: list('HIGHLIGHT_COLORS') };
+}
+
+/**
+ * Checks the constants once: CONTENT_PAPER and CONTENT_INK, which the color picker takes until it reads
+ * the roles, are the values of rich-text-paper and rich-text-ink in theme-fallbacks. Returns the failures.
+ */
+export function contentConstants(colors, fallbacks) {
+  let failures = 0;
+  console.log(`
+content colors of ${CONTENT_FILE}`);
+  for (const [name, value, role] of [['CONTENT_PAPER', colors.paper, 'rich-text-paper'], ['CONTENT_INK', colors.ink, 'rich-text-ink']]) {
+    const fb = fallbacks[role];
+    const want = fb === undefined ? null : hex(oklchToSrgb(parseOklch(fb)));
+    const ok = value === want;
+    if (!ok) failures++;
+    console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${value}  ${name}${ok ? '' : `  (theme-fallbacks gives ${want ?? 'nothing'} for ${role})`}`);
+  }
+  return failures;
+}
+
+/**
+ * Checks the content colors on the pair of one theme file, in each mode: each text color reads at 4.5:1
+ * or more on rich-text-paper, and rich-text-ink at 4.5:1 or more on each highlight. Returns the number of
+ * failures. The pairs of DESIGN.md check rich-text-link on the paper.
+ */
+export function contentAudit(file, t, colors, fallbacks) {
+  let failures = 0;
+  for (const mode of ['light', 'dark']) {
+    const lookup = (n) => (mode === 'dark' ? t.dark.get(n) ?? t.root.get(n) : t.root.get(n));
+    const value = (n, depth = 0) => {
+      const v = lookup(n);
+      if (v !== undefined) return v;
+      const fb = fallbacks[n];
+      if (fb === undefined || depth > 2) throw new Error(`${file}: --${n} is not set, and theme-fallbacks has no entry for it.`);
+      return String(fb).startsWith('oklch(') ? fb : value(fb, depth + 1);
+    };
+    const ground = over(oklchToSrgb(parseOklch(value('background'))), { r: 1, g: 1, b: 1, a: 1, clipped: false });
+    const paper = over(oklchToSrgb(parseOklch(value('rich-text-paper'))), ground);
+    const ink = over(oklchToSrgb(parseOklch(value('rich-text-ink'))), paper);
+    console.log(`\n${file}  content colors on rich-text-paper ${hex(paper)} with rich-text-ink ${hex(ink)} (${mode})`);
+    const pair = (fg, bg, label) => {
+      const r = ratio(fg, bg);
+      if (r < 4.5) failures++;
+      console.log(`  ${r >= 4.5 ? 'ok  ' : 'FAIL'}  ${r.toFixed(2).padStart(5)}  min 4.5  ${label}`);
+    };
+    for (const c of colors.text) pair(fromHex(c.hex), paper, `${c.name} ${c.hex} on rich-text-paper`);
+    for (const c of colors.highlights) pair(ink, fromHex(c.hex), `rich-text-ink on ${c.name} ${c.hex}`);
+  }
+  return failures;
+}
+
 function main(argv) {
   if (argv.includes('--self-test')) return selfTest();
   if (argv.some((a) => a.startsWith('--'))) return productMain(productArgs(argv));
@@ -483,9 +555,16 @@ function main(argv) {
   for (const file of files) emailFailures += emailAudit(file, parseThemeCss(readSource(file), file), tables, fallbacks);
   const themes = `${files.length} ${files.length === 1 ? 'theme' : 'themes'}`;
   console.log(`email: ${tables.values.length} values and ${tables.pairs.length} pairs in ${themes}, ${emailFailures} that differ from "### Email colors" or fall below the minimum`);
-  // The print colors of "## Print" belong to no theme, so a check of named theme files skips them.
+  // The print colors of "## Print" and the two constants of the content colors belong to no theme, so a
+  // check of named theme files skips them. The content colors stand on the pair of each theme.
   const printFailures = argv.length ? 0 : printAudit(body);
-  return failures || emailFailures || printFailures ? 1 : 0;
+  const source = readSource(CONTENT_FILE);
+  if (source === null) throw new Error(`${CONTENT_FILE} not found, so the content colors are not checked.`);
+  const colors = contentColors(source);
+  let contentFailures = argv.length ? 0 : contentConstants(colors, fallbacks);
+  for (const file of files) contentFailures += contentAudit(file, parseThemeCss(readSource(file), file), colors, fallbacks);
+  console.log(`content: ${colors.text.length} text colors and ${colors.highlights.length} highlights on the pair of ${themes} in both modes, ${contentFailures} that fail`);
+  return failures || emailFailures || printFailures || contentFailures ? 1 : 0;
 }
 
 // realpathSync, because npm links the bin entry: argv[1] is then the link, and import.meta.url its target.

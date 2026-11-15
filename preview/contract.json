@@ -1,5 +1,5 @@
 {
-	"stack": "2.3.0",
+	"stack": "2.4.0",
 	"tool": {
 		"svelte2tsx": "0.7.61",
 		"typescript": "6.0.3",
@@ -41,6 +41,18 @@
 				"kind": "type",
 				"type": "(action: KeyAction) => readonly string[] | undefined"
 			},
+			"ParsedKey": {
+				"kind": "type",
+				"type": "{ alt: boolean; base: string; cmd: boolean; ctrl: boolean; shift: boolean; }"
+			},
+			"actionKeys": {
+				"kind": "value",
+				"type": "(action: KeyAction): readonly string[]"
+			},
+			"ariaKey": {
+				"kind": "value",
+				"type": "(key: string): string"
+			},
 			"bindKey": {
 				"kind": "value",
 				"type": "(action: KeyAction, run: (e: KeyboardEvent) => false | void): () => void"
@@ -48,6 +60,14 @@
 			"inText": {
 				"kind": "value",
 				"type": "(e: Event): boolean"
+			},
+			"isFunctionKey": {
+				"kind": "value",
+				"type": "(base: string): boolean"
+			},
+			"isKey": {
+				"kind": "value",
+				"type": "(e: KeyboardEvent, key: string): boolean"
 			},
 			"keyHint": {
 				"kind": "value",
@@ -60,6 +80,14 @@
 			"onEscape": {
 				"kind": "value",
 				"type": "(level: 'item' | 'selection', run: () => void): () => void"
+			},
+			"onMac": {
+				"kind": "value",
+				"type": "(): boolean"
+			},
+			"parseKey": {
+				"kind": "value",
+				"type": "(key: string): ParsedKey"
 			},
 			"provideKeys": {
 				"kind": "value",
@@ -1279,6 +1307,10 @@
 			}
 		},
 		"./parts/Diff": {
+			"DiffBlock": {
+				"kind": "type",
+				"type": "'heading' | 'item' | 'join' | 'split'"
+			},
 			"DiffLine": {
 				"kind": "type",
 				"type": "{ context?: string; count: number; kind: 'folded'; } | { kind: 'added' | 'removed' | 'same'; new?: number; old?: number; replaces?: number; text: string; words?: DiffWord[]; }"
@@ -1289,11 +1321,11 @@
 			},
 			"DiffWord": {
 				"kind": "type",
-				"type": "{ changed?: boolean; text: string; }"
+				"type": "{ block?: DiffBlock; changed?: boolean; text: string; }"
 			},
 			"DiffWords": {
 				"kind": "type",
-				"type": "{ added: string; copied: string; copyNew: string; copyOld: string; deleted: string; failed: string; fold: (n: number) => string; folded: (n: number) => string; inserted: string; newVersion: string; next: string; oldVersion: string; position: (at: number, of: number) => string; previous: string; removed: string; }"
+				"type": "{ added: string; copied: string; copyNew: string; copyOld: string; deleted: string; deletedBreak?: string; failed: string; fold: (n: number) => string; folded: (n: number) => string; inserted: string; insertedBreak?: string; insertedHeading?: string; insertedItem?: string; newVersion: string; next: string; oldVersion: string; position: (at: number, of: number) => string; previous: string; removed: string; }"
 			},
 			"default": {
 				"props": {
@@ -1367,6 +1399,7 @@
 					"diff-fold",
 					"diff-gutter",
 					"diff-line",
+					"diff-mark",
 					"diff-sides",
 					"diff-sign",
 					"diff-wrapper"
@@ -1375,6 +1408,10 @@
 					"next-change:N",
 					"previous-change:Shift+N"
 				]
+			},
+			"diffChanges": {
+				"kind": "value",
+				"type": "(lines: readonly DiffLine[], kind?: 'code' | 'text' | undefined): { from: number; to: number; }[]"
 			}
 		},
 		"./parts/FigureBand": {
@@ -3167,6 +3204,351 @@
 				]
 			}
 		},
+		"./parts/RichTextField": {
+			"RichTextFieldProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"default": {
+				"props": {
+					"aria-describedby": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"aria-label": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"aria-labelledby": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"class": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"editor": {
+						"type": "RichTextEditor | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"html": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "''"
+					},
+					"invalid": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"paper": {
+						"type": "RichTextPaper | undefined",
+						"required": false
+					},
+					"placeholder": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"preset": {
+						"type": "RichTextPreset | undefined",
+						"required": false,
+						"default": "'full'"
+					},
+					"readonly": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"required": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"toolbar": {
+						"type": "'full' | 'none' | undefined",
+						"required": false,
+						"default": "'full'"
+					},
+					"writing": {
+						"type": "RichTextWriting | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {
+					"keys": {
+						"type": "((command: RichTextCommand) => readonly string[] | undefined) | undefined",
+						"required": false
+					},
+					"onchange": {
+						"type": "(() => void) | undefined",
+						"required": false
+					},
+					"onfailure": {
+						"type": "OnFailure | undefined",
+						"required": false
+					},
+					"onselection": {
+						"type": "((range: TextRange | null) => void) | undefined",
+						"required": false
+					},
+					"picture": {
+						"type": "((src: string) => boolean) | undefined",
+						"required": false,
+						"default": "defaultPicture"
+					},
+					"upload": {
+						"type": "((file: File) => Promise<StoredPicture>) | undefined",
+						"required": false
+					}
+				},
+				"snippets": {
+					"bar": {
+						"args": [],
+						"required": false
+					},
+					"foot": {
+						"args": [],
+						"required": false
+					},
+					"toolbarEnd": {
+						"args": [],
+						"required": false
+					}
+				},
+				"rest": "Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class' | 'onchange'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"input-group-control",
+					"rich-text-field"
+				],
+				"behaviour": [
+					"escape:deselect",
+					"escape:dismiss",
+					"escape:kept",
+					"tab:list-level",
+					"tab:to-bar"
+				]
+			}
+		},
+		"./parts/RichTextInPlace": {
+			"RichTextInPlaceProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"default": {
+				"props": {
+					"aria-describedby": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"aria-label": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"aria-labelledby": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"class": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"dirty": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
+					"editing": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
+					"empty": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"html": {
+						"type": "string",
+						"required": true
+					},
+					"invalid": {
+						"type": "boolean | undefined",
+						"required": false
+					},
+					"paper": {
+						"type": "RichTextPaper | undefined",
+						"required": false
+					},
+					"placeholder": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"preset": {
+						"type": "RichTextPreset | undefined",
+						"required": false,
+						"default": "'full'"
+					},
+					"readonly": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"required": {
+						"type": "boolean | undefined",
+						"required": false
+					},
+					"toolbar": {
+						"type": "'full' | 'none' | undefined",
+						"required": false,
+						"default": "'full'"
+					},
+					"words": {
+						"type": "Partial<RichTextInPlaceWords> | undefined",
+						"required": false
+					},
+					"writing": {
+						"type": "RichTextWriting | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {
+					"keys": {
+						"type": "((command: RichTextCommand) => readonly string[] | undefined) | undefined",
+						"required": false
+					},
+					"oncancel": {
+						"type": "(EventHandler<Event, HTMLDivElement> & (() => void)) | undefined",
+						"required": false
+					},
+					"onfailure": {
+						"type": "OnFailure | undefined",
+						"required": false
+					},
+					"onsave": {
+						"type": "(html: string) => Promise<void>",
+						"required": true
+					},
+					"onselection": {
+						"type": "((range: TextRange | null) => void) | undefined",
+						"required": false
+					},
+					"picture": {
+						"type": "((src: string) => boolean) | undefined",
+						"required": false,
+						"default": "defaultPicture"
+					},
+					"upload": {
+						"type": "((file: File) => Promise<StoredPicture>) | undefined",
+						"required": false
+					}
+				},
+				"snippets": {
+					"bar": {
+						"args": [],
+						"required": false
+					},
+					"foot": {
+						"args": [],
+						"required": false
+					}
+				},
+				"rest": "Omit<RichTextFieldProps, 'editor' | 'html' | 'onchange' | 'readonly' | 'toolbarEnd'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"rich-text-in-place",
+					"rich-text-in-place-text"
+				],
+				"behaviour": [
+					"cancel:alert-dialog",
+					"draft:kept-on-blur",
+					"escape:kept",
+					"keys:submit",
+					"live-region"
+				]
+			}
+		},
+		"./parts/RichTextView": {
+			"RichTextViewProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"default": {
+				"props": {
+					"class": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"html": {
+						"type": "string",
+						"required": true
+					},
+					"lines": {
+						"type": "number | undefined",
+						"required": false
+					},
+					"paper": {
+						"type": "RichTextPaper | undefined",
+						"required": false
+					},
+					"preset": {
+						"type": "RichTextPreset | undefined",
+						"required": false,
+						"default": "'full'"
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					}
+				},
+				"callbacks": {
+					"picture": {
+						"type": "((src: string) => boolean) | undefined",
+						"required": false,
+						"default": "defaultPicture"
+					}
+				},
+				"snippets": {},
+				"rest": "Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"rich-text-view"
+				],
+				"behaviour": []
+			}
+		},
 		"./parts/SelectionBar": {
 			"SelectionAction": {
 				"kind": "type",
@@ -4211,6 +4593,156 @@
 			"threeTicks": {
 				"kind": "value",
 				"type": "(largest: number): [number, number, number]"
+			}
+		},
+		"./rich-text": {
+			"CONTENT_INK": {
+				"kind": "value",
+				"type": "'#0a0a0a'"
+			},
+			"CONTENT_PAPER": {
+				"kind": "value",
+				"type": "'#ffffff'"
+			},
+			"ColorKind": {
+				"kind": "type",
+				"type": "'highlight' | 'text'"
+			},
+			"ColorSwatch": {
+				"kind": "type",
+				"type": "{ hex: string; name: string; }"
+			},
+			"HEX": {
+				"kind": "value",
+				"type": "RegExp"
+			},
+			"HIGHLIGHT_COLORS": {
+				"kind": "value",
+				"type": "readonly ColorSwatch[]"
+			},
+			"LINK": {
+				"kind": "value",
+				"type": "RegExp"
+			},
+			"OnFailure": {
+				"kind": "type",
+				"type": "(failure: RichTextFailure) => string | undefined"
+			},
+			"PaperPair": {
+				"kind": "type",
+				"type": "{ pair: 'code' | 'ink' | 'link' | 'muted'; ratio: number; }"
+			},
+			"RICH_TEXT_KEYS": {
+				"kind": "value",
+				"type": "Readonly<Record<RichTextCommand, readonly string[]>>"
+			},
+			"RichTextCommand": {
+				"kind": "type",
+				"type": "'align-center' | 'align-justify' | 'align-left' | 'align-right' | 'bold' | 'bullet-list' | 'clear-formatting' | 'code-block' | 'h1' | 'h2' | 'h3' | 'highlight-color' | 'hr' | 'indent' | 'inline-code' | 'italic' | 'link' | 'numbered-list' | 'outdent' | 'paragraph' | 'picture' | 'quote' | 'redo' | 'strikethrough' | 'subscript' | 'superscript' | 'text-color' | 'toolbar' | 'underline' | 'undo'"
+			},
+			"RichTextEditor": {
+				"kind": "type",
+				"type": "{ focus(): void; html(): string; load(html: string): void; selection(): TextRange | null; words(): string; }"
+			},
+			"RichTextFailure": {
+				"kind": "type",
+				"type": "{ error: unknown; file: File; kind: 'upload'; } | { error: unknown; kind: 'load'; part: 'engine' | 'field' | 'picture' | 'review' | 'toolbar'; } | { error: unknown; kind: 'save'; } | { error: unknown; kind: 'writing'; request: WritingRequest; } | { file: File; kind: 'picture-locked'; picture: StoredPicture; } | { files: readonly File[]; kind: 'picture-type'; } | { kind: 'paper'; pairs: readonly PaperPair[]; } | { kind: 'picture-address'; src: string; }"
+			},
+			"RichTextInPlaceWords": {
+				"kind": "type",
+				"type": "{ cancel: string; discard: string; discardText: string; discardTitle: string; edit: string; keep: string; save: string; }"
+			},
+			"RichTextList": {
+				"kind": "type",
+				"type": "'load' | 'paste'"
+			},
+			"RichTextPaper": {
+				"kind": "type",
+				"type": "{ ink?: string | undefined; link?: string | undefined; paper?: string | undefined; }"
+			},
+			"RichTextPreset": {
+				"kind": "type",
+				"type": "'full' | 'simple'"
+			},
+			"RichTextWriting": {
+				"kind": "type",
+				"type": "{ modes?: readonly WritingMode[] | undefined; ondecide?: ((decision: WritingDecision) => void) | undefined; pending?: undefined | { asked?: undefined | { at: string; by: string; }; kind: WritingKind; result: Promise<WritingResult> | WritingResult; }; run: (request: WritingRequest, signal: AbortSignal) => Promise<WritingResult>; source?: string | undefined; tools?: readonly WritingKind[] | undefined; words?: Partial<WritingWords> | undefined; }"
+			},
+			"SanitizeOptions": {
+				"kind": "type",
+				"type": "{ list?: RichTextList | undefined; picture?: ((src: string) => boolean) | undefined; preset?: RichTextPreset | undefined; }"
+			},
+			"StoredPicture": {
+				"kind": "type",
+				"type": "{ height: number; src: string; width: number; }"
+			},
+			"TEXT_COLORS": {
+				"kind": "value",
+				"type": "readonly ColorSwatch[]"
+			},
+			"TextRange": {
+				"kind": "type",
+				"type": "{ from: [number, number]; text: string; to: [number, number]; }"
+			},
+			"WritingChange": {
+				"kind": "type",
+				"type": "{ block: number; new: string; old: string; reason: string; rule: string; }"
+			},
+			"WritingDecision": {
+				"kind": "type",
+				"type": "{ afterAll?: boolean | undefined; change: 'text' | number; request: WritingRequest; taken: boolean; }"
+			},
+			"WritingDiffWords": {
+				"kind": "type",
+				"type": "{ added?: string; deleted?: string; deletedBreak?: string; inserted?: string; insertedBreak?: string; insertedHeading?: string; insertedItem?: string; newVersion?: string; next?: string; oldVersion?: string; position?: (at: number, of: number) => string; previous?: string; removed?: string; }"
+			},
+			"WritingKind": {
+				"kind": "type",
+				"type": "'check' | 'instruction' | 'rewrite' | 'structure'"
+			},
+			"WritingMode": {
+				"kind": "type",
+				"type": "{ group?: string | undefined; id: string; label: string; }"
+			},
+			"WritingRequest": {
+				"kind": "type",
+				"type": "{ html: string; instruction?: string | undefined; kind: WritingKind; mode?: string | undefined; scope: TextRange | null; words: string; }"
+			},
+			"WritingResult": {
+				"kind": "type",
+				"type": "{ changes: readonly WritingChange[]; kind: 'changes'; note?: string | undefined; } | { html: string; kind: 'text'; note?: string | undefined; title?: string | undefined; }"
+			},
+			"WritingWords": {
+				"kind": "type",
+				"type": "{ address: (href: string) => string; asked: (by: string, at: string) => string; change: (n: number) => string; check: string; clearScope: string; count: (n: number) => string; decideFirst: string; decided: (taken: number, left: number) => string; deleted: string; diff: WritingDiffWords; divider: string; empty: string; forSelection: string; forWhole: string; inserted: string; instruction: string; instructionEmpty: string; instructionPlaceholder: string; leave: string; leaveAll: string; leaveChange: (n: number) => string; leftOut: string; locked: string; lockedReason: string; nothing: string; old: string; oldHint: string; oldReason: string; onlySelected: string; picture: (n: number, alt: string) => string; proposalHint: string; readonly: string; rewrite: string; running: Readonly<Record<WritingKind, string>>; send: string; sendKey: string; stop: string; stopped: string; structure: string; structureHint: string; take: string; takeAfterAll: string; takeAfterAllChange: (n: number) => string; takeAll: string; takeAllReadonly: string; takeChange: (n: number) => string; takeOrLeave: string; textChanged: string; title: Readonly<Record<WritingKind, string>>; tools: string; wait: string; waiting: (open: number, old: number) => string; }"
+			},
+			"contrastRatio": {
+				"kind": "value",
+				"type": "(a: string, b: string): number"
+			},
+			"defaultPicture": {
+				"kind": "value",
+				"type": "(src: string): boolean"
+			},
+			"paperContrast": {
+				"kind": "value",
+				"type": "(p: RichTextPaper): PaperPair[]"
+			},
+			"parseHex": {
+				"kind": "value",
+				"type": "(text: string): string | null"
+			},
+			"richTextFragment": {
+				"kind": "value",
+				"type": "(html: string, options?: SanitizeOptions | undefined): DocumentFragment"
+			},
+			"sanitizeRichText": {
+				"kind": "value",
+				"type": "(html: string, options?: SanitizeOptions | undefined): string"
+			},
+			"toHex": {
+				"kind": "value",
+				"type": "(css: string): string | null"
 			}
 		},
 		"./ui/accordion": {
