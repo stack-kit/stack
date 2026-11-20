@@ -79,7 +79,7 @@
 		{ key: 'CASE-0142', title: 'Refund for order 8841', values: 'Open · High · Harbour Studio', owner: 'Emma', time: '13:52', datetime: '2026-11-18T13:52', unread: true },
 		{ key: 'CASE-0141', title: 'Change of the delivery address', values: 'Open · Normal · Northwind Bakery', owner: 'You', time: '13:10', datetime: '2026-11-18T13:10', unread: false },
 		{ key: 'CASE-0139', title: 'Damaged parcel on arrival, with photos of the box and of the goods inside it', values: 'Waiting · Normal · Pine Street Dental', time: '11:45', datetime: '2026-11-18T11:45', unread: true },
-		{ key: 'CASE-0137', title: 'Invoice sent to the wrong address', values: 'Closed · Low · Blue Fern Garden', owner: 'Oliver', time: '17 Nov 16:40', datetime: '2026-11-17T16:40', unread: false }
+		{ key: 'CASE-0137', title: 'Invoice sent to the wrong address', values: 'Closed · Low · Blue Fern Garden', owner: 'Oliver', time: '17 Nov, 16:40', datetime: '2026-11-17T16:40', unread: false }
 	];
 	let checkedCases = $state<string[]>([]);
 

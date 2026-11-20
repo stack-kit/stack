@@ -69,18 +69,19 @@
 		margin: 0.5em 0 0.25em;
 		font-weight: 600;
 	}
+	/* The start of the line, so that a list and a quote from right to left keep their markers and their edge on the right. */
 	.content :global(ul) {
 		list-style: disc;
-		padding-left: 1.5em;
+		padding-inline-start: 1.5em;
 	}
 	.content :global(ol) {
 		list-style: decimal;
-		padding-left: 1.5em;
+		padding-inline-start: 1.5em;
 	}
 	.content :global(blockquote) {
 		margin: 0.25em 0;
-		border-left: 2px solid var(--content-edge, var(--color-border));
-		padding-left: 0.75em;
+		border-inline-start: 2px solid var(--content-edge, var(--color-border));
+		padding-inline-start: 0.75em;
 		color: var(--content-muted, var(--color-muted-foreground));
 	}
 	.content :global(pre) {

@@ -13,7 +13,8 @@ export type StateRole = 'success' | 'warning' | 'destructive';
 
 export const SANS =
 	"'Inter Variable', Inter, 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-const MONO = 'ui-monospace, Menlo, Consolas, monospace';
+/** The code face of "### Email type". */
+export const MONO = 'ui-monospace, Menlo, Consolas, monospace';
 
 export type Link = { label: string; url: string };
 export type Fact = { label: string; value: string; strong?: boolean };
@@ -315,6 +316,47 @@ export function html(e: Email, c: Colors): string {
 		'</html>',
 		''
 	].join('\n');
+}
+
+/** A tag of the load list of the rich text field, which a server keeps in the HTML of a rich text (### rich-text-field in DESIGN.md). */
+export type RichTextTag = 'div' | 'br' | 'h1' | 'h2' | 'h3' | 'ul' | 'ol' | 'li' | 'blockquote' | 'pre' | 'hr' | 'b' | 'i' | 'u' | 's' | 'sub' | 'sup' | 'code' | 'a' | 'span' | 'img';
+
+/**
+ * The inline styles of rich text in an email, the table of "### Rich text in an email": the style that a
+ * server writes on each element of the HTML of a rich text field after it cleans the HTML, in front of
+ * the color, the highlight or the alignment that its list kept. An empty string adds no style, so a mark
+ * of the person and the color of a span stay as the person wrote them. The colors are the hex values of
+ * "### Email colors", which the function checks. dir "rtl" puts the indent of a list and the edge of a
+ * quote on the right.
+ */
+export function richTextStyles(c: Colors, dir: 'ltr' | 'rtl' = 'ltr'): Readonly<Record<RichTextTag, string>> {
+	checkColors(c);
+	const start = (n: number) => (dir === 'rtl' ? `0 ${n}px 0 0` : `0 0 0 ${n}px`);
+	const text = `${type.body} color:${c.foreground};`;
+	const list = `margin:0; padding:${start(24)};`;
+	return {
+		div: `margin:0; ${text}`,
+		br: '',
+		h1: `margin:12px 0 4px; ${type.heading} color:${c.foreground};`,
+		h2: `margin:8px 0 4px; ${type.section} color:${c.foreground};`,
+		h3: `margin:8px 0 4px; ${type.body.replace('font-weight:400;', 'font-weight:600;')} color:${c.foreground};`,
+		ul: list,
+		ol: list,
+		li: `margin:0; ${text}`,
+		blockquote: `margin:4px 0; padding:${start(12)}; border-${dir === 'rtl' ? 'right' : 'left'}:1px solid ${c.border};`,
+		pre: `margin:0; padding:12px 16px; border-radius:8px; background-color:${c.muted}; ${type.code} color:${c.foreground}; white-space:pre-wrap;`,
+		hr: `margin:12px 0; border:0; border-top:1px solid ${c.border};`,
+		b: 'font-weight:600;',
+		i: '',
+		u: '',
+		s: '',
+		sub: '',
+		sup: '',
+		code: `padding:0 4px; border-radius:4px; background-color:${c.muted}; ${type.code} color:${c.foreground};`,
+		a: `color:${c.link}; text-decoration:underline;`,
+		span: '',
+		img: 'max-width:100%; height:auto; border:0;'
+	};
 }
 
 /** The plain text part: the same content in the same order, one line for each paragraph. */

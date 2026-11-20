@@ -12,7 +12,7 @@ This README has two readers. An agent or a person in a product reads the section
 
 | Path | What it holds | Who reads it | In the npm package |
 |---|---|---|---|
-| `DESIGN.md` | The design file: the tokens in the YAML front matter, the rules in prose, and the definitions of 61 components and of 22 parts that STACK adds | A product, before each UI task | Yes |
+| `DESIGN.md` | The design file: the tokens in the YAML front matter, the rules in prose, and the definitions of 61 components and of 29 parts that STACK adds | A product, before each UI task | Yes |
 | `DESIGN.index.md` | The first and the last line of the front matter, of each of its top-level keys, and of each `##` section and `###` heading of `DESIGN.md`. The head names the version and the first 12 hex digits of the SHA-256 of the `DESIGN.md` that it indexes. `npm version` writes it at each release. | A product, to find a section of `DESIGN.md` | Yes |
 | `stack.css` | The CSS that maps the tokens to Tailwind: the color roles, the type steps, the breakpoints, the radius levels and the phone rules. `scripts/theme.mjs` writes it from the front matter. | The global CSS file of a product | Yes |
 | `stack-plain.css` | The tokens of `stack.css` as plain CSS custom properties, with no `@theme`, `@layer` or `@apply`. `scripts/theme.mjs` writes it from the front matter. | A page or a fragment that no Tailwind build reads | Yes |
@@ -30,14 +30,15 @@ This README has two readers. An agent or a person in a product reads the section
 | `CHANGELOG.md` | One entry for each release | A product, before an update | Yes |
 | `README.md` | This file | Everyone | Yes, npm always adds it |
 | `LICENSE` | The MIT licence of STACK | Everyone who copies a file of STACK | Yes, npm always adds it |
-| `package.json` | The name `@stack-kit/stack`, the version, the licence, the repository URL, the command `stack-contrast`, the `files` list, the check scripts and two dev dependencies | npm and the maintainer | Yes, npm always adds it |
+| `package.json` | The name `@stack-kit/stack`, the version, the licence, the repository URL, the commands `stack-contrast` and `stack-theme`, the `files` list, the check scripts and two dev dependencies | npm and the maintainer | Yes, npm always adds it |
 | `package-lock.json` | The exact versions of the dev dependencies | `npm ci` | No |
-| `scripts/` | The checks, the script that writes the theme, the script that writes the index, the script that writes the record of the tested versions, the theme generator, the checks of the commit hook in `hooks/`, and `names.list` | The maintainer and the commit hooks. A product runs `contrast.mjs` on its own layer, and the theme generator from a clone of a tag. | Only `contrast.mjs` and the four modules of `lib/` that it reads |
+| `scripts/` | The checks, the script that writes the theme, the script that writes the index, the script that writes the record of the tested versions, the theme generator, the checks of the commit hook in `hooks/`, and `names.list` | The maintainer and the commit hooks. A product runs `contrast.mjs` on its own layer as `stack-contrast`, and the theme generator `generate.mjs` as `stack-theme`. | Only `contrast.mjs`, `generate.mjs`, `theme.mjs`, which the generator imports, and the files of `lib/` that they read: `color.mjs`, `design.mjs`, `design-front.json`, `email-roles.mjs` with its types, `generate.mjs` and `pairs.mjs` |
 | `.githooks/` | The commit hooks `pre-commit` and `commit-msg` | git | No |
 | `.github/` | The files that GitHub reads, such as the settings of the issue form. A proposal comes as a pull request, not as an issue. | GitHub | No |
-| `preview/` | A SvelteKit app that shows the components, the tokens and the charts | The maintainer and a reviewer | Only the files of the next six rows |
+| `preview/` | A SvelteKit app that shows the components, the tokens and the charts | The maintainer and a reviewer | Only the files of the next seven rows |
 | `preview/src/lib/components/ui/` | The component files that STACK tested, one folder for each of the 61 components of shadcn-svelte 1.7.0 in the nova style. `LICENSE.md` is the licence notice of shadcn-svelte. STACK changed five of the files. `shadcn-svelte.css` is the `tailwind.css` of shadcn-svelte 1.7.0. | A product, which imports each component from the package, as "Import a part" says, and imports `shadcn-svelte.css`, as "Import the CSS" says | Yes |
 | `preview/src/lib/stack/` and `preview/src/lib/outside/` | The parts that STACK adds, the behaviour modules in `stack/behaviour/`, the chart helpers in `stack/patterns.ts`, the data and the sanitizer of the rich text field in `stack/rich-text.ts`, and the pages outside the frame of a product, such as the sign-in page | A product, which imports them from the package, as "Import a part" says | Yes |
+| `preview/src/lib/service-icons/` | The icons of seven outside services, one Svelte component for each, with the mark copied from Simple Icons. `LICENSE.md` names the source and its version, and says that each mark is a trademark of its owner. | A product, which imports each icon from the package, as "Import a part" says, and follows "Service icons" in `DESIGN.md` | Yes |
 | `preview/src/lib/print/chart-width.ts`, `pattern-fills.ts` and `marks.ts` | The print fit of a chart, which the chart parts and `behaviour/print` import | The chart parts | Yes |
 | `preview/src/lib/utils.ts` and `preview/src/lib/hooks/` | The shared files that the component files import | A product, for a part of its own | Yes |
 | `preview/components.lock.json` | The record of the tested versions. For each export path that holds code, and for `./stack.css`, it gives the other export paths that it uses, the packages that it needs and the files that STACK changed after the copy from the registry. It also gives the exact version of each package. The peers of `package.json` come from it. `npm version` writes it at each release. | A product, at the install and at each update, as "Install the packages" says | Yes |
@@ -45,7 +46,7 @@ This README has two readers. An agent or a person in a product reads the section
 | `media/` | The screenshots of the preview | A reader on GitHub | No |
 | `.npmrc` | `save-exact=true`, so that npm writes each dev dependency with no range | npm | No |
 
-The npm package carries the files that the `files` list of `package.json` names. For each row of the table above, the last column says if the package carries it. npm always adds `README.md`, `LICENSE` and `package.json`. No route, example or test of the preview goes into the package. The package has no install script, so `npm install` runs no code from this repository. The package has no dependency. It names each package that its files import as a peer in `peerDependencies`, with a caret range from the version of the record, and `peerDependenciesMeta` marks a peer that only some parts need as optional. A product installs the peers at the exact versions of the record, as "Install the packages" says. The `exports` map of `package.json` names each path that a product can import, and no other path of the package is public. npm links the command `stack-contrast` into `node_modules/.bin/`, and the command runs only when a product calls it. `package.json` also sets `private: true`, so npm refuses to publish the package to a registry.
+The npm package carries the files that the `files` list of `package.json` names. For each row of the table above, the last column says if the package carries it. npm always adds `README.md`, `LICENSE` and `package.json`. No route, example or test of the preview goes into the package. The package has no install script, so `npm install` runs no code from this repository. The package has no dependency. It names each package that its files import as a peer in `peerDependencies`, with a caret range from the version of the record, and `peerDependenciesMeta` marks a peer that only some parts need as optional. A product installs the peers at the exact versions of the record, as "Install the packages" says. The `exports` map of `package.json` names each path that a product can import, and no other path of the package is public. npm links the commands `stack-contrast` and `stack-theme` into `node_modules/.bin/`, and a command runs only when a product calls it. `package.json` also sets `private: true`, so npm refuses to publish the package to a registry.
 
 ## Use a release in a product
 
@@ -185,7 +186,7 @@ A page with no build step cannot use `stack.css`, because only the Tailwind buil
 
 ### Import a part
 
-Each release ships the 61 components that STACK tested, the parts that STACK adds, the behaviour modules and the pages outside the frame of a product. A product imports each of them from the package, and holds no copy. Never run `shadcn-svelte add` or `shadcn-svelte update` in a product. The CLI reads the live registry, which gives other files and other versions than the release ([0008](decisions/0008-a-product-imports-every-part-from-the-package.md)).
+Each release ships the 61 components that STACK tested, the parts that STACK adds, the behaviour modules, the pages outside the frame of a product and the icons of seven outside services. A product imports each of them from the package, and holds no copy. Never run `shadcn-svelte add` or `shadcn-svelte update` in a product. The CLI reads the live registry, which gives other files and other versions than the release ([0008](decisions/0008-a-product-imports-every-part-from-the-package.md)).
 
 The `exports` map of `package.json` names these paths:
 
@@ -195,10 +196,11 @@ The `exports` map of `package.json` names these paths:
 | `@stack-kit/stack/parts/<Name>` | A part that STACK adds, by its file name | `import ListSplit from '@stack-kit/stack/parts/ListSplit';` |
 | `@stack-kit/stack/behaviour/<name>` | A behaviour module: `item`, `keys`, `place`, `print`, `undo` or `width` | `import { undoToast } from '@stack-kit/stack/behaviour/undo';` |
 | `@stack-kit/stack/outside/<Name>` | A page outside the frame, such as the sign-in page, and the code helpers of `outside/codes` | `import SignInPage from '@stack-kit/stack/outside/SignInPage';` |
+| `@stack-kit/stack/service-icons/<Name>` | The icon of an outside service, by its file name: `WhatsApp`, `Viber`, `Telegram`, `Messenger`, `Instagram`, `Signal` or `Gmail`. The name of the service stands beside it in text ("Service icons" in `DESIGN.md`). | `import WhatsApp from '@stack-kit/stack/service-icons/WhatsApp';` |
 | `@stack-kit/stack/utils` and `@stack-kit/stack/hooks/<name>` | `cn` and the other shared helpers, for a part of the product | `import { cn } from '@stack-kit/stack/utils';` |
 | `@stack-kit/stack/patterns` | The chart patterns and the chart colors, for a chart of the product | `import { PATTERNS } from '@stack-kit/stack/patterns';` |
 | `@stack-kit/stack/rich-text` | The types, the content colors and the sanitizer of the rich text field, for a page that stores or shows its HTML | `import { sanitizeRichText } from '@stack-kit/stack/rich-text';` |
-| `@stack-kit/stack/email` | The plain text part and the HTML part of an email of `## Email` in `DESIGN.md` | `import { html, text } from '@stack-kit/stack/email';` |
+| `@stack-kit/stack/email` | The plain text part and the HTML part of an email of `## Email` in `DESIGN.md`, and the inline styles that a server writes on rich text in an email | `import { html, text, richTextStyles } from '@stack-kit/stack/email';` |
 | `@stack-kit/stack/frame-height` | The height script of an HTML frame, its hash and the type tags of its messages, for the server of the host of the content (`### html-frame` in `DESIGN.md`) | `import { FRAME_HEIGHT_HASH, FRAME_HEIGHT_SCRIPT } from '@stack-kit/stack/frame-height';` |
 | `@stack-kit/stack/architecture/keys.json` | The keys of `architecture/web-app.md` as data, which the key test of the product reads | |
 | `@stack-kit/stack/stack.css` and the other CSS paths | The CSS files of "Import the CSS" | |
@@ -333,6 +335,13 @@ Each product follows these rules:
   ```markdown
   Design: @stack-kit/stack vX.Y.Z from https://github.com/stack-kit/stack, the only source. At the start of each UI task, check for a newer tag with `git ls-remote --tags --refs --sort=-v:refname https://github.com/stack-kit/stack 'v*' | head -1`. When one exists, read its CHANGELOG.md, then move the pin, or show the owner a plan first when the release changes something this project uses. Never pin main. Before each UI task, find the sections that the task needs in `node_modules/@stack-kit/stack/DESIGN.index.md`, and read only those.
   ```
+- When a product installs a skill or a guide that gives its coding agent rules for the web platform, it adds one line to its `AGENTS.md`. The line says that the rules of STACK win, gives the browser target of `STACK.md` of the pinned tag, and turns off the telemetry of the skill:
+
+  ```markdown
+  Web platform: DESIGN.md and architecture/web-app.md of @stack-kit/stack win over each skill or guide for the web platform. Browser target: Baseline Widely available on 2026-11-15, raised to Firefox 128, that is Chrome and Edge 124, Firefox 128, and Safari 17.5 on macOS and iOS. A feature outside the target gets the fallback of "Browser support" in architecture/web-app.md, or a fallback that this product writes and tests. Run each command of a web platform skill with DISABLE_TELEMETRY=1.
+  ```
+
+  Also set the telemetry variable that the skill names, such as `DISABLE_TELEMETRY=1`, in the environment that starts the agent. At each update, copy the target from `STACK.md` of the new tag into the line.
 
 ## Update a product to a new release
 
@@ -340,11 +349,11 @@ An update is one change of the pin. The version number says what the release cha
 
 | Level | What the release changes | What the product does |
 |---|---|---|
-| Major | A change that a product must act on: a removed documented behaviour, such as a word that goes from an `@behaviour` line; a removed or renamed prop, callback, snippet, export or `data-slot`; a narrowed type; a new required input; a change of a member of an exported object type other than a new optional member; a changed default that changes what a page shows; a behaviour that needs a new function from the product; a change of a rule of the frame. | It takes each step of the Breaking part of the change log entry. |
-| Minor | A new part; a new optional prop or snippet; a new optional member of an exported object type; a change of the look; a change of behaviour that needs no input from the product. | Nothing. It reads the Behaviour part, so that it knows what its users see. |
+| Major | A change that a product must act on: a removed documented behaviour, such as a word that goes from an `@behaviour` line; a removed or renamed prop, callback, snippet, export or `data-slot`; a narrowed type; a new required input; a change of a member of an exported object type other than a new optional member; a changed default that changes what a page shows; a behaviour that needs a new function from the product; a change of a rule of the frame; a removed or renamed command, or a removed option of a command. | It takes each step of the Breaking part of the change log entry. |
+| Minor | A new part; a new optional prop or snippet; a new optional member of an exported object type; a new command; a change of the look; a change of behaviour that needs no input from the product. | Nothing. It reads the Behaviour part, so that it knows what its users see. |
 | Patch | A fix that keeps the contract and the documented behaviour. | Nothing. |
 
-The contract of a part is its props, its callbacks, its snippets, its exported types and functions, its `data-slot` names and its documented behaviour. `preview/contract.json` holds the contract of each release, and a release stops when its level is below the level of the change of its contract.
+A command is an entry of `bin` in `package.json`, such as `stack-contrast` or `stack-theme`, which a product runs in its own scripts and build. The contract of a part is its props, its callbacks, its snippets, its exported types and functions, its `data-slot` names and its documented behaviour. `preview/contract.json` holds the contract of each release, and a release stops when its level is below the level of the change of its contract.
 
 Read the change log of the new tag before the update. Each entry has the parts Breaking, Behaviour, Added and Fixed. Breaking holds the change of the contract since the last release, and one step for each part.
 
@@ -568,7 +577,7 @@ The first eight sections are the standard sections of the spec, in the order of 
 
 ### The components
 
-`## Components` defines the 61 components of the registry snapshot of shadcn-svelte 1.7.0 of 2026-10-13, in the nova style, and twenty-two parts that STACK adds because the registry lacks them: `code-editor`, `rich-text-field`, `rich-text-in-place`, `rich-text-view`, `code-block`, `diff`, `time-field`, `time-zone-field`, `selection-bar`, `reorder-list`, `stepper`, `board`, `month-view`, `day-log`, `unread-mark`, `mail-message`, `html-frame`, `send-check`, `figure-band`, `qr-code`, `property-strip` and `item-page`. Each definition has a `###` heading with its registry name, such as `### button`. A definition has nine parts, in this order: Purpose, Anatomy, Variants, Sizes, States, Tokens, Accessibility, Example and Phone. `npm run components` checks that each component has a definition with the nine parts, and that each key in a Tokens part exists in `components`.
+`## Components` defines the 61 components of the registry snapshot of shadcn-svelte 1.7.0 of 2026-10-13, in the nova style, and twenty-nine parts that STACK adds because the registry lacks them: `code-editor`, `rich-text-field`, `rich-text-in-place`, `rich-text-view`, `code-block`, `diff`, `time-field`, `time-zone-field`, `language-field`, `selection-bar`, `reorder-list`, `stepper`, `board`, `month-view`, `day-log`, `unread-mark`, `internal-mark`, `activity-lines`, `send-state`, `mail-message`, `html-frame`, `send-check`, `comment-list`, `conversation`, `comment-box`, `figure-band`, `qr-code`, `property-strip` and `item-page`. Each definition has a `###` heading with its registry name, such as `### button`. A definition has nine parts, in this order: Purpose, Anatomy, Variants, Sizes, States, Tokens, Accessibility, Example and Phone. `npm run components` checks that each component has a definition with the nine parts, and that each key in a Tokens part exists in `components`.
 
 ### The width bands
 
@@ -656,20 +665,16 @@ The three inputs and the form of a color:
 - `--contrast` is a number from 0 to 100, and it moves the text and the edges. At 0, they are softer, but a text keeps 4.5:1 and an edge keeps 3:1. At 30, they have the ratios of `graphite`. At 100, the text is black on a light page.
 - A color is `oklch(L C H)`, `#rgb` or `#rrggbb`, with no alpha. An input that the command lacks comes from `theme-inputs` in `DESIGN.md`.
 
-The generator needs the dev dependencies of this repository, so the npm package does not carry it. A product runs it from a clone of the tag that it pins, with Node and npm on the host:
+The package carries the generator as the command `stack-theme`. A product runs it from its installed package, with no clone and no other package:
 
-1. Clone the pinned tag into a temporary folder, and install its dev dependencies there. Put the tag in place of `vX.Y.Z`:
-
-   ```sh
-   git clone --depth 1 --branch vX.Y.Z https://github.com/stack-kit/stack /tmp/stack-vX.Y.Z
-   npm --prefix /tmp/stack-vX.Y.Z ci
-   ```
-
-2. Run the generator in the root folder of the product. `--out` names the theme file to write, as a path from that folder:
+1. Pin and install the tag, as "Pin a release with npm" says. npm links the command `stack-theme` into `node_modules/.bin/`. The generator reads `DESIGN.md` and `themes/` of the installed package, When the product has no `yaml` package, it reads the front matter from `scripts/lib/design-front.json` of the package, so the product needs no YAML parser.
+2. Run the generator in the root folder of the product. `--out` names the theme file to write, as a path from that folder. `--no` stops npx when the package is not installed, so npx never fetches a package with the same name from the registry:
 
    ```sh
-   node /tmp/stack-vX.Y.Z/scripts/generate.mjs --base "#f7f3ec" --accent "oklch(0.55 0.13 45)" --contrast 30 --out src/theme.css
+   npx --no -- stack-theme --base "#f7f3ec" --accent "oklch(0.55 0.13 45)" --contrast 30 --out src/theme.css
    ```
+
+   The command needs Node 20 or later. STACK tested it on Node 20 and 22.
 
 3. Import the file as the last line of the CSS imports, in place of the theme of this repository. From `src/app.css`, the line is `@import "./theme.css";`.
 4. Commit the file, and never edit a value of it by hand. To change the theme, run step 2 again with other inputs.
@@ -683,7 +688,7 @@ The generator refuses a theme that fails, and it exits with code 1:
 
 Without `--charts`, the theme takes the default chart colors of `DESIGN.md`. `--charts <theme>` takes the chart colors of a theme of this repository by its name, such as `--charts graphite`. The generator can still change the lightness of a chart color, so that it passes on the new grounds.
 
-The first line of the file gives the inputs as options of the command. At each update to a new release, run the command again with them, from a clone of the new tag. A release can add a color role, and a theme that lacks the role takes its value from `theme-fallbacks`.
+The first line of the file gives the inputs as options of the command. At each update to a new release, run the command again with them, after the install of the new tag. A release can add a color role, and a theme that lacks the role takes its value from `theme-fallbacks`.
 
 Check the product layer on this theme: add `--theme src/theme.css` to the command of "Check the contrast of the product layer".
 
@@ -721,8 +726,9 @@ The products draw charts with LayerChart 2.7.0 on its SVG layer, in the chart pa
 | CodeMirror 6 for a code editor | `@codemirror/state` 6.7.6, `@codemirror/view` 6.43.15 and `@codemirror/commands` 6.11.1, pinned exactly | [0005](decisions/0005-codemirror-6.md) |
 | Squire for a rich text field | 2.4.10, pinned exactly | [0013](decisions/0013-squire-for-rich-text.md) |
 | lean-qr for a QR code | 2.7.4, pinned exactly | [0007](decisions/0007-lean-qr.md) |
+| svelte-sonner for a toast | 1.2.1, pinned exactly | [0015](decisions/0015-svelte-sonner-stays-the-toast-library.md) |
 
-Each record in `decisions/` has a status and a `date` in its front matter. The status is `accepted`, or `superseded by` the record that replaces it. Records 0008 to 0012 are no stack choice. They decide how a product takes the parts: the import from the package, the seam to SvelteKit, the modules with runes, the shared behaviour, and the props of a part from one release to the next. Record 0014 is no stack choice either: it decides the public parts of the rich text field, and that STACK owns a request of its writing tools and the diff of the result. Each record follows the MADR 4.0 form. It gives the context, the decision drivers and the options. Then it gives the outcome with its consequences and its confirmation, and the pros and cons of each option.
+Each record in `decisions/` has a status and a `date` in its front matter. The status is `accepted`, or `superseded by` the record that replaces it. Records 0008 to 0012 are no stack choice. They decide how a product takes the parts: the import from the package, the seam to SvelteKit, the modules with runes, the shared behaviour, and the props of a part from one release to the next. Record 0014 is no stack choice either: it decides the public parts of the rich text field, and that STACK owns a request of its writing tools and the diff of the result. Record 0016 is no stack choice either: it sets the browser target of the parts and the rules. Each record follows the MADR 4.0 form. It gives the context, the decision drivers and the options. Then it gives the outcome with its consequences and its confirmation, and the pros and cons of each option.
 
 ## The preview
 
@@ -732,7 +738,7 @@ The preview in `preview/` is a SvelteKit app. It reads `DESIGN.md`, `stack.css` 
 
 | Route | What it shows |
 |---|---|
-| `/` | The 61 components and the 22 parts that STACK adds, each in every variant and size, and in each state that a prop can force. A side menu lists the components. |
+| `/` | The 61 components and the 29 parts that STACK adds, each in every variant and size, and in each state that a prop can force. A side menu lists the components. |
 | `/tokens` | The colors, the type steps, the spacing and the radius levels. A swatch follows the theme and the mode, and the value columns show the front matter. |
 | `/themes/compare` | A theme of this repository beside the theme that the generator writes from three inputs, the two scales of the generated theme, the values that the generator lifted, and the difference of each role in L, C, h and alpha. The inputs start at the inputs of the theme that the page compares. |
 | `/charts` | The pattern style, stacked bars, stacked areas, a donut of eight, lines over time, the color pattern style, the color style, a heat map, sparklines, a flow, and the eight patterns |
@@ -761,19 +767,20 @@ The checks run with Node 18 or later, the minimum of the CLI `@google/design.md`
 | Command | What it does |
 |---|---|
 | `npm run lint` | Runs the lint of the CLI `@google/design.md` 0.4.0 on `DESIGN.md`. It fails on an error, and on a warning that the list "Accepted lint warnings" in `## Overview` does not name. The list accepts `orphaned-tokens`, and `broken-ref` on a `borderColor` only. |
-| `npm run theme -- --check` | Fails when `themes/default.css`, `stack.css`, `stack-plain.css` or `chart-patterns.svg` differs from the front matter. It also fails when a theme file has a missing or an extra name, when `theme-fallbacks`, a phone key or an entry of `chart-patterns` is wrong, or when a key of `motion` has no variable in `stack.css`. It refuses a `package.json` with a workspace, or with a script that makes npm build a git dependency, such as `prepare` or `postinstall`. It also fails when the list of themes in the `<head>` script of `preview/src/app.html` and the files of `themes/` disagree. |
+| `npm run theme -- --check` | Fails when `themes/default.css`, `stack.css`, `stack-plain.css`, `chart-patterns.svg` or `scripts/lib/design-front.json` differs from the front matter. It also fails when a theme file has a missing or an extra name, when `theme-fallbacks`, a phone key or an entry of `chart-patterns` is wrong, or when a key of `motion` has no variable in `stack.css`. It refuses a `package.json` with a workspace, or with a script that makes npm build a git dependency, such as `prepare` or `postinstall`. It also fails when the list of themes in the `<head>` script of `preview/src/app.html` and the files of `themes/` disagree. |
 | `npm run contrast` | Reads the pairs from `## Colors` and the values from each theme file, and checks both modes of each theme. It fails on a pair below its minimum. `npm run contrast -- <file>` checks one file. `npm run contrast -- --self-test` compares its color math with Chrome. With the options `--layer`, `--pairs` and `--theme`, it checks the pairs of a product layer, as "Check the contrast of the product layer" says. It also fails when the fallbacks of `stack.css` differ from `theme-fallbacks`, because the check of a product layer reads them from `stack.css`. It checks the email colors of `### Email colors` in `DESIGN.md` against the light mode of each theme, and it prints those values for a theme file of a product. With no file named, it also checks the print colors of `### Print colors`: each value a gray, each pair at its ratio, and the CSS of `### Print template` with those values only. |
 | `npm run contrast:examples` | Checks the pairs of the product layer of each example in `preview/src/lib/examples/`, its `product.css` with its `product-pairs.json`, in the default and graphite themes, as `npm run contrast` checks the layer of a product. It passes when the folder holds no example layer. |
 | `npm run generate -- --self-test` | A check of STACK. Writes seven themes with the theme generator, from the inputs of `graphite`, `theme-inputs` and five more input sets, and runs the contrast check on each. One of the sets needs the other text on `primary` in both modes. It checks that the light `secondary` of the generated `graphite` is within 0.007 in L of `graphite.css`, and that its chart colors are those of `graphite.css`. It checks that the generated `default` keeps the hues of the default chart set. Then it checks that the generator refuses a mid-gray page. It fails when one of the themes fails, when one of these checks fails, or when the mid-gray page gives a theme. |
 | `npm run names` | Refuses the name of a studied third-party product in every file that git does not ignore. `scripts/names.list` holds a SHA-256 hash for each name, and no name in clear text. `npm run names -- --loose` lists every match in any case, for a person to review. |
+| `npm run service-icons` | Fails when `preview/src/lib/service-icons/` holds a file other than `LICENSE.md` and the icons that the script names, and when an icon lacks one `<path>`, `viewBox="0 0 24 24"`, `fill="currentColor"`, `aria-hidden="true"` or the transform that draws the mark inside 22 of the 24 units, or holds a color of its own. `node scripts/service-icons.mjs --compare <folder>` compares each path, as text, with the unpacked package `simple-icons` in the folder. |
 | `npm run markers` | Refuses a line of a merge conflict block in every file that git does not ignore: a line of seven `<` alone or followed by a space, a line of seven `=` between those two, and a line of seven `>` alone or followed by a space. A line of seven `=` under a text line is a Markdown heading, and the check lets it pass in a Markdown file. A lone line of seven `=` fails outside Markdown. `npm run markers -- --staged` checks the staged files. |
 | `npm run components` | Checks that each of the 61 components and each part of STACK has a definition with the nine parts, and that each key of a Tokens part exists in `components`. `npm run components -- --only button,chart` checks the named components only. |
 | `npm run lock -- --check` | Writes nothing. It fails when the record `preview/components.lock.json` or the peers of `package.json` differ from the files: an export path, a path of `uses`, a package, its version or an edited file. It names the first ten differences. Run `npm run lock`, and commit the record and `package.json` with the change of the files. |
 | `npm run parts` | Fails when a part of `stack/` or `outside/` lacks one of its five extension points: the `<Name>Props` type, `...rest`, `class` through `cn(`, a root `data-slot` and `ref = $bindable(`. It also fails when `DESIGN.md` does not name a shipped part by its export path. `npm run parts -- --release` also fails on a part that still holds the pending marker. |
 | `npm run keys` | Fails when `architecture/keys.json` and the two key tables of `architecture/web-app.md` disagree. The tables are the shared keys and the keys that the components own. |
-| `npm run frame` | Fails when `FRAME_HEIGHT_HASH` of `preview/src/lib/stack/frame-height.ts` or a hash in `DESIGN.md` is not the SHA-256 of the height script of an HTML frame. It also fails when the script holds a backslash, a backtick, a dollar sign, a character that is not ASCII, `<script`, `</script` or `<!--`, or when it lacks a type tag of the module. The last line gives the hash. |
-| `npm run check` | Runs the lint, the theme check, the contrast check, the contrast check of each example layer, the self-test of the generator, the names check, the markers check, the completeness check, the lock check, the key check, the dry run of the index, the parts check and the check of the frame script, in this order, and stops at the first failure. |
-| `npm run theme` | Not a check. It writes `themes/default.css`, `stack.css`, `stack-plain.css` and `chart-patterns.svg` from the front matter. |
+| `npm run frame` | Fails when `FRAME_HEIGHT_HASH` of `preview/src/lib/stack/frame-height.ts` or a hash in `DESIGN.md` is not the SHA-256 of the height script of an HTML frame. It also fails when the script holds a backslash, a backtick, a dollar sign, a character that is not ASCII, `<script`, `</script` or `<!--`, when it lacks a type tag of the module or an attribute of `<html>` that `### html-frame` names, when it names a way to parse a text as HTML or as code, such as `innerHTML` or `eval`, or when it calls `postMessage` in more than one place. The last line gives the hash. |
+| `npm run check` | Runs the lint, the theme check, the contrast check, the contrast check of each example layer, the self-test of the generator, the names check, the check of the service icons, the markers check, the completeness check, the lock check, the key check, the dry run of the index, the parts check and the check of the frame script, in this order, and stops at the first failure. |
+| `npm run theme` | Not a check. It writes `themes/default.css`, `stack.css`, `stack-plain.css`, `chart-patterns.svg` and `scripts/lib/design-front.json` from the front matter. `scripts/lib/design-front.json` holds the front matter as JSON, so that the generator, and the contrast check that it runs on its file, run from the package, where the dev dependency `yaml` is not installed. A bare `stack-contrast src/theme.css` from a product root needs a `DESIGN.md` there, and it exits 1. A clone with no `yaml` fails, and it never reads the copy. The `version` script of `package.json` runs it, so that `npm version` puts a fresh copy into the release commit. |
 | `npm run generate -- --out <file>` | Not a check. It writes a theme file from `--base`, `--accent` and `--contrast`, and then runs the contrast check on it. An input that it lacks comes from `theme-inputs`. `--charts <theme>` takes the chart colors of a theme of `themes/`, such as `graphite`, in place of the default set. `--compare <theme file>` also prints the difference of each role. `## Themes` in `DESIGN.md` gives the rules, and "Make a theme with the generator" gives the command of a product. |
 | `npm run index` | Not a check. It writes `DESIGN.index.md`: the first and the last line of the front matter, of each of its top-level keys, and of each `##` section and `###` heading of `DESIGN.md`, in the order of the file. The head names the version of `package.json` and the first 12 hex digits of the SHA-256 of `DESIGN.md`. The `version` script of `package.json` runs it, so that `npm version` puts a fresh index into the release commit. |
 | `npm run lock` | Not a check. It writes the record `preview/components.lock.json` from the export paths of `package.json` that hold code, the files that they reach and `preview/package-lock.json`, and it writes the peers of `package.json` from the record. It fails on an import of a file that the release does not ship, and on a package that the lock of the preview lacks. `node scripts/component-lock.mjs print <export path>...` prints the install line of the packages of the export paths. The `version` script of `package.json` runs it, so that `npm version` puts a fresh record into the release commit. |

@@ -27,6 +27,7 @@ const NO_REST = part('NoRest', `bind:this={ref} data-slot="no-rest" class={cn('f
 const NO_SLOT = part('NoSlot', `bind:this={ref} class={cn('flex', className)} {...rest}`, 'data-slot="no-slot-text"');
 const DESIGN = 'Import `@stack-kit/stack/parts/Good`, `@stack-kit/stack/parts/NoRest` and `@stack-kit/stack/parts/NoSlot`.';
 const marked = (source) => `${parts.MARKER}\n${source}`;
+const NO_REST_PROBLEM = 'the root does not spread the rest attributes of $props(), as {...rest} or as a $derived copy of them';
 
 test('a part with the five extension points passes, and its marker must go', () => {
   const { checkPart } = parts;
@@ -37,9 +38,31 @@ test('a part with the five extension points passes, and its marker must go', () 
 
 test('a part with no rest attributes on its root fails', () => {
   const { checkPart } = parts;
-  assert.deepEqual(checkPart(NO_REST, { name: 'NoRest', path: 'parts/NoRest', design: DESIGN }), ['the root does not spread the rest attributes of $props(), as {...rest}']);
+  assert.deepEqual(checkPart(NO_REST, { name: 'NoRest', path: 'parts/NoRest', design: DESIGN }), [NO_REST_PROBLEM]);
   assert.deepEqual(checkPart(marked(NO_REST), { name: 'NoRest', path: 'parts/NoRest', design: DESIGN }), []);
   assert.match(checkPart(marked(NO_REST), { name: 'NoRest', path: 'parts/NoRest', design: DESIGN, release: true }).join('\n'), /A release ships no part with the marker/);
+});
+
+test('a root that spreads a $derived copy of the rest attributes passes, and a copy of another object, a plain copy or a copy that loses them fails', () => {
+  const { checkPart } = parts;
+  const copy = (declaration, spread) =>
+    part('Good', `bind:this={ref} data-slot="good" class={cn('flex', className)} {...${spread}}`).replace('= $props();', `= $props();\n\t${declaration}`);
+  const passes = [
+    ['const kept = $derived.by(() => { const out = { ...rest }; delete out.srcdoc; return out; });', 'kept'],
+    ["const kept = $derived({ ...rest, id: 'good' });", 'kept'],
+  ];
+  for (const [declaration, spread] of passes) assert.deepEqual(checkPart(copy(declaration, spread), { name: 'Good', path: 'parts/Good', design: DESIGN }), [], declaration);
+  const fails = [
+    ["const other = $derived({ id: 'good' });", 'other'],
+    ['const plain = { ...rest };', 'plain'],
+    ['const kept = $derived([...Object.keys(rest)]);', 'kept'],
+    ['const kept = $derived.by(() => { const unused = { ...rest }; return {}; });', 'kept'],
+    ['const kept = $derived.by(() => { const out = { ...rest }; return { id: out.id }; });', 'kept'],
+    ['const kept = $derived.by(() => { const rest = {}; return { ...rest }; });', 'kept'],
+    ['const kept = $derived(((f) => ({}))(() => ({ ...rest })));', 'kept'],
+    ['const kept = $derived.by((rest = {}) => { const out = { ...rest }; return out; });', 'kept'],
+  ];
+  for (const [declaration, spread] of fails) assert.deepEqual(checkPart(copy(declaration, spread), { name: 'Good', path: 'parts/Good', design: DESIGN }), [NO_REST_PROBLEM], declaration);
 });
 
 test('a part with no data-slot on its root fails', () => {

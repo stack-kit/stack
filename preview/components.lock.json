@@ -1,5 +1,5 @@
 {
-	"stack": "2.4.0",
+	"stack": "2.5.0",
 	"packages": {
 		"@codemirror/commands": "6.11.1",
 		"@codemirror/state": "6.7.6",
@@ -249,6 +249,21 @@
 			"packages": [],
 			"edited": []
 		},
+		"./parts/ActivityLines": {
+			"uses": [
+				"./ui/button",
+				"./ui/marker",
+				"./ui/tooltip"
+			],
+			"packages": [
+				"@internationalized/date",
+				"bits-ui",
+				"cn",
+				"svelte",
+				"tailwind-variants"
+			],
+			"edited": []
+		},
 		"./parts/Banner": {
 			"uses": [
 				"./ui/alert"
@@ -333,6 +348,206 @@
 				"@codemirror/view",
 				"cn",
 				"svelte"
+			],
+			"edited": []
+		},
+		"./parts/CommentBox": {
+			"uses": [
+				"./behaviour/keys",
+				"./behaviour/width",
+				"./parts/Diff",
+				"./parts/InternalMark",
+				"./parts/ReasonButton",
+				"./parts/ReasonMenuItem",
+				"./parts/RichTextField",
+				"./parts/RichTextView",
+				"./rich-text",
+				"./ui/badge",
+				"./ui/button",
+				"./ui/drawer",
+				"./ui/dropdown-menu",
+				"./ui/field",
+				"./ui/input",
+				"./ui/input-group",
+				"./ui/kbd",
+				"./ui/label",
+				"./ui/popover",
+				"./ui/radio-group",
+				"./ui/separator",
+				"./ui/spinner",
+				"./ui/textarea",
+				"./ui/toggle",
+				"./ui/toggle-group",
+				"./ui/tooltip"
+			],
+			"packages": [
+				"@internationalized/date",
+				"@lucide/svelte",
+				"@sveltejs/kit",
+				"@sveltejs/vite-plugin-svelte",
+				"bits-ui",
+				"cn",
+				"squire-rte",
+				"svelte",
+				"tailwind-variants",
+				"vaul-svelte",
+				"vite"
+			],
+			"edited": []
+		},
+		"./parts/CommentItem": {
+			"uses": [
+				"./behaviour/keys",
+				"./behaviour/width",
+				"./parts/Diff",
+				"./parts/InternalMark",
+				"./parts/ReasonButton",
+				"./parts/ReasonMenuItem",
+				"./parts/RichTextField",
+				"./parts/RichTextInPlace",
+				"./parts/RichTextView",
+				"./rich-text",
+				"./ui/alert-dialog",
+				"./ui/avatar",
+				"./ui/badge",
+				"./ui/button",
+				"./ui/drawer",
+				"./ui/dropdown-menu",
+				"./ui/field",
+				"./ui/input",
+				"./ui/input-group",
+				"./ui/kbd",
+				"./ui/label",
+				"./ui/popover",
+				"./ui/radio-group",
+				"./ui/separator",
+				"./ui/spinner",
+				"./ui/textarea",
+				"./ui/toggle",
+				"./ui/toggle-group",
+				"./ui/tooltip"
+			],
+			"packages": [
+				"@internationalized/date",
+				"@lucide/svelte",
+				"@sveltejs/kit",
+				"@sveltejs/vite-plugin-svelte",
+				"bits-ui",
+				"cn",
+				"squire-rte",
+				"svelte",
+				"tailwind-variants",
+				"vaul-svelte",
+				"vite"
+			],
+			"edited": []
+		},
+		"./parts/CommentList": {
+			"uses": [
+				"./behaviour/keys",
+				"./behaviour/width",
+				"./parts/ActivityLines",
+				"./parts/CommentItem",
+				"./parts/Diff",
+				"./parts/InternalMark",
+				"./parts/ReasonButton",
+				"./parts/ReasonMenuItem",
+				"./parts/RichTextField",
+				"./parts/RichTextInPlace",
+				"./parts/RichTextView",
+				"./rich-text",
+				"./ui/alert-dialog",
+				"./ui/avatar",
+				"./ui/badge",
+				"./ui/button",
+				"./ui/drawer",
+				"./ui/dropdown-menu",
+				"./ui/field",
+				"./ui/input",
+				"./ui/input-group",
+				"./ui/kbd",
+				"./ui/label",
+				"./ui/marker",
+				"./ui/popover",
+				"./ui/radio-group",
+				"./ui/separator",
+				"./ui/spinner",
+				"./ui/textarea",
+				"./ui/toggle",
+				"./ui/toggle-group",
+				"./ui/tooltip"
+			],
+			"packages": [
+				"@internationalized/date",
+				"@lucide/svelte",
+				"@sveltejs/kit",
+				"@sveltejs/vite-plugin-svelte",
+				"bits-ui",
+				"cn",
+				"squire-rte",
+				"svelte",
+				"tailwind-variants",
+				"vaul-svelte",
+				"vite"
+			],
+			"edited": []
+		},
+		"./parts/Conversation": {
+			"uses": [
+				"./behaviour/keys",
+				"./behaviour/width",
+				"./frame-height",
+				"./parts/ActivityLines",
+				"./parts/CommentItem",
+				"./parts/Diff",
+				"./parts/HtmlFrame",
+				"./parts/InternalMark",
+				"./parts/MailMessage",
+				"./parts/ReasonButton",
+				"./parts/ReasonMenuItem",
+				"./parts/RichTextField",
+				"./parts/RichTextInPlace",
+				"./parts/RichTextView",
+				"./parts/SendState",
+				"./parts/UnreadMark",
+				"./rich-text",
+				"./ui/alert-dialog",
+				"./ui/attachment",
+				"./ui/avatar",
+				"./ui/badge",
+				"./ui/bubble",
+				"./ui/button",
+				"./ui/dialog",
+				"./ui/drawer",
+				"./ui/dropdown-menu",
+				"./ui/field",
+				"./ui/input",
+				"./ui/input-group",
+				"./ui/kbd",
+				"./ui/label",
+				"./ui/marker",
+				"./ui/message",
+				"./ui/popover",
+				"./ui/radio-group",
+				"./ui/separator",
+				"./ui/spinner",
+				"./ui/textarea",
+				"./ui/toggle",
+				"./ui/toggle-group",
+				"./ui/tooltip"
+			],
+			"packages": [
+				"@internationalized/date",
+				"@lucide/svelte",
+				"@sveltejs/kit",
+				"@sveltejs/vite-plugin-svelte",
+				"bits-ui",
+				"cn",
+				"squire-rte",
+				"svelte",
+				"tailwind-variants",
+				"vaul-svelte",
+				"vite"
 			],
 			"edited": []
 		},
@@ -463,6 +678,18 @@
 			],
 			"edited": []
 		},
+		"./parts/InternalMark": {
+			"uses": [
+				"./ui/badge"
+			],
+			"packages": [
+				"@lucide/svelte",
+				"cn",
+				"svelte",
+				"tailwind-variants"
+			],
+			"edited": []
+		},
 		"./parts/ItemColumns": {
 			"uses": [],
 			"packages": [
@@ -495,6 +722,29 @@
 			],
 			"edited": []
 		},
+		"./parts/LanguageField": {
+			"uses": [
+				"./ui/button",
+				"./ui/command",
+				"./ui/dialog",
+				"./ui/field",
+				"./ui/input",
+				"./ui/input-group",
+				"./ui/label",
+				"./ui/popover",
+				"./ui/separator",
+				"./ui/textarea"
+			],
+			"packages": [
+				"@internationalized/date",
+				"@lucide/svelte",
+				"bits-ui",
+				"cn",
+				"svelte",
+				"tailwind-variants"
+			],
+			"edited": []
+		},
 		"./parts/LineTile": {
 			"uses": [
 				"./patterns"
@@ -522,14 +772,17 @@
 		},
 		"./parts/MailMessage": {
 			"uses": [
+				"./behaviour/width",
 				"./frame-height",
 				"./parts/HtmlFrame",
+				"./parts/InternalMark",
 				"./parts/UnreadMark",
 				"./ui/attachment",
 				"./ui/avatar",
 				"./ui/badge",
 				"./ui/button",
 				"./ui/dialog",
+				"./ui/dropdown-menu",
 				"./ui/tooltip"
 			],
 			"packages": [
@@ -544,8 +797,10 @@
 		},
 		"./parts/MailThread": {
 			"uses": [
+				"./behaviour/width",
 				"./frame-height",
 				"./parts/HtmlFrame",
+				"./parts/InternalMark",
 				"./parts/MailMessage",
 				"./parts/UnreadMark",
 				"./ui/attachment",
@@ -553,6 +808,7 @@
 				"./ui/badge",
 				"./ui/button",
 				"./ui/dialog",
+				"./ui/dropdown-menu",
 				"./ui/tooltip"
 			],
 			"packages": [
@@ -866,6 +1122,21 @@
 			],
 			"edited": []
 		},
+		"./parts/SendState": {
+			"uses": [
+				"./ui/button",
+				"./ui/popover"
+			],
+			"packages": [
+				"@internationalized/date",
+				"@lucide/svelte",
+				"bits-ui",
+				"cn",
+				"svelte",
+				"tailwind-variants"
+			],
+			"edited": []
+		},
 		"./parts/Sparkline": {
 			"uses": [
 				"./patterns",
@@ -1006,6 +1277,55 @@
 		"./rich-text": {
 			"uses": [],
 			"packages": [],
+			"edited": []
+		},
+		"./service-icons/Gmail": {
+			"uses": [],
+			"packages": [
+				"svelte"
+			],
+			"edited": []
+		},
+		"./service-icons/Instagram": {
+			"uses": [],
+			"packages": [
+				"svelte"
+			],
+			"edited": []
+		},
+		"./service-icons/Messenger": {
+			"uses": [],
+			"packages": [
+				"svelte"
+			],
+			"edited": []
+		},
+		"./service-icons/Signal": {
+			"uses": [],
+			"packages": [
+				"svelte"
+			],
+			"edited": []
+		},
+		"./service-icons/Telegram": {
+			"uses": [],
+			"packages": [
+				"svelte"
+			],
+			"edited": []
+		},
+		"./service-icons/Viber": {
+			"uses": [],
+			"packages": [
+				"svelte"
+			],
+			"edited": []
+		},
+		"./service-icons/WhatsApp": {
+			"uses": [],
+			"packages": [
+				"svelte"
+			],
 			"edited": []
 		},
 		"./stack.css": {

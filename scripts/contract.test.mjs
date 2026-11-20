@@ -202,6 +202,38 @@ test('the members of an object type compare in any order', () => {
   assert.deepEqual(diff(part('Without<A, { loop?: boolean; dir?: Direction; }>'), part('Without<A, { dir?: Direction; loop?: boolean; }>')).changes, []);
 });
 
+test('a rest type that leaves out more names of the same props type is no change while that part gains each new name', () => {
+  const { diff } = contract;
+  const rec = (props = {}, rest = "Omit<HTMLAttributes<HTMLDivElement>, 'children'>") => ({ props, callbacks: {}, snippets: {}, rest, root: {}, slots: [], behaviour: [] });
+  const props = { kind: 'type', type: 'the props of default' };
+  const quote = { quote: { type: 'string | undefined', required: false } };
+  // Field is the base part, and FieldProps its props type. P takes the rest type, and own are its own props.
+  const tree = (rest, field = {}, own = {}, extra = {}) => ({ exports: { './parts/Field': { default: rec(field), FieldProps: props }, './parts/P': { default: rec(own, rest) }, ...extra } });
+  const ofP = (d) => d.changes.filter((c) => c.text.startsWith('./parts/P ')).map((c) => `${c.section}: ${c.text}`);
+  const before = "Omit<FieldProps, 'editor' | 'html'>";
+  const more = (k) => `Omit<FieldProps, 'editor' | 'html' | '${k}'>`;
+  // Field gains quote in the same diff, and P leaves it out: P takes the same props.
+  const gain = diff(tree(before), tree(more('quote'), quote));
+  assert.deepEqual(ofP(gain), []);
+  assert.deepEqual(lines(gain), ['Added: ./parts/Field default: new optional prop quote: string | undefined']);
+  // Field takes title and onkeydown through its own rest type, so P took them, and loses them.
+  assert.deepEqual(ofP(diff(tree(before), tree(more('title')))), [`Breaking: ./parts/P default: rest attributes changed: ${before} -> ${more('title')}`]);
+  assert.equal(diff(tree(before), tree(more('onkeydown'))).level, 'major');
+  // Field had quote before, so P took it, and loses it.
+  assert.equal(diff(tree(before, quote), tree(more('quote'), quote)).level, 'major');
+  // P had its own quote before: the prop goes.
+  assert.ok(ofP(diff(tree(before, {}, quote), tree(more('quote'), quote))).includes('Breaking: ./parts/P default: prop quote removed'));
+  // A props type that no export path records, or that two paths record, resolves to no part.
+  const bare = (rest, field) => ({ exports: { './parts/Field': { default: rec(field) }, './parts/P': { default: rec({}, rest) } } });
+  assert.equal(diff(bare(before), bare(more('quote'), quote)).level, 'major');
+  const twice = { './parts/Other': { default: rec(quote), FieldProps: props } };
+  assert.equal(diff(tree(before, {}, {}, twice), tree(more('quote'), quote, {}, twice)).level, 'major');
+  // Another type, a name that comes back, or a rest type of another form keeps the rule of the whole type string.
+  assert.equal(diff(tree(before), tree("Omit<OtherProps, 'editor' | 'html'>")).level, 'major');
+  assert.equal(diff(tree(before), tree("Omit<FieldProps, 'editor'>")).level, 'major');
+  assert.equal(diff(tree(before), tree(`${more('quote')} & { a: string }`, quote)).level, 'major');
+});
+
 test('the call signatures of an object type keep their order, because the order of overloads has a meaning', () => {
   const { sortUnions, diff } = contract;
   assert.equal(sortUnions('{ b: 1; (a: string): void; a: 2; (a: number): string; }'), '{ (a: string): void; (a: number): string; a: 2; b: 1; }');

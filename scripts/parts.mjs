@@ -1,6 +1,7 @@
 // The five extension points of each STACK part: an exported <Name>Props type, the rest attributes
-// of $props() spread on the root, the class prop merged with cn() on the root, a static data-slot on the
-// root, and ref = $bindable() bound to the root. The check reads each .svelte file of
+// of $props() spread on the root, or a $derived copy of them that drops the attributes that the part
+// sets itself, the class prop merged with cn() on the root, a static data-slot on the root, and
+// ref = $bindable() bound to the root. The check reads each .svelte file of
 // preview/src/lib/stack/ and preview/src/lib/outside/ with the parser of Svelte.
 //
 //   node scripts/parts.mjs             exit 1 on a problem; the last line counts the parts
@@ -86,6 +87,65 @@ function declarations(source, programs) {
     if (d?.type !== 'VariableDeclaration' || d.kind !== 'const') continue;
     for (const v of d.declarations) if (v.id.type === 'Identifier') out.set(v.id.name, { text: `const ${text(source, v)}`, node: v.init });
   }
+  return out;
+}
+
+/** True when the node is an object whose first property spreads the name, as { ...rest, id: 'x' }. */
+function startsWithSpread(node, name) {
+  const first = node?.type === 'ObjectExpression' ? node.properties[0] : null;
+  return first?.type === 'SpreadElement' && first.argument.type === 'Identifier' && first.argument.name === name;
+}
+
+/** The names that a binding pattern declares, such as a, b and c of { a, b: [b], ...c }. */
+function patternNames(p, out = []) {
+  if (p?.type === 'Identifier') out.push(p.name);
+  else if (p?.type === 'ObjectPattern') for (const q of p.properties) patternNames(q.type === 'RestElement' ? q.argument : q.value, out);
+  else if (p?.type === 'ArrayPattern') for (const q of p.elements) patternNames(q, out);
+  else if (p?.type === 'RestElement') patternNames(p.argument, out);
+  else if (p?.type === 'AssignmentPattern') patternNames(p.left, out);
+  return out;
+}
+
+/** True when the tree of an ESTree node declares the name: as a variable, a parameter, a function, a class or the error of a catch. */
+function declares(node, name, seen = new WeakSet()) {
+  if (!node || typeof node !== 'object' || seen.has(node)) return false;
+  seen.add(node);
+  const bound = node.type === 'VariableDeclarator' ? [node.id] : node.type === 'CatchClause' ? [node.param] : /Function|Class/.test(node.type) ? [node.id, ...(node.params ?? [])] : [];
+  if (bound.some((p) => patternNames(p).includes(name))) return true;
+  return Object.values(node).some((v) => (Array.isArray(v) ? v.some((x) => declares(x, name, seen)) : declares(v, name, seen)));
+}
+
+/**
+ * True when the value of a const is a copy of the rest attributes in one of two forms. The first is
+ * $derived({ ...rest, ... }), with the spread first. The second is $derived.by(F), where F is a function
+ * with a block body whose first statement is const K = { ...rest, ... }, with the spread first, whose
+ * last statement is return K, and which declares no other binding named rest. The statements between
+ * them may drop the attributes that the part sets itself. A copy that sets each key to undefined still
+ * passes, because a static check cannot follow the values of the keys.
+ */
+function copiesRest(node, rest) {
+  if (node?.type !== 'CallExpression' || node.arguments.length !== 1) return false;
+  const c = node.callee;
+  const [f] = node.arguments;
+  if (c.type === 'Identifier' && c.name === '$derived') return startsWithSpread(f, rest);
+  const by = c.type === 'MemberExpression' && !c.computed && c.object.type === 'Identifier' && c.object.name === '$derived' && c.property.type === 'Identifier' && c.property.name === 'by';
+  if (!by || !['ArrowFunctionExpression', 'FunctionExpression'].includes(f.type) || f.async || f.generator || f.body.type !== 'BlockStatement') return false;
+  const [first] = f.body.body;
+  const last = f.body.body.at(-1);
+  const copy = first?.type === 'VariableDeclaration' && first.kind === 'const' && first.declarations.length === 1 ? first.declarations[0] : null;
+  return copy?.id.type === 'Identifier' && startsWithSpread(copy.init, rest) && last?.type === 'ReturnStatement' && last.argument?.type === 'Identifier' && last.argument.name === copy.id.name && !declares(f, rest);
+}
+
+/**
+ * The names whose spread on the root gives the rest attributes: the rest element of $props(), and each
+ * const whose value is a $derived copy of it (copiesRest), such as a copy that drops the attributes that
+ * the part sets itself.
+ */
+function restNames(rest, decls) {
+  const out = new Set();
+  if (!rest) return out;
+  out.add(rest);
+  for (const [name, { node }] of decls) if (copiesRest(node, rest)) out.add(name);
   return out;
 }
 
@@ -190,7 +250,8 @@ function slotsOf(fragment) {
  *              the text of each const and function of the scripts that the default names
  *   rest       the name of the rest element of $props(), or null
  *   propsType  true when a script exports the type <name>Props
- *   root       { rest, class, slot, ref }: true when every root alternative spreads the rest element,
+ *   root       { rest, class, slot, ref }: true when every root alternative spreads the rest element
+ *              or a $derived copy of it,
  *              merges the class prop with cn(), carries a static data-slot, and binds ref ($bindable)
  *   rootError  why the template has no single root, or null
  *   slots      each static data-slot name of the template
@@ -200,7 +261,8 @@ function slotsOf(fragment) {
 export function analyse(source, name, parse = svelteParse()) {
   const ast = parse(source, { modern: true });
   const programs = [ast.module, ast.instance].filter(Boolean).map((s) => s.content);
-  const { props, rest } = propsOf(source, ast.instance?.content, declarations(source, programs));
+  const decls = declarations(source, programs);
+  const { props, rest } = propsOf(source, ast.instance?.content, decls);
   const propsType = exportsType(programs, `${name}Props`);
   const root = { rest: false, class: false, slot: false, ref: false };
   const found = rootOf(ast.fragment);
@@ -208,7 +270,8 @@ export function analyse(source, name, parse = svelteParse()) {
     const classLocal = props.get('class')?.local;
     const ref = props.get('ref');
     const all = (test) => found.nodes.every(test);
-    root.rest = !!rest && all((n) => n.attributes.some((a) => a.type === 'SpreadAttribute' && a.expression.type === 'Identifier' && a.expression.name === rest));
+    const spread = restNames(rest, decls);
+    root.rest = !!rest && all((n) => n.attributes.some((a) => a.type === 'SpreadAttribute' && a.expression.type === 'Identifier' && spread.has(a.expression.name)));
     root.class = !!classLocal && all((n) => {
       const a = attr(n, 'class');
       const tag = Array.isArray(a?.value) ? (a.value.length === 1 ? a.value[0] : null) : a?.value;
@@ -236,7 +299,7 @@ export function analyse(source, name, parse = svelteParse()) {
 
 const PROBLEMS = {
   propsType: (name) => `exports no type ${name}Props`,
-  rest: 'the root does not spread the rest attributes of $props(), as {...rest}',
+  rest: 'the root does not spread the rest attributes of $props(), as {...rest} or as a $derived copy of them',
   class: 'the root does not merge the class prop with cn(), as class={cn(..., className)}',
   slot: 'the root has no static data-slot',
   ref: 'the root does not bind ref, and $props() needs ref = $bindable(null)',

@@ -17,9 +17,10 @@
 // default chart set, and that the generator refuses a mid-gray page.
 //
 // It reads DESIGN.md and themes/ of the copy of this repository that holds it, so it runs from any folder.
-// --out and --compare are paths from the working folder, such as the root folder of a product. The copy
-// needs "npm ci", because the front matter needs the dev dependency yaml. So the npm package, which has
-// no dependency, does not carry the generator.
+// --out and --compare are paths from the working folder, such as the root folder of a product. Where the
+// dev dependency yaml is not installed, as in the npm package, lib/design.mjs reads the front matter from
+// lib/design-front.json. So a product runs the generator from its installed package with no package of
+// its own, as "npx --no -- stack-theme", the bin entry of package.json.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

@@ -32,8 +32,12 @@
 // major. A member that is a plain object type in its turn follows the same rules, at any depth. Any
 // other change of the type of a value, a class or a type is major, and so is any change of a local type
 // that it names. Any type change of a bindable prop is major, because its value flows back to the
-// product. No change gives level patch. A revision with no preview/contract.json, such as v1.0.0, gets
-// its contract from git archive, with the "exports" of that revision, or else of the files.
+// product. A changed type of the rest attributes is major, except Omit<T, keys> that leaves out more
+// names of the same T, when T is the props type of a recorded part and that part gains each new name as
+// an input in the same diff: the part takes the same props, so that is no change. A new name that T had
+// before, or that T takes through its own rest type, such as title, stays major. No change gives level
+// patch. A revision with no preview/contract.json, such as v1.0.0, gets its contract from git archive,
+// with the "exports" of that revision, or else of the files.
 //
 // svelte2tsx writes the declarations of a copy of the shipped files, and TypeScript reads the types from
 // them. The parser of Svelte gives the defaults, the root and the data-slot names (scripts/parts.mjs).
@@ -806,17 +810,60 @@ function typesChanges(ot, nt, major, added) {
   }
 }
 
-/** The changes of one component. Each change goes to out(level, section, text). */
-function componentChanges(where, o, n, out) {
+/** The inputs of a component record by name: each prop, callback and snippet, with its kind and word. */
+const inputsOf = (r) => new Map(KINDS.flatMap(([kind, word]) => Object.entries(r[kind] ?? {}).map(([name, m]) => [name, { ...m, kind, word }])));
+
+/**
+ * The component record of each props type of contract c by name, such as RichTextFieldProps to the
+ * default record of ./parts/RichTextField. The record of a props type names its component. A name that
+ * more than one export path records maps to null, because a rest type names no export path.
+ */
+function propsParts(c) {
+  const out = new Map();
+  for (const names of Object.values(c.exports ?? {})) {
+    for (const [name, r] of Object.entries(names)) {
+      const owner = r?.kind === 'type' ? /^the props of (\S+)$/.exec(r.type)?.[1] : undefined;
+      if (owner && isComponent(names[owner])) out.set(name, out.has(name) ? null : names[owner]);
+    }
+  }
+  return out;
+}
+
+/**
+ * True when the rest type b leaves out more names of the same props type T than the rest type a, such
+ * as Omit<T, 'a'> and then Omit<T, 'a' | 'b'>, and the part of T gains each new name as an input from
+ * contract a to contract b. The part then takes the same props: a new prop of T stays out of a part
+ * that never took it. The part took each name that T had before or that T takes through its own rest
+ * type, such as title, so a new Omit of that name removes a prop, and the result is false. parts gives
+ * the part of each props type in a and in b (propsParts). A T that resolves to no part in a or in b, and
+ * any other form of a rest type, keep the rule of the whole type string.
+ */
+function omitsOnlyNew(a, b, parts) {
+  const parse = (r) => {
+    const m = /^Omit<([A-Za-z0-9_$.]+), ((?:'[^']*'(?: \| )?)+)>$/.exec(r);
+    return m ? { base: m[1], keys: new Set(m[2].split(' | ').map((k) => k.slice(1, -1))) } : null;
+  };
+  const [x, y] = [parse(a), parse(b)];
+  if (!x || !y || x.base !== y.base) return false;
+  const [oldBase, newBase] = [parts.a.get(x.base), parts.b.get(y.base)];
+  if (!oldBase || !newBase) return false;
+  const [had, has] = [inputsOf(oldBase), inputsOf(newBase)];
+  return [...x.keys].every((k) => y.keys.has(k)) && [...y.keys].every((k) => x.keys.has(k) || (has.has(k) && !had.has(k)));
+}
+
+/**
+ * The changes of one component. Each change goes to out(level, section, text). parts gives the part
+ * of each props type in the two contracts, for a rest type of the form Omit<T, keys>.
+ */
+function componentChanges(where, o, n, out, parts) {
   const major = (t) => out('major', 'Breaking', `${where}: ${t}`);
   const added = (t) => out('minor', 'Added', `${where}: ${t}`);
   const generics = (r) => (r.generics?.length ? `<${r.generics.map(sortUnions).join(', ')}>` : 'none');
   if (generics(o) !== generics(n)) major(`type parameters changed: ${generics(o)} -> ${generics(n)}`);
-  const all = (r) => new Map(KINDS.flatMap(([kind, word]) => Object.entries(r[kind] ?? {}).map(([name, m]) => [name, { ...m, kind, word }])));
-  inputChanges(all(o), all(n), major, added);
+  inputChanges(inputsOf(o), inputsOf(n), major, added);
   typesChanges(o.types, n.types, major, added);
   const [ra, rb] = [o.rest ?? null, n.rest ?? null].map((r) => (r === null ? null : sortUnions(r)));
-  if (ra !== rb) {
+  if (ra !== rb && !(ra !== null && rb !== null && omitsOnlyNew(ra, rb, parts))) {
     if (ra === null) added(`takes rest attributes: ${rb}`);
     else if (rb === null) major(`takes no rest attributes, and took ${ra}`);
     else major(`rest attributes changed: ${ra} -> ${rb}`);
@@ -842,6 +889,7 @@ export function diff(a, b) {
   const out = (level, section, text) => changes.push({ level, section, text });
   const ea = a.exports ?? {};
   const eb = b.exports ?? {};
+  const parts = { a: propsParts(a), b: propsParts(b) };
   for (const path of keys(ea, eb)) {
     if (!(path in eb)) {
       out('major', 'Breaking', `${path}: export path removed`);
@@ -858,7 +906,7 @@ export function diff(a, b) {
       if (!n) out('major', 'Breaking', `${where}: removed`);
       else if (!o) out('minor', 'Added', `${where}: new ${kindOf(n)}`);
       else if (kindOf(o) !== kindOf(n)) out('major', 'Breaking', `${where}: changed from a ${kindOf(o)} to a ${kindOf(n)}`);
-      else if (isComponent(o)) componentChanges(where, o, n, out);
+      else if (isComponent(o)) componentChanges(where, o, n, out, parts);
       else {
         const major = (t) => out('major', 'Breaking', `${where}: ${t}`);
         const added = (t) => out('minor', 'Added', `${where}: ${t}`);

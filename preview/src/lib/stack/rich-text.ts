@@ -14,7 +14,9 @@
 // - The load list cleans HTML that a page sets, such as a saved draft, and the HTML that the field gives
 //   out. It keeps what the tools write: the lines, the headings, the lists, the quote, the code block,
 //   the divider, the marks, a link, a picture whose address passes, a text color and a highlight in hex,
-//   and the alignment of a line.
+//   and the alignment of a line. On a quote it keeps one attribute with one value, type="cite", the mark
+//   of a quoted earlier mail, which the field writes when a person moves the quote of a reply into the
+//   text.
 // - The paste list cleans HTML that comes in from outside the text, such as a paste from a word
 //   processor or a web page. It keeps structure only: no style, class, span, table or picture stays, and
 //   their text does. Before that it reads the look that a style gives: a bold, italic, underlined or
@@ -281,6 +283,56 @@ export type RichTextWriting = {
 	/** Each decision of the person, for the log of the product. The field made a taken change already. */
 	ondecide?: ((decision: WritingDecision) => void) | undefined;
 	words?: Partial<WritingWords> | undefined;
+};
+
+// ---- The slash menu (### rich-text-field in DESIGN.md, "The slash menu")
+
+/** A block command of the slash menu: the tool of the same id. The menu shows each one that the preset holds. */
+export type SlashCommand = 'paragraph' | 'h1' | 'h2' | 'h3' | 'bullet-list' | 'numbered-list' | 'quote' | 'code-block' | 'hr' | 'picture';
+
+/** The words of the slash menu, in the language of the product. */
+export type SlashWords = {
+	/** The name of the list of the commands, such as "Commands". */
+	label: string;
+	/** The line of a filter that no command matches, such as "No command matches." */
+	empty: string;
+	/** The name of each command, such as "Heading 1". The filter matches these words. */
+	commands: Readonly<Record<SlashCommand, string>>;
+};
+
+/** The options of the slash menu of a field: `words` gives its words, and each word that it leaves out keeps the English word. */
+export type RichTextSlash = { words?: Partial<SlashWords> | undefined };
+
+// ---- The quote of a reply (### rich-text-field in DESIGN.md, "A reply to a mail")
+
+/** The words of the quote of a field, in the language of the product. */
+export type QuoteWords = {
+	/** The button that opens the folded quote, such as "Show the quoted text". */
+	show: string;
+	/** The same button while the quote is open, such as "Hide the quoted text". */
+	hide: string;
+	/** The button in the open quote that moves the quote into the text, such as "Edit the quoted text". */
+	edit: string;
+	/** Why that button cannot act, as a sentence: while the text is read-only, while a request of the writing tools runs, and while no engine is loaded. */
+	readonly: string;
+};
+
+/**
+ * The quoted earlier mail under the words of a reply. It stands under the text and outside it, folded,
+ * so it is not in html(), words(), the undo history or a request of the writing tools until the person
+ * moves it into the text. `line` is the line before the quote, in the words and the date format of the
+ * product, such as "On 12 Nov 2026, Ana Turner wrote:". `body` holds the paragraphs of the earlier mail
+ * as text, in the form of `body` of a Mail: a blank line ends a paragraph, and a single line break stays
+ * in it as "\n". The field shows each paragraph as text and never as HTML. `lang` and `dir` are the
+ * language and the direction of the earlier mail, `dir` `auto` by default. `words` gives the words of the
+ * buttons, and each word that it leaves out keeps the English word.
+ */
+export type RichTextQuote = {
+	line: string;
+	body: readonly string[];
+	lang?: string | undefined;
+	dir?: 'ltr' | 'rtl' | 'auto' | undefined;
+	words?: Partial<QuoteWords> | undefined;
 };
 
 /** A picture that the page stored: its address, and the size of its file in px. */
@@ -566,6 +618,8 @@ function keptAttributes(src: Element, tag: string, kind: Kind): [string, string]
 		if (color) out.push(['class', 'color'], ['style', `color:${color}`]);
 		else if (ground) out.push(['class', 'highlight'], ['style', `background-color:${ground}`]);
 	}
+	// The mark of a quoted earlier mail: type="cite" in any case, written as cite. No other attribute of a quote stays, also not cite, which holds an address.
+	if (tag === 'blockquote' && (src.getAttribute('type') ?? '').toLowerCase() === 'cite') out.push(['type', 'cite']);
 	if (/^(?:div|p|h[1-3]|li)$/.test(tag)) {
 		const align = [...src.classList].map((c) => c.replace(/^align-/, '')).find((c) => ALIGN.has(c));
 		if (align) out.push(['class', `align-${align}`], ['style', `text-align:${align}`]);
@@ -687,10 +741,10 @@ class Builder {
 			if (node.nodeType === 3) host.el.append(node);
 			return;
 		}
-		if (gap) (host.chain.at(-1)?.el ?? host.el).append(this.make('br'));
 		let k = 0;
 		while (k < host.chain.length && k < this.marks.length && host.chain[k]?.mark === this.marks[k]) k++;
 		host.chain.length = k;
+		if (gap) (host.chain.at(-1)?.el ?? host.el).append(this.make('br'));
 		for (const mark of this.marks.slice(k)) {
 			const el = this.make(mark.tag, mark.attrs);
 			(host.chain.at(-1)?.el ?? host.el).append(el);
@@ -756,11 +810,25 @@ class Builder {
 	private lineBreak(br: Element) {
 		if (this.pre > 0) return this.put(this.doc.createTextNode('\n'));
 		const parent = br.parentNode;
-		const last = !sibling(br, true) && !!parent && isHtml(parent) && BLOCK.has(parent.localName);
-		// The last line break of a block ends its line and adds nothing, unless the line is empty.
-		if (last && this.host && this.host.el.childNodes.length > 0) return this.endLine();
+		// Only white space and comments follow the last line break of a block. Any other node, such as the
+		// text of the next line, keeps the break, so the lines of an item or a heading do not join. A comment
+		// shows nothing, such as the end marker of a copy, so the break before it stays the last one.
+		let next = br.nextSibling;
+		while (next && (next.nodeType === 8 || (next.nodeType === 3 && !(next.textContent ?? '').trim()))) next = next.nextSibling;
+		const last = !next && !!parent && isHtml(parent) && BLOCK.has(parent.localName);
+		// The last line break of a block ends its line and draws nothing after words. Alone in its line, such
+		// as after another line break, it draws an empty last line, so it stays.
+		if (last && !this.lineEmpty()) return this.endLine();
 		this.put(this.make('br'));
 		if (last) this.endLine();
+	}
+
+	/** True when the open line shows nothing yet: no line is open, a line break waits, or the line ends with a line break, white space aside. */
+	private lineEmpty(): boolean {
+		if (!this.host || this.gap) return true;
+		let n = (this.host.chain.at(-1)?.el ?? this.host.el).lastChild;
+		while (n && n.nodeType === 3 && !(n.textContent ?? '').trim()) n = n.previousSibling;
+		return !n || n.nodeName === 'BR';
 	}
 
 	private picture(img: Element) {
@@ -798,7 +866,7 @@ class Builder {
 		const structure = !simple && this.pre === 0 && !/^(?:H[1-3]|PRE)$/.test(at);
 		if (structure && (tag === 'ul' || tag === 'ol')) return this.list(n, tag, lines);
 		if (structure && !TEXT_HOST.test(at) && !LIST.test(at)) {
-			if (tag === 'blockquote') return this.within(this.make('blockquote'), () => this.children(n, lines));
+			if (tag === 'blockquote') return this.within(this.make('blockquote', keptAttributes(n, tag, this.kind)), () => this.children(n, lines));
 			if (tag === 'pre') {
 				return this.within(this.make('pre'), () => {
 					this.pre++;

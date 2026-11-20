@@ -22,15 +22,15 @@ export const MENU_GROUPS = [
 		names: [
 			'sidebar', 'tabs', 'breadcrumb', 'item-page', 'stepper', 'pagination', 'accordion', 'collapsible', 'card', 'separator',
 			'aspect-ratio', 'resizable', 'scroll-area', 'carousel', 'calendar', 'range-calendar', 'month-view', 'time-field',
-			'time-zone-field'
+			'time-zone-field', 'language-field'
 		]
 	},
 	{
 		label: 'Data, feedback and messages',
 		names: [
-			'table', 'selection-bar', 'reorder-list', 'board', 'day-log', 'badge', 'unread-mark', 'avatar', 'item', 'empty', 'kbd', 'alert', 'sonner', 'progress', 'skeleton', 'spinner',
+			'table', 'selection-bar', 'reorder-list', 'board', 'day-log', 'badge', 'unread-mark', 'internal-mark', 'avatar', 'item', 'empty', 'kbd', 'alert', 'sonner', 'progress', 'skeleton', 'spinner',
 			'figure-band', 'property-strip',
-			'attachment', 'bubble', 'marker', 'message', 'mail-message', 'html-frame', 'send-check', 'message-scroller', 'questionnaire'
+			'attachment', 'bubble', 'marker', 'activity-lines', 'message', 'send-state', 'mail-message', 'html-frame', 'send-check', 'comment-list', 'conversation', 'comment-box', 'message-scroller', 'questionnaire'
 		]
 	},
 	{ label: 'Charts', names: ['chart'] }

@@ -90,5 +90,6 @@
   { "key": "Space", "action": "open the day in a popover with all its records", "scope": "A day of a month-view", "owner": "month-view" },
   { "key": "Enter", "action": "fold or unfold the rows under a parent row of a tree", "scope": "The fold button of a parent row of a table", "owner": "table" },
   { "key": "Space", "action": "fold or unfold the rows under a parent row of a tree", "scope": "The fold button of a parent row of a table", "owner": "table" },
-  { "key": "Esc", "action": "go back from the check of a send to its form, so that the form keeps its text and the item column stays open", "scope": "The open check of a send in the place of its form", "owner": "send-check" }
+  { "key": "Esc", "action": "go back from the check of a send to its form, so that the form keeps its text and the item column stays open", "scope": "The open check of a send in the place of its form", "owner": "send-check" },
+  { "key": "C", "action": "put the caret in the field of the comment box, and show its tab first when a tab hides it", "scope": "The page of the box, outside a text field and outside an open layer that does not hold the box", "owner": "comment-box" }
 ]

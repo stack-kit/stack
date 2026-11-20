@@ -1,7 +1,9 @@
 // The tools that each preset of the rich text field turns on, and the groups of the toolbar and of the
 // bar over selected text (### rich-text-field in DESIGN.md).
-import type { RichTextPreset } from '#lib/stack/rich-text.js';
+import type { RichTextPreset, SlashCommand } from '#lib/stack/rich-text.js';
 import { TOOLS, type ToolId } from './commands.js';
+
+const SLASH: ReadonlySet<ToolId> = new Set<SlashCommand>(['paragraph', 'h1', 'h2', 'h3', 'bullet-list', 'numbered-list', 'quote', 'code-block', 'hr', 'picture']);
 
 /**
  * A group of the toolbar. `buttons` shows each tool as a button or a toggle; `menu` shows one trigger with
@@ -37,6 +39,9 @@ export const PRESET_TOOLS: Readonly<Record<RichTextPreset, readonly ToolId[]>> =
 	simple: ['undo', 'redo', 'bold', 'italic', 'underline'],
 	full: Object.keys(TOOLS) as ToolId[]
 };
+
+/** The block commands of the slash menu, in the order of the toolbar. The menu shows each one that the field turns on. */
+export const SLASH_TOOLS: readonly SlashCommand[] = TOOL_ORDER.filter((id): id is SlashCommand => SLASH.has(id));
 
 /** The tools of the bar over selected text, in groups, for the full preset. */
 export const SELECTION_GROUPS: readonly { id: string; label: string; tools: readonly ToolId[] }[] = [

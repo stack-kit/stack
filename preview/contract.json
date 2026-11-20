@@ -1,5 +1,5 @@
 {
-	"stack": "2.4.0",
+	"stack": "2.5.0",
 	"tool": {
 		"svelte2tsx": "0.7.61",
 		"typescript": "6.0.3",
@@ -147,7 +147,7 @@
 			},
 			"UndoOptions": {
 				"kind": "type",
-				"type": "{ duration?: number; id?: string; onend?: () => void; open?: () => Promise<void> | void; undo: () => Promise<void> | void; until?: Date; }"
+				"type": "{ duration?: number; id?: string; onend?: () => void; open?: () => Promise<void> | void; openLabel?: string; undo: () => Promise<void> | void; undoLabel?: string; until?: Date; }"
 			},
 			"endToast": {
 				"kind": "value",
@@ -201,9 +201,17 @@
 				"kind": "type",
 				"type": "{ label: string; url: string; }"
 			},
+			"MONO": {
+				"kind": "value",
+				"type": "'ui-monospace, Menlo, Consolas, monospace'"
+			},
 			"ROLES": {
 				"kind": "value",
 				"type": "readonly ['background', 'card', 'border', 'muted', 'foreground', 'muted-foreground', 'link', 'primary', 'primary-foreground', 'success', 'warning', 'destructive']"
+			},
+			"RichTextTag": {
+				"kind": "type",
+				"type": "'a' | 'b' | 'blockquote' | 'br' | 'code' | 'div' | 'h1' | 'h2' | 'h3' | 'hr' | 'i' | 'img' | 'li' | 'ol' | 'pre' | 's' | 'span' | 'sub' | 'sup' | 'u' | 'ul'"
 			},
 			"Role": {
 				"kind": "type",
@@ -228,6 +236,10 @@
 			"html": {
 				"kind": "value",
 				"type": "(e: Email, c: Colors): string"
+			},
+			"richTextStyles": {
+				"kind": "value",
+				"type": "(c: Colors, dir?: 'ltr' | 'rtl' | undefined): Readonly<Record<RichTextTag, string>>"
 			},
 			"text": {
 				"kind": "value",
@@ -816,6 +828,70 @@
 				"type": "(code: string): string"
 			}
 		},
+		"./parts/ActivityLines": {
+			"ACTIVITY_LINES_WORDS": {
+				"kind": "value",
+				"type": "ActivityLinesWords"
+			},
+			"ActivityLine": {
+				"kind": "type",
+				"type": "{ at: Date; icon?: Component<{}, {}, string> | undefined; id: string; text: string; }"
+			},
+			"ActivityLinesProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"ActivityLinesWords": {
+				"kind": "type",
+				"type": "{ hideLines: (n: number) => string; showLines: (n: number) => string; }"
+			},
+			"default": {
+				"props": {
+					"lines": {
+						"type": "ActivityLine[]",
+						"required": true
+					},
+					"locale": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'en-GB'"
+					},
+					"now": {
+						"type": "Date",
+						"required": true
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"timeZone": {
+						"type": "string",
+						"required": true
+					},
+					"words": {
+						"type": "Partial<ActivityLinesWords> | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "Omit<HTMLAttributes<HTMLDivElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"activity-lines"
+				],
+				"behaviour": [
+					"fold:activity"
+				]
+			}
+		},
 		"./parts/Banner": {
 			"BannerProps": {
 				"kind": "type",
@@ -1202,6 +1278,564 @@
 				],
 				"behaviour": [
 					"escape:kept"
+				]
+			}
+		},
+		"./parts/CommentBox": {
+			"COMMENT_BOX_WORDS": {
+				"kind": "value",
+				"type": "CommentBoxWords"
+			},
+			"CommentBoxProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"CommentBoxWords": {
+				"kind": "type",
+				"type": "{ internal: string; label: string; left: (n: number) => string; over: (n: number) => string; placeholder: string; send: string; sent?: string; }"
+			},
+			"default": {
+				"props": {
+					"aria-describedby": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"aria-label": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"aria-labelledby": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"caretKeys": {
+						"type": "readonly string[] | undefined",
+						"required": false,
+						"default": "['C']"
+					},
+					"class": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"dir": {
+						"type": "'auto' | 'ltr' | 'rtl' | null | undefined",
+						"required": false
+					},
+					"dirty": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
+					"html": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"internal": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"lang": {
+						"type": "null | string | undefined",
+						"required": false
+					},
+					"limit": {
+						"type": "number | undefined",
+						"required": false
+					},
+					"markdown": {
+						"type": "boolean | undefined",
+						"required": false
+					},
+					"paper": {
+						"type": "RichTextPaper | undefined",
+						"required": false
+					},
+					"placeholder": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"preset": {
+						"type": "RichTextPreset | undefined",
+						"required": false,
+						"default": "'simple'"
+					},
+					"primary": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"readonly": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"slash": {
+						"type": "RichTextSlash | boolean | undefined",
+						"required": false
+					},
+					"toolbar": {
+						"type": "'full' | 'none' | undefined",
+						"required": false
+					},
+					"words": {
+						"type": "Partial<CommentBoxWords> | undefined",
+						"required": false
+					},
+					"writing": {
+						"type": "RichTextWriting | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {
+					"keys": {
+						"type": "((command: RichTextCommand) => readonly string[] | undefined) | undefined",
+						"required": false
+					},
+					"onfailure": {
+						"type": "OnFailure | undefined",
+						"required": false
+					},
+					"onreveal": {
+						"type": "(() => void) | undefined",
+						"required": false
+					},
+					"onselection": {
+						"type": "((range: TextRange | null) => void) | undefined",
+						"required": false
+					},
+					"onsend": {
+						"type": "(html: string, words: string) => Promise<void>",
+						"required": true
+					},
+					"picture": {
+						"type": "((src: string) => boolean) | undefined",
+						"required": false
+					},
+					"upload": {
+						"type": "((file: File) => Promise<StoredPicture>) | undefined",
+						"required": false
+					}
+				},
+				"snippets": {
+					"bar": {
+						"args": [],
+						"required": false
+					},
+					"foot": {
+						"args": [],
+						"required": false
+					},
+					"toolbarEnd": {
+						"args": [],
+						"required": false
+					}
+				},
+				"rest": "Omit<RichTextFieldProps, 'editor' | 'invalid' | 'onchange' | 'quote' | 'quoteEdited' | 'required'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"comment-box",
+					"comment-box-actions",
+					"comment-box-count",
+					"comment-box-status"
+				],
+				"behaviour": [
+					"draft:kept-on-failure",
+					"focus:field-after-send",
+					"keys:caret",
+					"keys:submit",
+					"take-press"
+				]
+			}
+		},
+		"./parts/CommentItem": {
+			"COMMENT_WORDS": {
+				"kind": "value",
+				"type": "CommentWords"
+			},
+			"CommentAuthor": {
+				"kind": "type",
+				"type": "{ name: string; picture?: string | undefined; }"
+			},
+			"CommentData": {
+				"kind": "type",
+				"type": "{ at: Date; author: CommentAuthor; editable?: boolean | undefined; editedAt?: Date | undefined; html: string; id: string; }"
+			},
+			"CommentItemProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"CommentWords": {
+				"kind": "type",
+				"type": "{ edit: Partial<RichTextInPlaceWords>; edited: string; editedAt: (time: string) => string; internal: string; text: (author: string) => string; }"
+			},
+			"default": {
+				"props": {
+					"comment": {
+						"type": "CommentData",
+						"required": true
+					},
+					"dirty": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
+					"headingLevel": {
+						"type": "2 | 3 | 4 | undefined",
+						"required": false,
+						"default": "3"
+					},
+					"internal": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"locale": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'en-GB'"
+					},
+					"now": {
+						"type": "Date",
+						"required": true
+					},
+					"paper": {
+						"type": "RichTextPaper | undefined",
+						"required": false
+					},
+					"preset": {
+						"type": "RichTextPreset | undefined",
+						"required": false,
+						"default": "'simple'"
+					},
+					"ref": {
+						"type": "HTMLElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"timeZone": {
+						"type": "string",
+						"required": true
+					},
+					"words": {
+						"type": "Partial<CommentWords> | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {
+					"onedit": {
+						"type": "((comment: CommentData, html: string) => Promise<void>) | undefined",
+						"required": false
+					},
+					"onfailure": {
+						"type": "OnFailure | undefined",
+						"required": false
+					},
+					"picture": {
+						"type": "((src: string) => boolean) | undefined",
+						"required": false
+					}
+				},
+				"snippets": {},
+				"rest": "Omit<HTMLAttributes<HTMLElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"comment-item",
+					"comment-item-author",
+					"comment-item-header",
+					"comment-item-text"
+				],
+				"behaviour": [
+					"cancel:alert-dialog",
+					"draft:kept-on-blur",
+					"escape:kept",
+					"keys:submit"
+				]
+			}
+		},
+		"./parts/CommentList": {
+			"ActivityLine": {
+				"kind": "type",
+				"type": "{ at: Date; icon?: Component<{}, {}, string> | undefined; id: string; text: string; }"
+			},
+			"COMMENT_LIST_WORDS": {
+				"kind": "value",
+				"type": "CommentListWords"
+			},
+			"CommentListProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"CommentListWords": {
+				"kind": "type",
+				"type": "CommentWords & { empty: string; hideLines: (n: number) => string; showLines: (n: number) => string; }"
+			},
+			"default": {
+				"props": {
+					"activity": {
+						"type": "ActivityLine[] | undefined",
+						"required": false,
+						"default": "[]"
+					},
+					"comments": {
+						"type": "CommentData[]",
+						"required": true
+					},
+					"dirty": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
+					"headingLevel": {
+						"type": "2 | 3 | undefined",
+						"required": false,
+						"default": "2"
+					},
+					"internal": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"label": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'Comments'"
+					},
+					"locale": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'en-GB'"
+					},
+					"now": {
+						"type": "Date",
+						"required": true
+					},
+					"paper": {
+						"type": "RichTextPaper | undefined",
+						"required": false
+					},
+					"preset": {
+						"type": "RichTextPreset | undefined",
+						"required": false,
+						"default": "'simple'"
+					},
+					"ref": {
+						"type": "HTMLElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"timeZone": {
+						"type": "string",
+						"required": true
+					},
+					"words": {
+						"type": "Partial<CommentListWords> | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {
+					"onedit": {
+						"type": "((comment: CommentData, html: string) => Promise<void>) | undefined",
+						"required": false
+					},
+					"onfailure": {
+						"type": "OnFailure | undefined",
+						"required": false
+					},
+					"picture": {
+						"type": "((src: string) => boolean) | undefined",
+						"required": false
+					}
+				},
+				"snippets": {
+					"children": {
+						"args": [],
+						"required": false
+					}
+				},
+				"rest": "Omit<HTMLAttributes<HTMLElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"comment-list",
+					"comment-list-box",
+					"comment-list-entries"
+				],
+				"behaviour": [
+					"cancel:alert-dialog",
+					"draft:kept-on-blur",
+					"escape:kept",
+					"fold:activity",
+					"keys:submit"
+				]
+			}
+		},
+		"./parts/Conversation": {
+			"CONVERSATION_WORDS": {
+				"kind": "value",
+				"type": "ConversationWords"
+			},
+			"ChatMessage": {
+				"kind": "type",
+				"type": "{ at: Date; body: string[]; channel?: string; channelIcon?: Component<{}, {}, string>; dir?: 'auto' | 'ltr' | 'rtl'; failed?: string; from: { name: string; picture?: string; }; id: string; lang?: string; own?: boolean; steps?: SendStep[]; }"
+			},
+			"ConversationEntry": {
+				"kind": "type",
+				"type": "{ kind: 'chat'; message: ChatMessage; } | { kind: 'mail'; mail: Mail; }"
+			},
+			"ConversationProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"ConversationWords": {
+				"kind": "type",
+				"type": "{ comment: Partial<CommentWords>; failed: (reason: string) => string; lines: Partial<ActivityLinesWords>; mail: Partial<MailMessageWords>; retry: string; sendState: Partial<SendStateWords>; }"
+			},
+			"default": {
+				"props": {
+					"comments": {
+						"type": "CommentData[] | undefined",
+						"required": false,
+						"default": "[]"
+					},
+					"events": {
+						"type": "ActivityLine[] | undefined",
+						"required": false,
+						"default": "[]"
+					},
+					"headingLevel": {
+						"type": "2 | 3 | undefined",
+						"required": false,
+						"default": "2"
+					},
+					"label": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'Messages'"
+					},
+					"locale": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'en-GB'"
+					},
+					"mails": {
+						"type": "Mail[] | undefined",
+						"required": false,
+						"default": "[]"
+					},
+					"messages": {
+						"type": "ChatMessage[] | undefined",
+						"required": false,
+						"default": "[]"
+					},
+					"note": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"now": {
+						"type": "Date",
+						"required": true
+					},
+					"ref": {
+						"type": "HTMLElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"showChannel": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "true"
+					},
+					"timeZone": {
+						"type": "string",
+						"required": true
+					},
+					"words": {
+						"type": "Partial<ConversationWords> | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {
+					"actions": {
+						"type": "((mail: Mail) => MailAction[]) | undefined",
+						"required": false
+					},
+					"actionsLabel": {
+						"type": "((mail: Mail) => string) | undefined",
+						"required": false
+					},
+					"onframe": {
+						"type": "((mail: Mail) => Promise<string>) | undefined",
+						"required": false
+					},
+					"onloadpictures": {
+						"type": "((mail: Mail) => void) | undefined",
+						"required": false
+					},
+					"onopenfile": {
+						"type": "((file: MailFile) => void) | undefined",
+						"required": false
+					},
+					"onretry": {
+						"type": "((entry: ConversationEntry) => void) | undefined",
+						"required": false
+					},
+					"onsendnow": {
+						"type": "((mail: Mail) => void) | undefined",
+						"required": false
+					},
+					"onundo": {
+						"type": "((mail: Mail) => void) | undefined",
+						"required": false
+					}
+				},
+				"snippets": {
+					"body": {
+						"args": [
+							"Mail",
+							"string"
+						],
+						"required": false
+					}
+				},
+				"rest": "Omit<HTMLAttributes<HTMLElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"conversation"
+				],
+				"behaviour": [
+					"fold:activity"
 				]
 			}
 		},
@@ -1898,6 +2532,14 @@
 			}
 		},
 		"./parts/HtmlFrame": {
+			"FramePage": {
+				"kind": "type",
+				"type": "{ remote?: number; state?: FrameState; }"
+			},
+			"FrameState": {
+				"kind": "type",
+				"type": "'html' | 'text' | 'too-large'"
+			},
 			"HtmlFrameProps": {
 				"kind": "type",
 				"type": "the props of default"
@@ -1929,7 +2571,16 @@
 						"required": true
 					}
 				},
-				"callbacks": {},
+				"callbacks": {
+					"onfailure": {
+						"type": "() => void",
+						"required": false
+					},
+					"onpage": {
+						"type": "(page: FramePage) => void",
+						"required": false
+					}
+				},
 				"snippets": {},
 				"rest": "Omit<HTMLIframeAttributes, 'allow' | 'children' | 'height' | 'referrerpolicy' | 'sandbox' | 'src' | 'srcdoc' | 'title'>",
 				"root": {
@@ -1940,6 +2591,55 @@
 				},
 				"slots": [
 					"html-frame"
+				],
+				"behaviour": []
+			}
+		},
+		"./parts/InternalMark": {
+			"InternalMarkProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"default": {
+				"props": {
+					"badgeHidden": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"label": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'Internal'"
+					},
+					"proposal": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					}
+				},
+				"callbacks": {},
+				"snippets": {
+					"children": {
+						"args": [],
+						"required": true
+					}
+				},
+				"rest": "Omit<HTMLAttributes<HTMLDivElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"internal-mark",
+					"internal-mark-badges"
 				],
 				"behaviour": []
 			}
@@ -2077,6 +2777,102 @@
 				]
 			}
 		},
+		"./parts/LanguageField": {
+			"LANGUAGE_FIELD_WORDS": {
+				"kind": "value",
+				"type": "LanguageFieldWords"
+			},
+			"LanguageFieldProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"LanguageFieldWords": {
+				"kind": "type",
+				"type": "{ all: string; dialog: string; empty: string; placeholder: string; search: string; suggested: string; }"
+			},
+			"default": {
+				"props": {
+					"description": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"disabled": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"error": {
+						"type": "string | undefined",
+						"required": false
+					},
+					"label": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'Language'"
+					},
+					"languages": {
+						"type": "readonly string[]",
+						"required": true
+					},
+					"locale": {
+						"type": "string",
+						"required": true
+					},
+					"open": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
+					"ref": {
+						"type": "HTMLDivElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"suggested": {
+						"type": "readonly string[] | undefined",
+						"required": false,
+						"default": "[]"
+					},
+					"value": {
+						"type": "string | undefined",
+						"required": false,
+						"bindable": true
+					},
+					"words": {
+						"type": "Partial<LanguageFieldWords> | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {
+					"onValueChange": {
+						"type": "((tag: string) => void) | undefined",
+						"required": false
+					}
+				},
+				"snippets": {},
+				"rest": "Omit<HTMLAttributes<HTMLDivElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"language-field"
+				],
+				"behaviour": []
+			},
+			"languageDirection": {
+				"kind": "value",
+				"type": "'auto' | 'rtl' | (tag: string): 'ltr'"
+			},
+			"languageName": {
+				"kind": "value",
+				"type": "(tag: string, locale: string): string"
+			}
+		},
 		"./parts/LineTile": {
 			"LineTileProps": {
 				"kind": "type",
@@ -2193,9 +2989,17 @@
 			}
 		},
 		"./parts/MailMessage": {
+			"MAIL_MESSAGE_WORDS": {
+				"kind": "value",
+				"type": "MailMessageWords"
+			},
 			"Mail": {
 				"kind": "type",
-				"type": "{ at: Date; bcc?: MailPerson[]; body: string[]; cc?: MailPerson[]; ccMore?: number; dir?: 'auto' | 'ltr' | 'rtl'; direction?: 'in' | 'out'; failed?: string; files?: MailFile[]; frame?: string; from: MailPerson; id: string; lang?: string; quote?: string[]; sendsAt?: Date; sentBy?: string; to: MailPerson[]; toMore?: number; translation?: { body: string[]; by: string; lang: string; }; translationFirst?: boolean; unread?: boolean; }"
+				"type": "{ at: Date; bcc?: MailPerson[]; body: string[]; cc?: MailPerson[]; ccMore?: number; channel?: string; channelIcon?: Component<{}, {}, string>; dir?: 'auto' | 'ltr' | 'rtl'; direction?: 'in' | 'out'; failed?: string; files?: MailFile[]; frame?: string; fresh?: boolean; from: MailPerson; id: string; lang?: string; quote?: string[]; sendsAt?: Date; sentBy?: string; source?: { body: string[]; lang: string; proposal?: string; }; sourceFirst?: boolean; subject?: string; to: MailPerson[]; toMore?: number; translation?: { body: string[]; by: string; lang: string; }; translationFirst?: boolean; unread?: boolean; waitingNote?: string; }"
+			},
+			"MailAction": {
+				"kind": "type",
+				"type": "{ destructive?: boolean; icon?: Component<{}, {}, string>; id: string; label: string; run: () => void; }"
 			},
 			"MailFile": {
 				"kind": "type",
@@ -2204,6 +3008,10 @@
 			"MailMessageProps": {
 				"kind": "type",
 				"type": "the props of default"
+			},
+			"MailMessageWords": {
+				"kind": "type",
+				"type": "{ bcc: string; cc: string; close: string; designed: string; failed: (reason: string) => string; files: (sender: string) => string; frameFailed: string; frameTitle: (sender: string) => string; fresh: string; goesOutAt: (time: string) => string; goesOutIn: (n: number, count: string) => string; hideOriginal: string; hideQuote: string; hideSent: string; internal: string; loadPictures: string; more: (n: number, count: string) => string; moreActions: string; moreSpoken: (n: number, count: string) => string; notSent: string; open: (file: string) => string; openFile: string; pictureFailed: string; received: string; remote: string; retry: string; scheduled: string; sendNow: string; sending: string; sent: string; showDesigned: string; showOriginal: string; showQuote: string; showSent: string; showText: string; to: string; tooLarge: string; translatedBy: (agent: string) => string; undo: string; unread: string; }"
 			},
 			"MailPerson": {
 				"kind": "type",
@@ -2215,6 +3023,14 @@
 			},
 			"default": {
 				"props": {
+					"actions": {
+						"type": "MailAction[] | undefined",
+						"required": false
+					},
+					"actionsLabel": {
+						"type": "string | undefined",
+						"required": false
+					},
 					"folded": {
 						"type": "boolean",
 						"required": false,
@@ -2248,15 +3064,27 @@
 					"timeZone": {
 						"type": "string",
 						"required": true
+					},
+					"words": {
+						"type": "Partial<MailMessageWords> | undefined",
+						"required": false
 					}
 				},
 				"callbacks": {
+					"onframe": {
+						"type": "(() => Promise<string>) | undefined",
+						"required": false
+					},
+					"onloadpictures": {
+						"type": "(() => void) | undefined",
+						"required": false
+					},
 					"onopenfile": {
 						"type": "((file: MailFile) => void) | undefined",
 						"required": false
 					},
 					"onretry": {
-						"type": "() => void",
+						"type": "(() => void) | undefined",
 						"required": false
 					},
 					"onsendnow": {
@@ -2286,16 +3114,22 @@
 				},
 				"slots": [
 					"mail-message",
+					"mail-message-actions",
 					"mail-message-address",
 					"mail-message-body",
+					"mail-message-channel",
 					"mail-message-designed",
 					"mail-message-fold",
+					"mail-message-frame-note",
 					"mail-message-header",
 					"mail-message-original",
 					"mail-message-quote",
 					"mail-message-recipients",
+					"mail-message-remote",
 					"mail-message-sender",
 					"mail-message-sent-by",
+					"mail-message-source",
+					"mail-message-subject",
 					"mail-message-time",
 					"mail-message-translation",
 					"mail-message-waiting"
@@ -2304,6 +3138,10 @@
 			}
 		},
 		"./parts/MailThread": {
+			"MailEntry": {
+				"kind": "type",
+				"type": "<L extends Timed = Timed, C extends Timed = Timed> { comment: C; key: string; kind: 'comment'; } | { key: string; kind: 'lines'; lines: L[]; }"
+			},
 			"MailThreadProps": {
 				"kind": "type",
 				"type": "the props of default"
@@ -2329,6 +3167,10 @@
 						"type": "Mail[]",
 						"required": true
 					},
+					"note": {
+						"type": "string | undefined",
+						"required": false
+					},
 					"now": {
 						"type": "Date",
 						"required": true
@@ -2342,11 +3184,35 @@
 					"timeZone": {
 						"type": "string",
 						"required": true
+					},
+					"words": {
+						"type": "Partial<MailMessageWords> | undefined",
+						"required": false
 					}
 				},
 				"callbacks": {
+					"actions": {
+						"type": "((mail: Mail) => MailAction[]) | undefined",
+						"required": false
+					},
+					"actionsLabel": {
+						"type": "((mail: Mail) => string) | undefined",
+						"required": false
+					},
+					"onframe": {
+						"type": "((mail: Mail) => Promise<string>) | undefined",
+						"required": false
+					},
+					"onloadpictures": {
+						"type": "((mail: Mail) => void) | undefined",
+						"required": false
+					},
 					"onopenfile": {
 						"type": "(file: MailFile) => void",
+						"required": false
+					},
+					"onretry": {
+						"type": "((mail: Mail) => void) | undefined",
 						"required": false
 					},
 					"onsendnow": {
@@ -2359,6 +3225,12 @@
 					}
 				},
 				"snippets": {
+					"after": {
+						"args": [
+							"Mail"
+						],
+						"required": false
+					},
 					"body": {
 						"args": [
 							"Mail",
@@ -2375,9 +3247,29 @@
 					"ref": true
 				},
 				"slots": [
-					"mail-thread"
+					"mail-thread",
+					"mail-thread-after",
+					"mail-thread-note"
 				],
 				"behaviour": []
+			},
+			"placeAfter": {
+				"kind": "value",
+				"type": "<L extends Timed, C extends Timed>(mails: readonly Timed[], events: readonly L[], comments: readonly C[]): Map<string, MailEntry<L, C>[]>",
+				"types": {
+					"Timed": {
+						"members": {
+							"at": {
+								"type": "Date",
+								"required": true
+							},
+							"id": {
+								"type": "string",
+								"required": true
+							}
+						}
+					}
+				}
 			}
 		},
 		"./parts/Meter": {
@@ -3227,6 +4119,11 @@
 						"type": "string | undefined",
 						"required": false
 					},
+					"dir": {
+						"type": "'auto' | 'ltr' | 'rtl' | null | undefined",
+						"required": false,
+						"default": "'auto'"
+					},
 					"editor": {
 						"type": "RichTextEditor | null",
 						"required": false,
@@ -3239,6 +4136,15 @@
 						"default": "''"
 					},
 					"invalid": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"lang": {
+						"type": "null | string | undefined",
+						"required": false
+					},
+					"markdown": {
 						"type": "boolean | undefined",
 						"required": false,
 						"default": "false"
@@ -3256,6 +4162,16 @@
 						"required": false,
 						"default": "'full'"
 					},
+					"quote": {
+						"type": "RichTextQuote | undefined",
+						"required": false
+					},
+					"quoteEdited": {
+						"type": "boolean | undefined",
+						"required": false,
+						"default": "false",
+						"bindable": true
+					},
 					"readonly": {
 						"type": "boolean | undefined",
 						"required": false,
@@ -3269,6 +4185,11 @@
 					},
 					"required": {
 						"type": "boolean | undefined",
+						"required": false,
+						"default": "false"
+					},
+					"slash": {
+						"type": "RichTextSlash | boolean | undefined",
 						"required": false,
 						"default": "false"
 					},
@@ -3332,7 +4253,8 @@
 				},
 				"slots": [
 					"input-group-control",
-					"rich-text-field"
+					"rich-text-field",
+					"rich-text-quote"
 				],
 				"behaviour": [
 					"escape:deselect",
@@ -3366,6 +4288,11 @@
 						"type": "string | undefined",
 						"required": false
 					},
+					"dir": {
+						"type": "'auto' | 'ltr' | 'rtl' | null | undefined",
+						"required": false,
+						"default": "'auto'"
+					},
 					"dirty": {
 						"type": "boolean | undefined",
 						"required": false,
@@ -3387,6 +4314,14 @@
 						"required": true
 					},
 					"invalid": {
+						"type": "boolean | undefined",
+						"required": false
+					},
+					"lang": {
+						"type": "null | string | undefined",
+						"required": false
+					},
+					"markdown": {
 						"type": "boolean | undefined",
 						"required": false
 					},
@@ -3416,6 +4351,10 @@
 					},
 					"required": {
 						"type": "boolean | undefined",
+						"required": false
+					},
+					"slash": {
+						"type": "RichTextSlash | boolean | undefined",
 						"required": false
 					},
 					"toolbar": {
@@ -3473,7 +4412,7 @@
 						"required": false
 					}
 				},
-				"rest": "Omit<RichTextFieldProps, 'editor' | 'html' | 'onchange' | 'readonly' | 'toolbarEnd'>",
+				"rest": "Omit<RichTextFieldProps, 'editor' | 'html' | 'onchange' | 'quote' | 'quoteEdited' | 'readonly' | 'toolbarEnd'>",
 				"root": {
 					"rest": true,
 					"class": true,
@@ -3747,6 +4686,69 @@
 					"kept-form",
 					"keys:submit"
 				]
+			}
+		},
+		"./parts/SendState": {
+			"SEND_STATE_WORDS": {
+				"kind": "value",
+				"type": "SendStateWords"
+			},
+			"SendStateProps": {
+				"kind": "type",
+				"type": "the props of default"
+			},
+			"SendStateWords": {
+				"kind": "type",
+				"type": "{ delivered: (time: string) => string; dialog: string; seen: (time: string) => string; sent: (time: string) => string; }"
+			},
+			"SendStep": {
+				"kind": "type",
+				"type": "{ at: Date; state: 'delivered' | 'seen' | 'sent'; }"
+			},
+			"default": {
+				"props": {
+					"locale": {
+						"type": "string | undefined",
+						"required": false,
+						"default": "'en-GB'"
+					},
+					"now": {
+						"type": "Date",
+						"required": true
+					},
+					"ref": {
+						"type": "HTMLSpanElement | null",
+						"required": false,
+						"default": "null",
+						"bindable": true
+					},
+					"steps": {
+						"type": "SendStep[]",
+						"required": true
+					},
+					"timeZone": {
+						"type": "string",
+						"required": true
+					},
+					"words": {
+						"type": "Partial<SendStateWords> | undefined",
+						"required": false
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "Omit<HTMLAttributes<HTMLSpanElement>, 'children'>",
+				"root": {
+					"rest": true,
+					"class": true,
+					"slot": true,
+					"ref": true
+				},
+				"slots": [
+					"send-state",
+					"send-state-steps"
+				],
+				"behaviour": []
 			}
 		},
 		"./parts/Sparkline": {
@@ -4632,6 +5634,10 @@
 				"kind": "type",
 				"type": "{ pair: 'code' | 'ink' | 'link' | 'muted'; ratio: number; }"
 			},
+			"QuoteWords": {
+				"kind": "type",
+				"type": "{ edit: string; hide: string; readonly: string; show: string; }"
+			},
 			"RICH_TEXT_KEYS": {
 				"kind": "value",
 				"type": "Readonly<Record<RichTextCommand, readonly string[]>>"
@@ -4664,6 +5670,14 @@
 				"kind": "type",
 				"type": "'full' | 'simple'"
 			},
+			"RichTextQuote": {
+				"kind": "type",
+				"type": "{ body: readonly string[]; dir?: 'auto' | 'ltr' | 'rtl' | undefined; lang?: string | undefined; line: string; words?: Partial<QuoteWords> | undefined; }"
+			},
+			"RichTextSlash": {
+				"kind": "type",
+				"type": "{ words?: Partial<SlashWords> | undefined; }"
+			},
 			"RichTextWriting": {
 				"kind": "type",
 				"type": "{ modes?: readonly WritingMode[] | undefined; ondecide?: ((decision: WritingDecision) => void) | undefined; pending?: undefined | { asked?: undefined | { at: string; by: string; }; kind: WritingKind; result: Promise<WritingResult> | WritingResult; }; run: (request: WritingRequest, signal: AbortSignal) => Promise<WritingResult>; source?: string | undefined; tools?: readonly WritingKind[] | undefined; words?: Partial<WritingWords> | undefined; }"
@@ -4671,6 +5685,14 @@
 			"SanitizeOptions": {
 				"kind": "type",
 				"type": "{ list?: RichTextList | undefined; picture?: ((src: string) => boolean) | undefined; preset?: RichTextPreset | undefined; }"
+			},
+			"SlashCommand": {
+				"kind": "type",
+				"type": "'bullet-list' | 'code-block' | 'h1' | 'h2' | 'h3' | 'hr' | 'numbered-list' | 'paragraph' | 'picture' | 'quote'"
+			},
+			"SlashWords": {
+				"kind": "type",
+				"type": "{ commands: Readonly<Record<SlashCommand, string>>; empty: string; label: string; }"
 			},
 			"StoredPicture": {
 				"kind": "type",
@@ -4743,6 +5765,160 @@
 			"toHex": {
 				"kind": "value",
 				"type": "(css: string): string | null"
+			}
+		},
+		"./service-icons/Gmail": {
+			"default": {
+				"props": {
+					"size": {
+						"type": "number | string | undefined",
+						"required": false,
+						"default": "24"
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "SVGAttributes<SVGSVGElement>",
+				"root": {
+					"rest": true,
+					"class": false,
+					"slot": false,
+					"ref": false
+				},
+				"slots": [],
+				"behaviour": []
+			}
+		},
+		"./service-icons/Instagram": {
+			"default": {
+				"props": {
+					"size": {
+						"type": "number | string | undefined",
+						"required": false,
+						"default": "24"
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "SVGAttributes<SVGSVGElement>",
+				"root": {
+					"rest": true,
+					"class": false,
+					"slot": false,
+					"ref": false
+				},
+				"slots": [],
+				"behaviour": []
+			}
+		},
+		"./service-icons/Messenger": {
+			"default": {
+				"props": {
+					"size": {
+						"type": "number | string | undefined",
+						"required": false,
+						"default": "24"
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "SVGAttributes<SVGSVGElement>",
+				"root": {
+					"rest": true,
+					"class": false,
+					"slot": false,
+					"ref": false
+				},
+				"slots": [],
+				"behaviour": []
+			}
+		},
+		"./service-icons/Signal": {
+			"default": {
+				"props": {
+					"size": {
+						"type": "number | string | undefined",
+						"required": false,
+						"default": "24"
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "SVGAttributes<SVGSVGElement>",
+				"root": {
+					"rest": true,
+					"class": false,
+					"slot": false,
+					"ref": false
+				},
+				"slots": [],
+				"behaviour": []
+			}
+		},
+		"./service-icons/Telegram": {
+			"default": {
+				"props": {
+					"size": {
+						"type": "number | string | undefined",
+						"required": false,
+						"default": "24"
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "SVGAttributes<SVGSVGElement>",
+				"root": {
+					"rest": true,
+					"class": false,
+					"slot": false,
+					"ref": false
+				},
+				"slots": [],
+				"behaviour": []
+			}
+		},
+		"./service-icons/Viber": {
+			"default": {
+				"props": {
+					"size": {
+						"type": "number | string | undefined",
+						"required": false,
+						"default": "24"
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "SVGAttributes<SVGSVGElement>",
+				"root": {
+					"rest": true,
+					"class": false,
+					"slot": false,
+					"ref": false
+				},
+				"slots": [],
+				"behaviour": []
+			}
+		},
+		"./service-icons/WhatsApp": {
+			"default": {
+				"props": {
+					"size": {
+						"type": "number | string | undefined",
+						"required": false,
+						"default": "24"
+					}
+				},
+				"callbacks": {},
+				"snippets": {},
+				"rest": "SVGAttributes<SVGSVGElement>",
+				"root": {
+					"rest": true,
+					"class": false,
+					"slot": false,
+					"ref": false
+				},
+				"slots": [],
+				"behaviour": []
 			}
 		},
 		"./ui/accordion": {

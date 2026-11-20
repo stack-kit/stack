@@ -8,6 +8,7 @@
 		"src/lib/stack",
 		"src/lib/rich-text",
 		"src/lib/outside",
+		"src/lib/service-icons",
 		"src/lib/print/chart-width.ts",
 		"src/lib/print/pattern-fills.ts",
 		"src/lib/print/marks.ts",

@@ -78,6 +78,11 @@
 						<Sidebar.MenuButton tooltipContent="Inbox"><InboxIcon /><span>Inbox, with a badge</span></Sidebar.MenuButton>
 						<Sidebar.MenuBadge class="text-muted-foreground">24</Sidebar.MenuBadge>
 					</Sidebar.MenuItem>
+					<!-- A count that asks for an act keeps the sidebar text and takes 600. The name of the button says what it counts. -->
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton tooltipContent="Desk" aria-label="Desk, 5 wait for an answer"><InboxIcon /><span>Desk</span></Sidebar.MenuButton>
+						<Sidebar.MenuBadge class="font-semibold" aria-hidden="true">5</Sidebar.MenuBadge>
+					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton variant="outline" tooltipContent="Outline"><FolderIcon /><span>Variant outline</span></Sidebar.MenuButton>
 						<Sidebar.MenuAction><MoreHorizontalIcon /><span class="sr-only">More</span></Sidebar.MenuAction>

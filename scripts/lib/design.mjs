@@ -1,12 +1,21 @@
 // The shared reader of DESIGN.md and of the theme files.
 // Every script in scripts/ reads the design file through this module.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 // yaml is a dev dependency, so it loads on the first call of readDesign() and not on import. The
 // product check of contrast.mjs reads no front matter, so it runs where yaml is not installed.
+// Where yaml is not installed, as in the npm package, readDesign() takes the front matter of the
+// DESIGN.md of this copy from FRONT_COPY, which "npm run theme" writes and "npm run theme -- --check"
+// compares. Only an installed package uses the copy; a clone requires yaml. So the theme generator, and
+// the contrast check that it runs on its file, run from the package in a product with no yaml. A bare
+// stack-contrast of a theme file from a product root needs a DESIGN.md there, and it exits 1.
 const require = createRequire(import.meta.url);
+export const FRONT_COPY = 'scripts/lib/design-front.json';
+/** A path in the copy of this repository that holds this file. */
+const own = (path) => fileURLToPath(new URL(`../../${path}`, import.meta.url));
 
 // The names that the Theme tab of the shadcn create page writes, in its order.
 // A pasted theme has these names and no others. Every other colour name is an
@@ -53,9 +62,29 @@ export function splitFrontMatter(text) {
 /** Parses the front matter. Duplicate keys are an error. Key order is the order of the file. */
 export function readDesign(text) {
   const { yamlText, body, bodyLine } = splitFrontMatter(text);
-  const front = require('yaml').parse(yamlText, { uniqueKeys: true });
+  const front = parseFront(yamlText, text);
   if (!front || typeof front !== 'object') throw new Error('DESIGN.md: the front matter is empty.');
   return { front, body, bodyLine };
+}
+
+/** The front matter through yaml, or from FRONT_COPY when yaml is not installed. */
+function parseFront(yamlText, text) {
+  let yaml;
+  try {
+    yaml = require('yaml');
+  } catch (e) {
+    if (e.code !== 'MODULE_NOT_FOUND') throw e;
+    // A clone or a worktree has a .git entry. There the copy would check itself, so yaml is required.
+    if (existsSync(own('.git'))) throw e;
+    // The copy holds the front matter of the DESIGN.md of this copy only, so it serves no other text.
+    if (text !== readSource(own('DESIGN.md'))) {
+      throw new Error(`the package yaml is not installed, so this reader reads only the DESIGN.md beside scripts/, from ${FRONT_COPY}. To read another DESIGN.md, run "npm ci" in a clone of the repository.`);
+    }
+    const copy = readSource(own(FRONT_COPY));
+    if (copy === null) throw new Error(`the package yaml is not installed, and ${FRONT_COPY} does not exist. Run "npm run theme" in the repository, or "npm ci" to install yaml.`);
+    return JSON.parse(copy);
+  }
+  return yaml.parse(yamlText, { uniqueKeys: true });
 }
 
 /** The light and the dark colour maps. Throws when the two name sets differ. */

@@ -103,3 +103,39 @@ test('a part of the toolbar that did not load loads again at its next use', asyn
 	assert.equal(await part.load(), 'Menu');
 	assert.equal(calls, 2);
 });
+
+test('the slash menu holds the block commands of the preset, in the order of the toolbar', async () => {
+	const { PRESET_TOOLS, SLASH_TOOLS, TOOL_ORDER } = await presetsModule();
+	assert.deepEqual(SLASH_TOOLS, ['paragraph', 'h1', 'h2', 'h3', 'bullet-list', 'numbered-list', 'quote', 'code-block', 'picture', 'hr']);
+	assert.deepEqual(SLASH_TOOLS, TOOL_ORDER.filter((id) => SLASH_TOOLS.includes(id)));
+	// The simple preset holds no block command, so a field of that preset shows no slash menu.
+	assert.deepEqual(SLASH_TOOLS.filter((id) => PRESET_TOOLS.simple.includes(id)), []);
+});
+
+test('the filter of the slash menu matches the names and the ids of the commands, and says when the menu closes', async () => {
+	const { SLASH_WORDS, filterCloses, filterCommands } = await import('../preview/src/lib/rich-text/slash/commands.ts');
+	const { SLASH_TOOLS } = await presetsModule();
+	const names = SLASH_WORDS.commands;
+	const filter = (f, list = SLASH_TOOLS, n = names) => filterCommands(list, n, f).join(' ');
+	assert.equal(filter(''), SLASH_TOOLS.join(' '));
+	assert.equal(filter('head'), 'h1 h2 h3');
+	assert.equal(filter('HEADING 2'), 'h2');
+	assert.equal(filter('list'), 'bullet-list numbered-list');
+	assert.equal(filter('h'), 'h1 h2 h3 hr');
+	assert.equal(filter('hr'), 'hr');
+	assert.equal(filter('div'), 'hr');
+	assert.equal(filter('zz'), '');
+	// A field turns some commands off: the filter shows only the commands that it gives.
+	assert.equal(filter('pic', ['h1', 'hr']), '');
+	// The names of the page, and a filter with no accent for a name with one.
+	const french = { ...names, 'bullet-list': 'Liste à puces', hr: 'Séparateur' };
+	assert.equal(filter('a puces', SLASH_TOOLS, french), 'bullet-list');
+	assert.equal(filter('separ', SLASH_TOOLS, french), 'hr');
+	// A space right after the slash closes the menu, and so does a space after a filter that matches nothing.
+	assert.equal(filterCloses(' ', 10), true);
+	assert.equal(filterCloses(' head', 3), true);
+	assert.equal(filterCloses('heading ', 3), false);
+	assert.equal(filterCloses('zz', 0), false);
+	assert.equal(filterCloses('zz ', 0), true);
+	assert.equal(filterCloses('', 10), false);
+});

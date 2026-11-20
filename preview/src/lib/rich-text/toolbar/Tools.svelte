@@ -6,7 +6,7 @@
 	and each tool runs through exec() of the field. The field loads this part in the chunk of the toolbar
 	(index.ts).
 
-	- One tab stop: the arrow keys, Home and End move in the bar, in the direction of the text, the key of
+	- One tab stop: the arrow keys, Home and End move in the bar, in the direction of the bar, the key of
 	  the command toolbar in the text, Alt+F10 by default, comes here (focusBar), and Esc goes back to the
 	  text. These keys inside the bar are fixed. A tooltip and aria-keyshortcuts give the keys of each tool
 	  that are on (keysOf of the field). A press on a button keeps the focus and
@@ -119,7 +119,8 @@
 		const all = items();
 		const i = all.indexOf(e.target);
 		if (i < 0) return;
-		// The arrows follow the direction of the text: in a right-to-left text, Left moves to the next tool.
+		// The arrows follow the direction of the bar, which is the direction around the field: in a right-to-left
+		// block, Left moves to the next tool. The dir of the field reaches only the text.
 		const step = getComputedStyle(box).direction === 'rtl' ? -1 : 1;
 		const to = { ArrowRight: i + step, ArrowLeft: i - step, Home: 0, End: all.length - 1 }[e.key];
 		if (to === undefined) return;

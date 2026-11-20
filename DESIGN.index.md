@@ -1,8 +1,8 @@
 # Index of DESIGN.md
 
-This index was written at version 2.4.0 of `package.json`, from a `DESIGN.md` whose SHA-256 starts with `337f45275a4a`. When the hash differs, run `npm run index` to write it again.
+This index was written at version 2.5.0 of `package.json`, from a `DESIGN.md` whose SHA-256 starts with `a3f48120d11d`. When the hash differs, run `npm run index` to write it again.
 
-- 1-1466 front matter
+- 1-1481 front matter
   - 2-2 `version`
   - 3-3 `name`
   - 4-4 `description`
@@ -10,156 +10,164 @@ This index was written at version 2.4.0 of `package.json`, from a `DESIGN.md` wh
   - 133-206 `typography`
   - 207-211 `rounded`
   - 212-259 `spacing`
-  - 260-1409 `components`
-  - 1410-1414 `breakpoints`
-  - 1415-1418 `motion`
-  - 1419-1427 `chart-patterns`
-  - 1428-1432 `theme-inputs`
-  - 1433-1465 `theme-fallbacks`
-- 1470-1517 ## Overview
-- 1518-1638 ## Colors
-  - 1578-1638 ### Usage
-- 1639-1734 ## Typography
-  - 1649-1680 ### Type steps
-  - 1681-1690 ### Text size
-  - 1691-1721 ### Other scripts
-  - 1722-1734 ### Content in another language
-- 1735-2065 ## Layout
-  - 1739-1755 ### Space
-  - 1756-1777 ### App shell
-  - 1778-1834 ### Width bands
-  - 1835-1917 ### Page outside the shell
-  - 1918-1971 ### Lists
-  - 1972-2001 ### Detail pane
-  - 2002-2015 ### Side column
-  - 2016-2023 ### Reading column
-  - 2024-2033 ### Settings and forms
-  - 2034-2037 ### Summary page
-  - 2038-2041 ### Chart legend
-  - 2042-2065 ### Direction
-- 2066-2086 ## Elevation & Depth
-- 2087-2105 ## Shapes
-- 2106-5390 ## Components
-  - 2144-2173 ### button
-  - 2174-2201 ### button-group
-  - 2202-2226 ### toggle
-  - 2227-2257 ### toggle-group
-  - 2258-2281 ### input
-  - 2282-2308 ### input-group
-  - 2309-2358 ### input-otp
-  - 2359-2382 ### textarea
-  - 2383-2424 ### code-editor
-  - 2425-2520 ### rich-text-field
-  - 2521-2560 ### rich-text-in-place
-  - 2561-2595 ### rich-text-view
-  - 2596-2641 ### code-block
-  - 2642-2689 ### diff
-  - 2690-2749 ### qr-code
-  - 2750-2774 ### label
-  - 2775-2803 ### field
-  - 2804-2836 ### form
-  - 2837-2863 ### native-select
-  - 2864-2905 ### select
-  - 2906-2935 ### checkbox
-  - 2936-2975 ### radio-group
-  - 2976-3005 ### switch
-  - 3006-3029 ### slider
-  - 3030-3091 ### dialog
-  - 3092-3127 ### alert-dialog
-  - 3128-3164 ### sheet
-  - 3165-3197 ### drawer
-  - 3198-3230 ### popover
-  - 3231-3260 ### hover-card
-  - 3261-3289 ### tooltip
-  - 3290-3331 ### dropdown-menu
-  - 3332-3362 ### context-menu
-  - 3363-3395 ### menubar
-  - 3396-3427 ### command
-  - 3428-3462 ### navigation-menu
-  - 3463-3518 ### sidebar
-  - 3519-3549 ### tabs
-  - 3550-3579 ### breadcrumb
-  - 3580-3628 ### stepper
-  - 3629-3664 ### pagination
-  - 3665-3693 ### accordion
-  - 3694-3722 ### collapsible
-  - 3723-3754 ### card
-  - 3755-3779 ### separator
-  - 3780-3807 ### aspect-ratio
-  - 3808-3835 ### resizable
-  - 3836-3861 ### scroll-area
-  - 3862-3893 ### carousel
-  - 3894-3927 ### calendar
-  - 3928-3951 ### range-calendar
-  - 3952-3993 ### month-view
-  - 3994-4025 ### time-field
-  - 4026-4055 ### time-zone-field
-  - 4056-4126 ### table
-  - 4127-4199 ### selection-bar
-  - 4200-4270 ### item-page
-  - 4271-4316 ### reorder-list
-  - 4317-4369 ### board
-  - 4370-4412 ### day-log
-  - 4413-4442 ### badge
-  - 4443-4487 ### unread-mark
-  - 4488-4521 ### avatar
-  - 4522-4554 ### item
-  - 4555-4589 ### empty
-  - 4590-4614 ### kbd
-  - 4615-4642 ### alert
-  - 4643-4710 ### sonner
-  - 4711-4765 ### progress
-  - 4766-4795 ### skeleton
-  - 4796-4822 ### spinner
-  - 4823-4869 ### figure-band
-  - 4870-4919 ### property-strip
-  - 4920-4952 ### attachment
-  - 4953-4977 ### bubble
-  - 4978-5002 ### marker
-  - 5003-5033 ### message
-  - 5034-5128 ### mail-message
-  - 5129-5173 ### html-frame
-  - 5174-5252 ### send-check
-  - 5253-5287 ### message-scroller
-  - 5288-5326 ### questionnaire
-  - 5327-5390 ### chart
-- 5391-5419 ## Do's and Don'ts
-- 5420-5490 ## Themes
-- 5491-5800 ## Charts
-  - 5495-5498 ### Categories
-  - 5499-5520 ### Styles
-  - 5521-5586 ### Patterns
-  - 5587-5604 ### Chart colors
-  - 5605-5612 ### Edges
-  - 5613-5626 ### Labels on the chart
-  - 5627-5636 ### Axes and grid
-  - 5637-5687 ### Legend
-  - 5688-5704 ### Tooltip
-  - 5705-5712 ### Accessibility layer
-  - 5713-5718 ### Rendering
-  - 5719-5744 ### Heat map
-  - 5745-5770 ### Line chart
-  - 5771-5778 ### Sparkline
-  - 5779-5789 ### Flow
-  - 5790-5800 ### Parts of a whole
-- 5801-6202 ## Email
-  - 5809-5819 ### Plain text first
-  - 5820-5835 ### Email layout
-  - 5836-5863 ### Email type
-  - 5864-5904 ### Email colors
-  - 5905-5916 ### Dark mode in a mail client
-  - 5917-5947 ### Content kinds
-  - 5948-5960 ### Language, dates and times
-  - 5961-5973 ### Email accessibility
-  - 5974-6202 ### Email template
-- 6203-6575 ## Print
-  - 6209-6215 ### Paper
-  - 6216-6239 ### Print colors
-  - 6240-6267 ### Print type
-  - 6268-6276 ### Head and foot of a page
-  - 6277-6288 ### Tables across pages
-  - 6289-6294 ### Figures and totals
-  - 6295-6308 ### Charts in print
-  - 6309-6377 ### A screen page in print
-  - 6378-6389 ### Make the PDF
-  - 6390-6575 ### Print template
+  - 260-1424 `components`
+  - 1425-1429 `breakpoints`
+  - 1430-1433 `motion`
+  - 1434-1442 `chart-patterns`
+  - 1443-1447 `theme-inputs`
+  - 1448-1480 `theme-fallbacks`
+- 1485-1532 ## Overview
+- 1533-1655 ## Colors
+  - 1595-1655 ### Usage
+- 1656-1752 ## Typography
+  - 1666-1697 ### Type steps
+  - 1698-1707 ### Text size
+  - 1708-1738 ### Other scripts
+  - 1739-1752 ### Content in another language
+- 1753-2083 ## Layout
+  - 1757-1773 ### Space
+  - 1774-1795 ### App shell
+  - 1796-1852 ### Width bands
+  - 1853-1935 ### Page outside the shell
+  - 1936-1989 ### Lists
+  - 1990-2019 ### Detail pane
+  - 2020-2033 ### Side column
+  - 2034-2041 ### Reading column
+  - 2042-2051 ### Settings and forms
+  - 2052-2055 ### Summary page
+  - 2056-2059 ### Chart legend
+  - 2060-2083 ### Direction
+- 2084-2104 ## Elevation & Depth
+- 2105-2125 ## Shapes
+- 2126-5964 ## Components
+  - 2164-2193 ### button
+  - 2194-2221 ### button-group
+  - 2222-2246 ### toggle
+  - 2247-2277 ### toggle-group
+  - 2278-2301 ### input
+  - 2302-2328 ### input-group
+  - 2329-2378 ### input-otp
+  - 2379-2402 ### textarea
+  - 2403-2444 ### code-editor
+  - 2445-2574 ### rich-text-field
+  - 2575-2614 ### rich-text-in-place
+  - 2615-2649 ### rich-text-view
+  - 2650-2695 ### code-block
+  - 2696-2743 ### diff
+  - 2744-2803 ### qr-code
+  - 2804-2828 ### label
+  - 2829-2857 ### field
+  - 2858-2890 ### form
+  - 2891-2917 ### native-select
+  - 2918-2959 ### select
+  - 2960-2989 ### checkbox
+  - 2990-3029 ### radio-group
+  - 3030-3059 ### switch
+  - 3060-3083 ### slider
+  - 3084-3145 ### dialog
+  - 3146-3181 ### alert-dialog
+  - 3182-3218 ### sheet
+  - 3219-3251 ### drawer
+  - 3252-3284 ### popover
+  - 3285-3314 ### hover-card
+  - 3315-3343 ### tooltip
+  - 3344-3385 ### dropdown-menu
+  - 3386-3416 ### context-menu
+  - 3417-3449 ### menubar
+  - 3450-3481 ### command
+  - 3482-3516 ### navigation-menu
+  - 3517-3577 ### sidebar
+  - 3578-3608 ### tabs
+  - 3609-3638 ### breadcrumb
+  - 3639-3687 ### stepper
+  - 3688-3723 ### pagination
+  - 3724-3752 ### accordion
+  - 3753-3781 ### collapsible
+  - 3782-3813 ### card
+  - 3814-3838 ### separator
+  - 3839-3866 ### aspect-ratio
+  - 3867-3894 ### resizable
+  - 3895-3920 ### scroll-area
+  - 3921-3952 ### carousel
+  - 3953-3986 ### calendar
+  - 3987-4010 ### range-calendar
+  - 4011-4052 ### month-view
+  - 4053-4084 ### time-field
+  - 4085-4114 ### time-zone-field
+  - 4115-4154 ### language-field
+  - 4155-4225 ### table
+  - 4226-4298 ### selection-bar
+  - 4299-4369 ### item-page
+  - 4370-4415 ### reorder-list
+  - 4416-4468 ### board
+  - 4469-4511 ### day-log
+  - 4512-4543 ### badge
+  - 4544-4588 ### unread-mark
+  - 4589-4632 ### internal-mark
+  - 4633-4678 ### avatar
+  - 4679-4711 ### item
+  - 4712-4746 ### empty
+  - 4747-4771 ### kbd
+  - 4772-4799 ### alert
+  - 4800-4867 ### sonner
+  - 4868-4922 ### progress
+  - 4923-4952 ### skeleton
+  - 4953-4979 ### spinner
+  - 4980-5026 ### figure-band
+  - 5027-5076 ### property-strip
+  - 5077-5109 ### attachment
+  - 5110-5134 ### bubble
+  - 5135-5159 ### marker
+  - 5160-5212 ### activity-lines
+  - 5213-5243 ### message
+  - 5244-5307 ### send-state
+  - 5308-5474 ### mail-message
+  - 5475-5530 ### html-frame
+  - 5531-5609 ### send-check
+  - 5610-5682 ### comment-list
+  - 5683-5770 ### conversation
+  - 5771-5826 ### comment-box
+  - 5827-5861 ### message-scroller
+  - 5862-5900 ### questionnaire
+  - 5901-5964 ### chart
+- 5965-5993 ## Do's and Don'ts
+- 5994-6064 ## Themes
+- 6065-6374 ## Charts
+  - 6069-6072 ### Categories
+  - 6073-6094 ### Styles
+  - 6095-6160 ### Patterns
+  - 6161-6178 ### Chart colors
+  - 6179-6186 ### Edges
+  - 6187-6200 ### Labels on the chart
+  - 6201-6210 ### Axes and grid
+  - 6211-6261 ### Legend
+  - 6262-6278 ### Tooltip
+  - 6279-6286 ### Accessibility layer
+  - 6287-6292 ### Rendering
+  - 6293-6318 ### Heat map
+  - 6319-6344 ### Line chart
+  - 6345-6352 ### Sparkline
+  - 6353-6363 ### Flow
+  - 6364-6374 ### Parts of a whole
+- 6375-6807 ## Email
+  - 6383-6393 ### Plain text first
+  - 6394-6409 ### Email layout
+  - 6410-6437 ### Email type
+  - 6438-6468 ### Rich text in an email
+  - 6469-6509 ### Email colors
+  - 6510-6521 ### Dark mode in a mail client
+  - 6522-6552 ### Content kinds
+  - 6553-6565 ### Language, dates and times
+  - 6566-6578 ### Email accessibility
+  - 6579-6807 ### Email template
+- 6808-7180 ## Print
+  - 6814-6820 ### Paper
+  - 6821-6844 ### Print colors
+  - 6845-6872 ### Print type
+  - 6873-6881 ### Head and foot of a page
+  - 6882-6893 ### Tables across pages
+  - 6894-6899 ### Figures and totals
+  - 6900-6913 ### Charts in print
+  - 6914-6982 ### A screen page in print
+  - 6983-6994 ### Make the PDF
+  - 6995-7180 ### Print template

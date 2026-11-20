@@ -1,6 +1,8 @@
 <script lang="ts">
 	import * as Avatar from '#lib/components/ui/avatar/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
 	import CheckIcon from '@lucide/svelte/icons/check';
+	import CircleIcon from '@lucide/svelte/icons/circle';
 
 	const sizes = ['sm', 'default', 'lg'] as const;
 	// A local picture, so that the image state needs no network.
@@ -19,7 +21,8 @@
 			<div class="flex flex-wrap items-center gap-4">
 				<Avatar.Root {size}><Avatar.Image src={photo} alt="Ana" /><Avatar.Fallback>AN</Avatar.Fallback></Avatar.Root>
 				<Avatar.Root {size}><Avatar.Fallback>BK</Avatar.Fallback></Avatar.Root>
-				<Avatar.Root {size}><Avatar.Fallback>CD</Avatar.Fallback><Avatar.Badge /></Avatar.Root>
+				<!-- The presence state: online takes the badge in success, and the words say the state. -->
+				<span class="flex items-center gap-2"><Avatar.Root {size}><Avatar.Fallback>CD</Avatar.Fallback><Avatar.Badge class="bg-success" /></Avatar.Root><span class="text-sm">Online</span></span>
 				<Avatar.Root {size}><Avatar.Fallback>EF</Avatar.Fallback><Avatar.Badge><CheckIcon /></Avatar.Badge></Avatar.Root>
 				<Avatar.Group>
 					<Avatar.Root {size}><Avatar.Image src={photo} alt="Ana" /><Avatar.Fallback>AN</Avatar.Fallback></Avatar.Root>
@@ -37,7 +40,7 @@
 		<div class="flex flex-wrap items-center gap-4">
 			<Avatar.Root size="sm" class="data-[size=sm]:size-5"><Avatar.Image src={photo} alt="Ana" /><Avatar.Fallback class="group-data-[size=sm]/avatar:text-2xs font-medium">A</Avatar.Fallback></Avatar.Root>
 			<Avatar.Root size="sm" class="data-[size=sm]:size-5"><Avatar.Fallback class="group-data-[size=sm]/avatar:text-2xs font-medium">B</Avatar.Fallback></Avatar.Root>
-			<Avatar.Root size="sm" class="data-[size=sm]:size-5"><Avatar.Fallback class="group-data-[size=sm]/avatar:text-2xs font-medium">C</Avatar.Fallback><Avatar.Badge class="group-data-[size=sm]/avatar:size-1.5" /></Avatar.Root>
+			<span class="flex items-center gap-1.5"><Avatar.Root size="sm" class="data-[size=sm]:size-5"><Avatar.Fallback class="group-data-[size=sm]/avatar:text-2xs font-medium">C</Avatar.Fallback><Avatar.Badge class="bg-success group-data-[size=sm]/avatar:size-1.5" /></Avatar.Root><span class="text-sm">Online</span></span>
 			<Avatar.Group class="-space-x-1.5">
 				<Avatar.Root size="sm" class="data-[size=sm]:size-5"><Avatar.Image src={photo} alt="Ana" /><Avatar.Fallback class="group-data-[size=sm]/avatar:text-2xs font-medium">A</Avatar.Fallback></Avatar.Root>
 				<Avatar.Root size="sm" class="data-[size=sm]:size-5"><Avatar.Fallback class="group-data-[size=sm]/avatar:text-2xs font-medium">B</Avatar.Fallback></Avatar.Root>
@@ -49,5 +52,21 @@
 			<Avatar.Root size="sm" class="data-[size=sm]:size-5"><Avatar.Fallback class="group-data-[size=sm]/avatar:text-2xs font-medium">A</Avatar.Fallback></Avatar.Root>
 			<span><span class="font-medium">Ana</span> <span class="text-muted-foreground">changed the due date</span></span>
 		</p>
+	</div>
+	<!-- The presence state of a contact in the header of a conversation. Online: the badge in success on the
+	     avatar and the status badge with a full disc. Offline: no badge on the avatar, and an outline badge
+	     with an empty ring and the last online time. Every person is invented. -->
+	<div class="flex flex-col gap-2">
+		<h3 class="text-xs font-medium text-muted-foreground">presence state in a header</h3>
+		<div class="flex flex-wrap items-center gap-2">
+			<Avatar.Root><Avatar.Fallback>AT</Avatar.Fallback><Avatar.Badge class="bg-success" /></Avatar.Root>
+			<span class="text-sm font-medium">Ana Turner</span>
+			<Badge variant="outline" class="rounded-full border-success/35 bg-success/10"><CircleIcon data-icon="inline-start" class="fill-success text-success" />Online</Badge>
+		</div>
+		<div class="flex flex-wrap items-center gap-2">
+			<Avatar.Root><Avatar.Fallback>HW</Avatar.Fallback></Avatar.Root>
+			<span class="text-sm font-medium">Hans Weber</span>
+			<Badge variant="outline" class="rounded-full"><CircleIcon data-icon="inline-start" class="text-muted-foreground" />Last online <time datetime="2026-11-18T10:05:00.000Z">10:05</time></Badge>
+		</div>
 	</div>
 </section>

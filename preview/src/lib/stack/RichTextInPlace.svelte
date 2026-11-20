@@ -21,13 +21,19 @@
 	- readonly shows the view only. A page that sets editing while readonly is true opens no field, and
 	  editing goes back to false. A draft that the page makes read-only stays, and Save is off.
 	- toolbar="none" gives the field no toolbar: the keys and the bar over selected text still work.
+	- lang and dir go on the view and on the text of the field, and dir is auto by default, so the text
+	  keeps its language and its side when the field takes the place of the view.
+	- The part takes no quote and no quoteEdited of the field: a reply to a mail is a form that a person
+	  fills in from the start, which takes a RichTextField. A stored text that holds a blockquote with
+	  type="cite" keeps the keys of the field for that quote: Enter splits it, and Backspace and Delete
+	  move no words over its edge.
 -->
 <script lang="ts" module>
 	import type { RichTextFieldProps } from './RichTextField.svelte';
 	import type { RichTextInPlaceWords } from './rich-text.js';
 
 	/** @behaviour escape:kept keys:submit draft:kept-on-blur cancel:alert-dialog live-region */
-	export type RichTextInPlaceProps = Omit<RichTextFieldProps, 'html' | 'editor' | 'readonly' | 'toolbarEnd' | 'onchange'> & {
+	export type RichTextInPlaceProps = Omit<RichTextFieldProps, 'html' | 'editor' | 'readonly' | 'toolbarEnd' | 'onchange' | 'quote' | 'quoteEdited'> & {
 		/** The stored HTML. The view shows it, and the field starts from it. The page gives the stored HTML back after a save. */
 		html: string;
 		/** True while the field shows, from a click or Edit until Save or Cancel. A page that sets it to false ends the draft. */
@@ -78,12 +84,16 @@
 		'aria-label': ariaLabel,
 		'aria-labelledby': ariaLabelledby,
 		'aria-describedby': ariaDescribedby,
+		lang,
+		dir = 'auto',
 		picture = defaultPicture,
 		upload,
 		paper,
 		onfailure,
 		onselection,
 		keys,
+		markdown,
+		slash,
 		writing,
 		bar,
 		foot,
@@ -109,11 +119,15 @@
 		'aria-label': ariaLabel,
 		'aria-labelledby': ariaLabelledby,
 		'aria-describedby': ariaDescribedby,
+		lang,
+		dir,
 		picture,
 		upload,
 		paper,
 		onselection,
 		keys,
+		markdown,
+		slash,
 		writing,
 		bar,
 		foot
@@ -291,7 +305,7 @@
 					{empty}
 				</div>
 			{:else}
-				<RichTextView bind:ref={view} {html} preset={kind} {picture} {paper} />
+				<RichTextView bind:ref={view} {html} preset={kind} {picture} {paper} {lang} {dir} />
 			{/if}
 		</div>
 		{#if !readonly}

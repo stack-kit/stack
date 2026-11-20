@@ -61,6 +61,26 @@ function blocks(lines: string[], lang: string): string[] {
 	return out;
 }
 
+/**
+ * The table of "### Rich text in an email": the style of each tag, with {sans}, {mono} and each role in
+ * braces as the section writes them, and '' for a tag with no style.
+ */
+function readRichText(lines: string[]): Record<string, string> {
+	const start = lines.indexOf('### Rich text in an email');
+	if (start < 0) throw new Error('DESIGN.md has no "### Rich text in an email" section.');
+	const out: Record<string, string> = {};
+	for (const line of lines.slice(start + 1)) {
+		if (line.startsWith('### ')) break;
+		if (!line.startsWith('| `')) continue;
+		const [tags = '', style = ''] = line.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+		const value = style === 'none' ? '' : (/^`(.*)`$/.exec(style)?.[1] ?? null);
+		if (value === null) throw new Error(`DESIGN.md: a row of "### Rich text in an email" has no style in backticks and is not "none": ${line}`);
+		for (const m of tags.matchAll(/`([a-z0-9]+)`/g)) if (m[1]) out[m[1]] = value;
+	}
+	return out;
+}
+
 export const emailColors = readColors(section);
+export const richTextTable = readRichText(section);
 export const htmlBlocks = blocks(section, 'html');
 export const textBlocks = blocks(section, 'text');

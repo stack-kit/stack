@@ -9,15 +9,510 @@ new part, export, prop and snippet, and Fixed each fix.
 
 A change that a product must act on is a major version: a removed documented
 behaviour, such as a word that goes from an `@behaviour` line; a removed or
-renamed prop, callback, snippet, export or `data-slot`, a narrowed type, a
-new required input, a change of a member of an exported object type other
-than a new optional member, a changed default that changes what a page
-shows, a behaviour that needs a new function from the product, or a change
-of a rule of the frame. A new part, a new optional prop or snippet, a new
-optional member of an exported object type, a change of the look, or a
-change of behaviour that needs no input from the product is a minor version.
+renamed prop, callback, snippet, export, `data-slot` or command, a removed
+option of a command, a narrowed type, a new required input, a change of a
+member of an exported object type other than a new optional member, a
+changed default that changes what a page shows, a behaviour that needs a new
+function from the product, or a change of a rule of the frame. A new part, a
+new command, a new optional prop or snippet, a new optional member of an
+exported object type, a change of the look, or a change of behaviour that
+needs no input from the product is a minor version.
 A fix that keeps the contract and the documented behaviour is a patch. The
 release step writes each entry from the commits since the last tag.
+
+## v2.5.0 - 2026-11-20
+
+### Breaking
+
+- None. A product changes no code at this update. It moves the pin. The
+  peers of `package.json` do not change.
+
+### Behaviour
+
+- `parts/RichTextField` and `parts/RichTextInPlace`: `dir` is `auto` by
+  default, as a field of free text asks. A text that starts with an
+  Arabic or a Hebrew letter now aligns to the right. `dir={null}` leaves
+  the direction of the page, as v2.4.0 did.
+- `parts/RichTextField` and `parts/RichTextInPlace`: a `lang` or a `dir`
+  that a product gives reaches the editable text and the read view only.
+  Before, it reached the root through the rest attributes, and a `dir`
+  there turned the toolbar too. The root, the toolbar, the bars and the
+  rows keep the language and the direction of the page. The placeholder
+  of a text from right to left starts at the right.
+- `parts/RichTextField` and `parts/RichTextView`: in a text from right
+  to left, a list takes its indent and a quote its edge at the start of
+  the line, which is the right side. Before, the markers of a list
+  passed the right edge and the field cut them, and a quote kept its
+  edge on the left. A text from left to right looks as before.
+- `rich-text` and `parts/RichTextField`: the load list keeps a line
+  break that text or another line break follows in its block. So
+  `<li>One<br>Two</li>` and `<h2>A<br>B</h2>` keep their two lines, and
+  `<div>A<br>B</div>` stays one block. Before, the list joined the words
+  or split the block, and `editor.html()` gave the joined lines. The
+  list also keeps the last line break of a block when the break stands
+  alone in its line, so `<div>A<br><br></div>` keeps its empty last
+  line. `words()` and the diff of a whole text count that empty line.
+- `parts/RichTextField`: the diff of a whole text counts an empty line.
+  The review shows an added or removed empty line with the mark of a
+  paragraph break, as Take all writes it. In a list, an empty line
+  between the parts of a split takes the mark of a new item. An empty
+  line between the parts of a join is a removed line after the joined
+  line. So a split and a join with an empty line count two changes each.
+- `parts/SplitRow`: with `oneLine`, the end of line 1 is a column of 108
+  px in place of 80 px, from 768 px. A time of this year by its age now
+  shows whole in each shared locale. The widest is "May 28, 08:48 AM" in
+  en-US, at 106 px. A value wider than 108 px still goes to the end of
+  line 2.
+- `parts/HtmlFrame`: a new `src` gets a new `<iframe>`, so the frame
+  starts again at its fixed height. A message of the page of the old
+  `src`, which can post until the new page commits, no longer counts for
+  the new `src`.
+- `parts/HtmlFrame`: when the last call of `onpage` named a fact and the
+  page of a new `src` names none, the part calls `onpage` once with `{}`
+  at the first message that passes. A product drops the facts of the old
+  `src` there.
+- `parts/MailMessage` and `parts/MailThread`: a mail with `frame` whose
+  page posts nothing shows the body and the quote. Such a page is the
+  page of an error or of an expired address. The line "This mail did not
+  load as designed." and Show as designed take the place of the frame.
+  With no `onframe`, the frame loads `frame` each time it mounts. So
+  after the expiry of the address, Show as designed after Show as text
+  and the open of a folded message give this view. Before, they showed
+  the page of the host that says that the address expired. Give
+  `onframe` to load a new address.
+- `### mail-message`: a reply that waits to go out stays a mail of the
+  thread. It shows as the last mail, as the message that it becomes, and
+  the heading counts it. The entries of the team that `after` renders
+  follow it.
+- `rich-text`: the load list keeps one attribute on a `blockquote`,
+  `type="cite"`, the mark of a quoted earlier mail. The value passes in
+  any case and the list writes it as `cite`. A quote keeps no other
+  attribute, also not `cite`, which holds an address. The paste list and
+  the simple preset keep none. A stored text with the mark now keeps it
+  in the field and in the view. A server that keeps the list of v2.4.0
+  drops the mark, and the reply still goes whole.
+- `### sidebar`: a count that asks for an act of the person keeps the
+  `sidebar-foreground` of the nova style and takes weight 600
+  (`class="font-semibold"`). Such counts are the mails that wait for an
+  answer, the tasks past their due time and the jobs that failed. Every
+  other count keeps `text-muted-foreground` at 500. Under the pointer
+  and on the current page, both take `sidebar-accent-foreground`, and
+  the weight stays. So the weight tells the two counts apart, also in
+  grayscale. No count takes red. The name of the menu button says the
+  count and what it counts, and the rail hides the count with no mark.
+  On a phone, the tab of a page with such a count shows it in the count
+  badge. No component changes, because the product passes the class.
+
+### Added
+
+- `parts/InternalMark` and `### internal-mark`: a base part that marks
+  content that stays inside the team, such as a comment between the
+  mails of a thread. The content stands in a block with an `outline`
+  badge, "Internal", on its top edge, so the mark reads in grayscale and
+  a screen reader reads the word. `proposal` marks content that no
+  person confirmed yet: a second badge names its source, and the edge
+  turns dashed. `label` gives the word in the language of the product,
+  and `badgeHidden` hides the badge from a screen reader for a part that
+  says the word itself.
+- `parts/ActivityLines` and `### activity-lines`: a base part that shows
+  one stretch of the events of a record in its place among other
+  content, such as the changes of a case between two comments. Each line
+  is a `marker` with an icon, its words and its time by its age. A
+  stretch of more than 8 lines shows its last 3, and a button shows the
+  rest. `words` gives the words of the button. The export
+  `ACTIVITY_LINES_WORDS` and the types `ActivityLine` and
+  `ActivityLinesWords`.
+- `parts/CommentItem`, `parts/CommentList` and `### comment-list`: the
+  comments that only the team sees, at the width of the column and at
+  most 720 px, with no bubble and no side. A list holds the comments and
+  the activity lines of the record in the order of their time, a heading
+  with the count and a place for the box at the end. `internal` puts the
+  list, or one comment, in an `internal-mark`. `editable` and `onedit`
+  let the author edit a comment in place with `rich-text-in-place`, and
+  `onfailure` gets a rejected edit with the kind `save`. The exports
+  `COMMENT_WORDS`, `COMMENT_LIST_WORDS` and the type `CommentData`.
+- `parts/CommentBox` and `### comment-box`: a part that writes a comment
+  of the team, at the end of a list or in the place of the comment at
+  the end of a mail thread. It holds a `rich-text-field` of the simple
+  preset, the count of the characters left with `limit`, and the send
+  button with its key. `onsend` stores the comment. A failed send keeps
+  the draft and calls `onfailure` with the kind `save`. The key C puts
+  the caret in the field from the rest of the page, and `caretKeys`
+  gives other keys or `[]`. `primary` makes the send the `default`
+  button, `internal` puts the box in an `internal-mark`, and `words`
+  gives its words. `COMMENT_BOX_WORDS`. A reply and a comment can share
+  one place as two tabs, as the Example shows.
+- `architecture/keys.json` and the table of `architecture/web-app.md`:
+  an entry for the key C of `comment-box`, and the rule that the key is
+  a default that the person can change or turn off.
+- `parts/LanguageField` and `### language-field`: a part that picks one
+  language, such as the language of a reply, of a document or of a
+  customer. The value is a BCP 47 tag. It is a `command` in a `popover`,
+  as `time-zone-field` is. Each row shows the name of the language in
+  the locale of the product and its own name. `languages` gives the tags
+  that a person can pick, and `suggested` the tags that the list shows
+  first. The search ignores case and diacritics, so a search with no
+  accents finds a name that has them. The exports `languageName(tag,
+  locale)`, `languageDirection(tag)` and `LANGUAGE_FIELD_WORDS`.
+- `parts/RichTextField` and `parts/RichTextInPlace`: `lang`, a BCP 47
+  tag, and `dir`, `auto` by default. Both go on the editable text, so
+  one page can hold two fields in two languages. `### Content in another
+  language` in `DESIGN.md` gives the rule for a field whose text is in
+  another language than the interface.
+- `parts/RichTextField` and `parts/RichTextInPlace`: `markdown`, off by
+  default. A person types a Markdown mark, such as `# `, `- `, `1. `, `>
+  `, `**bold**`, `*italic*`, `~~strikethrough~~` or a backtick on each
+  side, and the field turns it into the format of a tool of the preset
+  in one undo step. Backspace right after the change gives the typed
+  text back. A mark for a tool that the preset lacks stays text. A field
+  with `markdown` off behaves as in v2.4.0.
+- `parts/RichTextField` and `parts/RichTextInPlace`: `slash`, off by
+  default. A slash at the start of an empty line, or after a space,
+  opens a list box of the block commands of the preset at the caret. The
+  words after the slash filter it. `slash` is `true` or an object with
+  `words`, and the menu loads in a chunk of its own at the first use.
+  The types `RichTextSlash`, `SlashWords` and `SlashCommand` of
+  `@stack-kit/stack/rich-text`. A failed load of the menu calls
+  `onfailure` with the kind `load` and the part `toolbar`.
+- `parts/RichTextField`: `quote`, the earlier mail of a reply, and
+  `quoteEdited`, bindable. `quote` is a `RichTextQuote`: `line`, `body`,
+  `lang`, `dir` and `words`. The quote stands in a row
+  (`rich-text-quote`) under the text, outside the editable element,
+  folded behind "Show the quoted text". So `html()`, `words()`, the undo
+  history and a request of the writing tools hold the words of the
+  person only. The field renders the line and each paragraph as text,
+  never as HTML. `RichTextInPlace` takes no `quote`.
+- `parts/RichTextField`: "Edit the quoted text" moves the quote into the
+  text after the words, as one undo step, and sets `quoteEdited` to
+  true. The undo key gives the fold back. The moved quote is a
+  `blockquote` with `type="cite"`. While the text is read-only, Edit
+  takes `aria-disabled` and names its reason in a line beside it.
+  `QuoteWords` of `@stack-kit/stack/rich-text` holds `show`, `hide`,
+  `edit` and `readonly`.
+- `parts/RichTextField`: a reply inside the moved quote. In a
+  `blockquote` with `type="cite"`, one Enter splits the quote at the
+  caret, also in the middle of a line. Both parts keep `type="cite"`,
+  and a new empty line between them takes the caret. Backspace at the
+  start of a line and Delete at its end move no words over the edge of a
+  part. Each split and each removal is one undo step. A list item, a
+  code block and a quote of the Quote tool keep the keys of the engine.
+  The Enter that confirms a word of an input method splits no quote. The
+  same keys act in a stored text of `RichTextInPlace`, and of
+  `CommentBox` with the full preset, that holds such a quote.
+- `parts/CommentBox`: the box gives `markdown` and `slash` to its field.
+  It takes no `quote` and no `quoteEdited`, because a comment quotes no
+  earlier mail.
+- `@stack-kit/stack/email` and `### Rich text in an email`:
+  `richTextStyles(colors, dir)`, the inline styles that a server writes
+  on the HTML of a rich text in a mail, after it cleans the HTML. A
+  table gives the style of each of the 21 tags of the load list, from
+  the type and the colors of the email. The exports `richTextStyles`,
+  `RichTextTag` and `MONO`. The section also says how the plain text
+  part comes from the cleaned HTML.
+- `architecture/web-app.md`, "A reply to a mail": the rules of the
+  server for a reply by reference. The server takes the id of the
+  earlier mail only from a conversation that the person answers and may
+  read. It writes the quote from its own stored copy, and it never takes
+  the words of the quote from the browser.
+- `parts/MailThread`: the optional snippet `after(mail)`. It renders the
+  entries of the team after each mail until the next mail, such as a
+  stretch of events in `ActivityLines` and an internal comment in a
+  `CommentItem`. The box (`mail-thread-after`) stands inside the
+  section, between the articles of two mails, and takes no room while it
+  is empty. A screen reader reads the entries in the order of the
+  screen.
+- `parts/MailThread`: the optional prop `note`, words under the heading
+  that say what the count leaves out, such as "Comments and changes
+  stand in their place." (`mail-thread-note`). The note describes the
+  section.
+- `parts/MailThread`: `placeAfter(mails, events, comments)` and the type
+  `MailEntry`. `placeAfter` gives each event and each comment to the
+  last mail at or before its time. It returns a map from the id of each
+  mail, in the given order, to its entries in the order of time. A
+  stretch of events is one entry, a comment is one entry, and a comment
+  ends a stretch. `CommentList` uses the same rule.
+- `parts/MailMessage`: `Mail.channel`, the words of where a message came
+  in or went out, such as "Mail · Support · Spam". The words stand on a
+  line of their own after the recipients and before Sent by
+  (`mail-message-channel`). The part styles no word of them. The folded
+  line does not show them.
+- `parts/MailMessage`: `Mail.fresh` shows an `outline` badge "New" with
+  no icon before the direction badge, in line 1 and in the folded line.
+  The heading starts with the word, such as "Unread, New, Received, Ana
+  Turner".
+- `parts/MailMessage`: `Mail.waitingNote`, the words of a reply that
+  another person sent and that waits. With `sendsAt` and `waitingNote`,
+  the waiting line shows these words in place of the time left, with no
+  Undo and no Send now, also when the thread gives both functions.
+- `parts/MailMessage` and `parts/MailThread`: the actions of one
+  message. The type `MailAction` is `{ id, label, icon, destructive, run
+  }`. `MailMessage` takes `actions` and `actionsLabel`, and `MailThread`
+  takes `actions(mail)` and `actionsLabel(mail)`. From 768 px with a
+  pointer, one action with an icon is a `ghost` button of size `icon-xs`
+  with a tooltip at the end of line 1. Line 1 stays 20 px high. Two or
+  more actions, and an action with no icon, stand in a More menu with a
+  destructive action last after a separator. Below 768 px and on a touch
+  screen, each action is an item of More, 44 px high. The part shows no
+  toast. `actionsLabel` names More, "More actions" by default. The
+  folded line shows no action.
+- `parts/MailThread`: when the product removes a message that held the
+  focus, the thread moves the focus to the heading of the next message.
+  With no next message, it moves the focus to the heading of the message
+  before, and then to the heading of the thread. This holds while the
+  focus is in the thread. When an action opens an `alert-dialog`, the
+  product removes the message after the dialog closes and gives the
+  focus back to More.
+- `parts/MailMessage` and `parts/MailThread`: `words`, a
+  `Partial<MailMessageWords>`, which merges over `MAIL_MESSAGE_WORDS` at
+  render, as the comment parts do. Each word that a person sees or a
+  screen reader reads is a member. Examples are the badges, the words of
+  the heading, To, Cc and Bcc, the buttons of the quote and of the
+  original, and the lines of a mail with `frame`. A word that holds a
+  value is a function. `more` and `goesOutIn` take the count and the
+  count in the number format of `locale`. `moreActions` names More when
+  the product gives no `actionsLabel`, and `moreSpoken` speaks the end
+  of a cut list of people. Each word that v2.4.0 had keeps its default.
+  `MailThread` gives its `words` to each message, and writes the count
+  of its heading in the number format of `locale`. The exports
+  `MAIL_MESSAGE_WORDS` and the type `MailMessageWords`.
+- `parts/MailMessage`: the facts of the page of an `HtmlFrame`. The part
+  gives `onpage` and `onfailure` to its frame. A page with the state
+  `text` shows the body and the quote, with no line and no Show as
+  designed. A page with the state `too-large` shows the body, the quote
+  and the line "This mail is too large to show as designed." in place of
+  the button (`mail-message-frame-note`). A count of remote pictures
+  above 0 adds the line "Remote pictures stay off, so the sender does
+  not learn that you opened this mail." under the badge
+  (`mail-message-remote`). Load pictures, an `outline` button of size
+  `xs`, ends it when the product gives `onloadpictures`. `MailThread`
+  takes `onloadpictures(mail)`. The part keeps the first facts of each
+  address of the frame, so a page that a link loads into the frame
+  changes nothing.
+- `parts/MailMessage` and `parts/MailThread`: `onframe()` and
+  `onframe(mail)`, a function that gives a new address of the page of a
+  mail, or rejects. The part calls it each time the frame mounts again
+  after its first render, such as at Show as designed after Show as
+  text. It also calls it when a folded message or a folded original
+  opens. The frame loads the address that it gives. Until the answer
+  comes, the box has `aria-busy="true"` and an empty block of 320 px. A
+  rejection, or no answer in 15 s, gives the view of a page that posts
+  nothing. A new frame of the product, such as after Load pictures, ends
+  the wait.
+- `parts/HtmlFrame`: `onpage`, `onfailure` and the types `FramePage` and
+  `FrameState`. `onpage` gets one `FramePage`, such as `{ state:
+  'too-large', remote: 3 }`, when a message names a fact and again when
+  a fact changes. `state` is `html`, `text` or `too-large`, and `remote`
+  is the count of the remote resources that the host removed. The part
+  takes a message only when `state` is absent or one of the three words,
+  and `remote` is absent or a safe whole number of 0 or more. A message
+  that fails a check changes nothing. `onfailure` runs once for each
+  `src` when no message passed 2 s after the `load` event of the frame,
+  or 15 s after the mount when no `load` came. The product picks what to
+  show then, such as the text of the mail.
+- `frame-height`: the height script reads five optional attributes of
+  the `<html>` start tag of the page, once, at its start. The server of
+  the host writes them. `data-stack-frame-state` and
+  `data-stack-frame-remote` add `state` and `remote` to each height
+  message. `data-stack-frame-fold` and `data-stack-frame-unfold` give
+  the words of a closed and of an open fold, and the script puts each
+  quote of an earlier mail into a `<details>` element.
+  `data-stack-frame-fit` scales a page that is wider than the frame,
+  never below 0.5. A page with none of the attributes gets the same page
+  and the same messages as with the script of v2.4.0.
+- `frame-height`: the new height script has a new hash,
+  `'sha256-mWNHcJ+OAWmcfxCLUlK7uC8LVATRgQ8VzB7W3npxHWM='`
+  (`FRAME_HEIGHT_HASH`). A host puts the new script and the new hash
+  into its pages and its policy in the same deploy. A host that keeps
+  the script and the hash of an earlier release keeps working with the
+  part of this release, because the part takes a message with no fact.
+  The fold needs the new script. `npm run frame` also fails now on a way
+  to parse a text as HTML or as code, on a second `postMessage`, and on
+  an attribute that the script lacks.
+- `architecture/web-app.md`, "The HTML part of a mail": the five
+  attributes and the escape of their values. The `<script>` element has
+  no `type`, `async`, `defer` or `src` attribute, so that it runs before
+  the parser reaches the mail. The section also gives the count of
+  remote pictures as a hint, and the page that posts nothing. A server
+  that writes a fact writes it on each page of the mail,
+  `data-stack-frame-remote="0"` included.
+- `behaviour/undo`: `undoToast` takes two optional members of
+  `UndoOptions`, `undoLabel` and `openLabel`, the words of its Undo and
+  Open buttons in the language of the product. The defaults are Undo and
+  Open. `openLabel` counts only with `open`. The words come with each
+  call, as `plainToast` takes its text. `board` and `reorder-list` pass
+  no word, so their toasts stay English.
+- `parts/MailMessage`: `Mail.subject`, for a record that holds the mails
+  of several threads. The subject is a line at weight 500 in
+  `foreground` between the header and the text, in the `lang` and the
+  `dir` of the mail (`mail-message-subject`). The folded line does not
+  show it.
+- `parts/MailMessage`: `Mail.channelIcon`, the icon of the channel as a
+  component, such as a Lucide icon or a service icon. The icon stands at
+  14 px before the words of `channel`, in the color of the line, hidden
+  from a screen reader. With no `channel`, it does not show. The folded
+  line does not show it.
+- `## Colors`, "A color of a category": a fixed category that the
+  product defines, such as a channel, may take a role of its `product-`
+  layer, such as `--product-channel-<id>`. The color shows only on the
+  icon of the category. It is never a fill, a tint, an edge or text, and
+  the name of the category always stands beside the icon. So the badge
+  of a category stays gray: an `outline` badge with the icon in the role
+  and the name in `foreground`. A product checks the role as `icon` with
+  `stack-contrast`, and the command checks it on the six grounds.
+- `## Shapes`, "Service icons": the icon of an outside service is the
+  one exception to the one icon set. It is filled shapes in
+  `currentColor` on the 24 px grid, at 14, 16 or 20 px, with
+  `aria-hidden="true"` and the name of the service always beside it.
+  STACK ships the icons of seven services. Another service takes an icon
+  that the product gives, under the same rule. A channel with no icon of
+  its own, such as a mail account or a text message, takes a Lucide
+  icon, such as `mail` or `message-square-text`.
+- `parts/MailMessage`: `Mail.source`, `{ lang, body, proposal? }`, the
+  text in the language of the team from which the product made a reply
+  that went out in another language, and `Mail.sourceFirst`. The source
+  stays inside the team, so it stands in an `internal-mark` in the place
+  of a translation (`mail-message-source`), with its `lang` on the text.
+  `proposal` marks a source that no person confirmed. The mark then
+  takes the dashed edge and a second badge. A mail with a source shows
+  no translation. With `sourceFirst`, the mark comes first, and the mail
+  as sent folds behind "Show the mail as sent" and "Hide the mail as
+  sent". The folded line shows the first words of the source.
+  `MailMessageWords` gets the members `internal`, `showSent` and
+  `hideSent`.
+- `parts/SendState` and `### send-state`: a base part that shows how far
+  a chat service carried a message of the team. The product places it in
+  `Message.Footer`. `steps` is a list of `SendStep`, `{ state: 'sent' |
+  'delivered' | 'seen'; at: Date }`, and `now` and `timeZone` are
+  required. The line shows the step of the highest rank, not the step
+  that came last, so a report that comes out of order cannot move it
+  back. A step that the product does not give never shows, and no step
+  shows nothing. It shows no "not seen yet", because STACK cannot know
+  it.
+- `parts/SendState`: the line is a `ghost` button of size `xs` in
+  `muted-foreground`, with the icon of the step (`check`, `check-check`
+  or `eye`), its word and its time by its age. The icon starts where the
+  words of the header start, and on a message with `align="end"` the
+  time ends where the header ends. The line shows its whole words, and
+  only a footer that is narrower than the line cuts them with an
+  ellipsis. A click, Enter or Space opens a `popover` with each given
+  step in the order of rank. No step takes a color, so the icon and the
+  word tell the steps apart. `words` gives the words as functions of the
+  time, so a language can put the time first. `locale` is optional. The
+  exports `SEND_STATE_WORDS`, `SendStateWords` and `SendStep`. A message
+  that failed shows its failure line and no send state.
+- `### avatar`: the presence state of a contact on a chat service is the
+  state of a connection, so it is feedback. Online takes `Avatar.Badge`
+  in `success` (`bg-success`) with no icon. Offline takes no badge, so
+  the shape and not the color tells the two states apart. A service that
+  reports no presence state gives no badge and no words. In the header
+  of a conversation, online is a status badge in `success` with the word
+  of the product. Offline is a round `outline` badge with the time of
+  the last check. A product shows a contact as online only while its
+  last check is newer than the time between two checks. `Avatar.Badge`
+  keeps its `primary` default.
+- `parts/Conversation` and `### conversation`: an advanced part that
+  shows the mails and the chat messages of one record in one timeline,
+  each at its time, the oldest first, with the events and the comments
+  of the team in their place. A mail stays a `MailMessage` and folds as
+  in a mail thread, except the last message of the conversation. A chat
+  message is a `message` with one `bubble`. The chat messages of one
+  author, on one side and one channel, each at most 5 minutes after the
+  one before, form a run with one header: the name as a heading, the
+  icon and the words of the channel, and the time. The footer of a chat
+  message holds its `SendState`, or its failure line with Retry when the
+  product gives `onretry`. A day marker counts the days in the time zone
+  of the product. The heading counts the mails and the chat messages,
+  and `note` says what the count leaves out. `showChannel={false}` hides
+  the channels in the view of one channel. The part takes the functions
+  of `MailThread` for its mails, and `onretry` gets the message with its
+  kind. When the product removes the entry that holds the focus, the
+  focus moves to the heading of the next message, else of the message
+  before, else of the conversation. The export `CONVERSATION_WORDS` and
+  the types `ChatMessage`, `ConversationEntry` and `ConversationWords`.
+- `@stack-kit/stack/service-icons/`: the icons of seven services,
+  WhatsApp, Viber, Telegram, Messenger, Instagram, Signal and Gmail, as
+  copies of the marks of Simple Icons 16.38.0 in the package, such as
+  `import WhatsApp from '@stack-kit/stack/service-icons/WhatsApp'`. Each
+  icon is a Svelte component with one filled path in `currentColor` on
+  the 24 px grid, drawn inside 22 of the 24 units, with the `size` and
+  the `class` of a Lucide icon and `aria-hidden="true"`. A product
+  passes it where a part takes an icon, such as `channelIcon` of a mail.
+  `LICENSE.md` in the folder names the source and its license, CC0-1.0.
+  Each mark is a trademark of its owner, and a product uses it under the
+  terms of that owner.
+- Records 0015 and 0016. Record 0015 keeps `svelte-sonner` 1.2.1 as the
+  toast library, behind `ui/sonner` and `behaviour/undo`. Record 0016
+  sets the browser target of the parts and the rules: Chrome and Edge
+  124, Firefox 128 and Safari 17.5.
+- `architecture/web-app.md`, "Browser support": the rules for the
+  target, and a table of each feature outside the target with the
+  browsers that miss it and its fallback. A product can take the target
+  or a higher one. `STACK.md` names the target, and `README.md` tells a
+  product with a web platform skill to name it in its `AGENTS.md`.
+- `README.md`: the version table counts a command of the package, an
+  entry of `bin` in `package.json`. A new command is a minor change. A
+  removed or renamed command, and a removed option of a command, is a
+  major change.
+- The command `stack-theme`, the theme generator in the package. A
+  product runs `npx --no -- stack-theme --base <color> --accent <color>
+  --contrast <0-100> --out src/theme.css` in its root folder, with no
+  clone and no other package. It needs Node 20 or later. The package
+  carries the generator and the front matter of `DESIGN.md` as JSON, so
+  a product needs no YAML parser. At each update, run the command again
+  with the inputs of the first line of the theme file, after the install
+  of the new tag.
+
+### Fixed
+
+- `behaviour/item`: in the page form, a second `close()` of
+  `itemInAddress` while the navigation of the first still runs does
+  nothing. So two quick presses of Esc, a held Esc and a double click on
+  Back go back one entry and never leave the list. The mark ends when
+  the navigation ends, when it fails or a `beforeNavigate` cancels it,
+  and when the history moves to a shallow entry. With `key`, `ItemPage`
+  runs `onback` at each press, so the page owns that way back.
+- `parts/MailThread`: the thread takes `onretry(mail)` and gives it to
+  each message, and `MailMessage` shows Retry only when the product
+  gives `onretry`. Before, Retry did nothing without that function, and
+  a failed mail in a thread always showed it. The type of `onretry` of
+  `MailMessage` widens to `(() => void) | undefined`.
+- `parts/MailMessage`: the edge of an open quote stands at the start of
+  the `dir` of the mail (`border-s`, `ps-3`). A quote in Arabic now has
+  its edge on the right. Before, the edge stood on the left.
+- `parts/MailMessage`: the name of a folded line shrinks when the line
+  has no room. Before, the name kept 192 px from 768 px, and the line
+  overflowed its column by 65, 73 and 93 px in item columns of 396, 388
+  and 368 px.
+- `parts/RichTextField`: Shift+Enter at the end of a line, of a list
+  item or of bold words puts the caret on a new line. Before, the words
+  that a person typed next joined the line above. The engine now adds
+  the second line break that a browser adds by itself.
+- `parts/RichTextField`: Enter and Shift+Enter right after a mark that
+  ends at the caret, such as `**word**` with `markdown` on, put the next
+  words on a new line with no mark. Before, Chromium and WebKit kept the
+  mark on the new line.
+- `rich-text`: the load list and the load into the field keep an empty
+  last line in two more shapes. A line break at the end of a mark goes
+  after the mark, so `<div><b>A<br></b><br></div>`, which Firefox
+  writes, keeps its empty last line. The break between two lines of an
+  item goes after the marks that the next line does not hold. So an item
+  that ends with a link and an empty line keeps that line at the next
+  load.
+- `parts/RichTextInPlace`: a click on an item that holds a line break
+  before a nested list puts the caret at the click, such as in
+  `<ul><li>One<br><br><ul><li>Sub</li></ul></li></ul>`. Before, the
+  count of the lines missed the empty line that the break draws.
+- `parts/HtmlFrame`: the part drops each attribute of a product whose
+  name in lowercase is an attribute that the part sets or removes, such
+  as `srcDoc`, `SANDBOX` or `SRC`. On the server, Svelte wrote such an
+  attribute before the attribute of the part, and the browser kept the
+  first one until the page hydrated. The part also drops
+  `allowfullscreen`, `allowpaymentrequest`, `webkitallowfullscreen` and
+  `mozallowfullscreen`, so a frame no longer gets fullscreen or the
+  payment feature from an attribute of a product. The types still accept
+  `allowfullscreen` and `name`. A narrower type waits for v3.0.0.
+- `parts/TimeZoneField`: the search turns off the vim keys of the
+  command, so Ctrl+K in the search no longer moves the highlight.
 
 ## v2.4.0 - 2026-11-15
 

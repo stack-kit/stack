@@ -3,16 +3,21 @@
 //
 // - blocksOf() reads the blocks of a text: the HTML through the load list, then each line as a person
 //   sees it, with its kind: a line, a heading of its level, an item of a list, a line of a quote or of
-//   code, a line that holds only pictures, or a divider. A picture is its words in its line, a divider a
-//   block of its words, and a link takes the words of its address after its own words (BlockMarks), so a
-//   picture, a divider and an address that change are changes of the diff. blockMarks() gives each
-//   picture address one number in both texts, so the same picture keeps its words.
+//   code, a line that holds only pictures, or a divider. An empty line is a block with no words, so an
+//   empty line that a whole text adds or removes is a change of the diff. A text that holds only one
+//   empty line has no block, as a text with no lines, because words() reads both alike. A picture is its
+//   words in its line, a divider a block of its words, and a link takes the words of its address after
+//   its own words (BlockMarks), so a picture, a divider and an address that change are changes of the diff.
+//   blockMarks() gives each picture address one number in both texts, so the same picture keeps its words.
 // - diffBlocks() gives the lines of a diff of kind text (### diff). A Myers diff on the words of the
 //   blocks finds the blocks that stay. Between two such blocks, a block whose words stand in two or more
 //   blocks of the new text is a split, and two or more blocks whose words stand in one block are a join.
-//   The other blocks pair by their place, and a Myers diff on the words of a pair marks each changed
-//   word. A block that keeps its words and becomes a heading or an item of a list takes the mark of the
-//   block. The lines follow the new text.
+//   An empty line between the parts of a split is an added line, and an empty line between the parts of
+//   a join is a removed line after the joined line, so each is one more change. The other blocks pair by
+//   their place, and a Myers diff on the words of a pair marks each changed word. A block that keeps its
+//   words and becomes a heading or an item of a list takes the mark of the block. An added empty line
+//   takes the mark of a new paragraph break, or of a new item in a list, and a removed one the mark of a
+//   paragraph break that went, unless it pairs with a line of words. The lines follow the new text.
 // - The limit is the most items, old and new together, that one comparison takes: the blocks of a
 //   changed run for a split or a join, or the words of a changed pair. Above it, the run has no split
 //   and no join, and the pair has no word marks.
@@ -73,8 +78,9 @@ function kindIn(name: string, around: TextBlockKind): TextBlockKind {
 /**
  * The blocks of a text. `load` gives the HTML through the load list, such as richTextFragment() of
  * @stack-kit/stack/rich-text, and `marks` the words of a picture, a divider and an address. Each block,
- * each line break and each line of a code block starts a line, as in words(). A line with no words and no
- * picture is no block, and a line whose only words are pictures is a block of pictures.
+ * each line break and each line of a code block starts a line, as in words(). An empty line is a block
+ * with no words: a block that holds no line, a line break that ends no words, and a line of a code block
+ * between two line ends. A line whose only words are pictures is a block of pictures.
  */
 export function blocksOf(html: string, load: (html: string) => ParentNode, marks: BlockMarks): TextBlock[] {
 	const out: TextBlock[] = [];
@@ -85,28 +91,39 @@ export function blocksOf(html: string, load: (html: string) => ParentNode, marks
 		l.text += words;
 		if (/\S/.test(words)) l.words = true;
 	};
-	const end = () => {
+	/** Ends the open line. A line with no words is a block only when `empty` is true. */
+	const end = (empty = false) => {
 		if (!line) return;
 		const text = norm(line.text);
-		if (text) out.push({ kind: line.pictures && !line.words ? 'picture' : line.kind, text });
+		if (text || empty) out.push({ kind: line.pictures && !line.words ? 'picture' : line.kind, text });
 		line = null;
 	};
 	function walk(node: ParentNode, kind: TextBlockKind) {
-		for (const child of node.childNodes) {
+		const nodes = node.childNodes;
+		for (let i = 0; i < nodes.length; i++) {
+			const child = nodes[i] as ChildNode;
 			if (child.nodeType === 3) {
 				const data = (child as Text).data.replaceAll(ZWS, '');
 				if (kind !== 'code') {
 					add(kind, data);
 					continue;
 				}
-				data.split('\n').forEach((part, i) => {
-					if (i > 0) end();
+				// Each line end of code ends its line, also an empty one.
+				data.split('\n').forEach((part, p) => {
+					if (p > 0) end(true);
 					add(kind, part);
 				});
 			} else if (child.nodeType === 1) {
 				const el = child as Element;
-				if (el.nodeName === 'BR') end();
-				else if (el.nodeName === 'IMG') {
+				if (el.nodeName === 'BR') {
+					// A line break ends its line. After no words, it ends an empty line, which it draws also as the
+					// last line break of its block: the load list keeps such a break only when it draws a line.
+					if (line && norm(line.text)) end();
+					else {
+						line = null;
+						out.push({ kind, text: '' });
+					}
+				} else if (el.nodeName === 'IMG') {
 					const l = open(kind);
 					l.text += ` ${marks.picture(el.getAttribute('src') ?? '', el.getAttribute('alt') ?? '')} `;
 					l.pictures = true;
@@ -116,8 +133,12 @@ export function blocksOf(html: string, load: (html: string) => ParentNode, marks
 					if (text) out.push({ kind: 'divider', text });
 				} else if (LINE_BLOCK.test(el.nodeName)) {
 					end();
-					walk(el, kindIn(el.nodeName, kind));
+					const inner = kindIn(el.nodeName, kind);
+					const before = out.length;
+					walk(el, inner);
 					end();
+					// A block that holds no line, such as <div><br></div>, is an empty line.
+					if (out.length === before) out.push({ kind: inner, text: '' });
 				} else {
 					walk(el, kind);
 					const href = el.nodeName === 'A' ? el.getAttribute('href') : null;
@@ -128,6 +149,8 @@ export function blocksOf(html: string, load: (html: string) => ParentNode, marks
 	}
 	walk(load(html), 'paragraph');
 	end();
+	// One empty line and nothing else is a text with no lines, as words() reads it.
+	if (out.length === 1 && out[0]?.kind === 'paragraph' && out[0].text === '') return [];
 	return out;
 }
 
@@ -256,17 +279,24 @@ function merge(tokens: { text: string; changed: boolean }[]): DiffWord[] {
 
 type Indexed = TextBlock & { at: number };
 
-/** The count of the blocks of `parts`, from `from`, whose words joined with one space are `whole`; 0 for none, or for fewer than two. */
+/**
+ * The count of the blocks of `parts`, from `from`, whose words joined with one space are `whole`, with each
+ * empty line between them; 0 for none, or for fewer than two blocks with words.
+ */
 function cover(whole: string, parts: readonly Indexed[], from: number): number {
 	let acc = parts[from]?.text ?? '';
-	if (!whole.startsWith(acc)) return 0;
+	if (!acc || !whole.startsWith(acc)) return 0;
 	let k = 1;
+	let words = 1;
 	while (acc.length < whole.length && from + k < parts.length) {
-		acc += ` ${parts[from + k]?.text ?? ''}`;
+		const text = parts[from + k]?.text ?? '';
 		k++;
+		if (!text) continue;
+		acc += ` ${text}`;
+		words++;
 		if (!whole.startsWith(acc)) return 0;
 	}
-	return acc === whole && k >= 2 ? k : 0;
+	return acc === whole && words >= 2 ? k : 0;
 }
 
 type Anchor = { i: number; j: number; kind: 'split' | 'join'; k: number };
@@ -303,6 +333,12 @@ function runLines(r: readonly Indexed[], s: readonly Indexed[], limit: number): 
 		if (hit.kind === 'split') {
 			const x = r[hit.i] as Indexed;
 			s.slice(hit.j, hit.j + hit.k).forEach((y, p) => {
+				// An empty line between the parts of a split is an added line. An empty item of a list takes the mark of an item.
+				if (!y.text) {
+					const start = startMark(y.kind, null);
+					out.push({ kind: 'added', text: '', new: y.at + 1, ...(start.length > 0 ? { words: [...start, { text: '' }] } : {}) });
+					return;
+				}
 				const words = [...startMark(y.kind, x.kind), { text: y.text }, ...(p < hit.k - 1 ? [{ text: '', block: 'split' as DiffBlock }] : [])];
 				out.push({ kind: 'same', text: y.text, old: x.at + 1, new: y.at + 1, ...(words.length > 1 ? { words } : {}) });
 			});
@@ -312,11 +348,18 @@ function runLines(r: readonly Indexed[], s: readonly Indexed[], limit: number): 
 			const y = s[hit.j] as Indexed;
 			const parts = r.slice(hit.i, hit.i + hit.k);
 			const words: DiffWord[] = [...startMark(y.kind, parts[0]?.kind ?? null)];
+			// An empty line between the parts of a join is a removed line after the joined line, as an empty line
+			// between the parts of a split is an added line. The first part always holds words.
+			const empty: DiffLine[] = [];
 			parts.forEach((x, p) => {
+				if (!x.text) {
+					empty.push({ kind: 'removed', text: '', old: x.at + 1 });
+					return;
+				}
 				if (p > 0) words.push({ text: '', block: 'join' });
 				words.push({ text: p > 0 ? ` ${x.text}` : x.text });
 			});
-			out.push({ kind: 'same', text: y.text, old: (parts[0]?.at ?? 0) + 1, new: y.at + 1, words });
+			out.push({ kind: 'same', text: y.text, old: (parts[0]?.at ?? 0) + 1, new: y.at + 1, words }, ...empty);
 			i = hit.i + hit.k;
 			j = hit.j + 1;
 		}
@@ -361,6 +404,18 @@ function sameLines(x: Indexed, y: Indexed): DiffLine[] {
 	];
 }
 
+/**
+ * An added or a removed empty line with no mark takes the mark of a paragraph break that it adds or
+ * removes, so that the line says what changed. An empty line that pairs with a line of words, as the
+ * added line that replaces it or the removed line that it replaces, takes no mark: its words changed.
+ * `replaced` holds the old number of each removed line that an added line replaces.
+ */
+function emptyMark(l: DiffLine, replaced: ReadonlySet<number>): DiffLine {
+	if (l.kind === 'same' || l.kind === 'folded' || l.text !== '' || l.words) return l;
+	if (l.kind === 'added' ? l.replaces !== undefined : l.old !== undefined && replaced.has(l.old)) return l;
+	return { ...l, words: [{ text: '', block: l.kind === 'added' ? 'split' : 'join' }] };
+}
+
 /** The lines of a diff of kind text from the blocks `a` of the old text to the blocks `b` of the new text. */
 export function diffBlocks(a: readonly TextBlock[], b: readonly TextBlock[], limit: number = DIFF_LIMIT): DiffLine[] {
 	const x = a.map((t, at) => ({ kind: t.kind, text: norm(t.text), at }));
@@ -388,5 +443,6 @@ export function diffBlocks(a: readonly TextBlock[], b: readonly TextBlock[], lim
 		else s.push(y[j++] as Indexed);
 	}
 	flush();
-	return out;
+	const replaced = new Set(out.flatMap((l) => (l.kind === 'added' && l.replaces !== undefined ? [l.replaces] : [])));
+	return out.map((l) => emptyMark(l, replaced));
 }

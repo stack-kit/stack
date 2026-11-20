@@ -15,7 +15,9 @@
 // the shown toast of that id, and svelte-sonner shows the new one in front.
 //
 // Open is the cancel button of svelte-sonner, because svelte-sonner draws it before the action, so Undo
-// stays last. That button removes the toast with no onDismiss, so Open ends the binding itself.
+// stays last. That button removes the toast with no onDismiss, so Open ends the binding itself. The
+// words of the two buttons are Undo and Open, or undoLabel and openLabel of the call, in the language
+// of the product. svelte-sonner takes each label with the call, so the words come with each call.
 //
 // The root layout renders the Toaster of ui/sonner once. A Toaster in a page ends with the page:
 // svelte-sonner then clears the timer of the toast, onAutoClose never runs, and the key stays bound
@@ -51,6 +53,13 @@ export type UndoOptions = {
 	 * falls to the page.
 	 */
 	open?: () => void | Promise<void>;
+	/** The word of the Undo button, in the language of the product. "Undo" by default. */
+	undoLabel?: string;
+	/**
+	 * The word of the Open button, in the language of the product. "Open" by default. It counts only
+	 * with open. The word never names the result: the text of the toast names it.
+	 */
+	openLabel?: string;
 };
 
 /**
@@ -137,8 +146,8 @@ export function undoToast(text: string, o: UndoOptions): void {
 		sonnerId = toast(text, {
 			// With until, svelte-sonner runs no timer of its own, so hover does not pause the end.
 			duration: left === undefined ? (o.duration ?? 10000) : Number.POSITIVE_INFINITY,
-			...(o.open === undefined ? {} : { cancel: { label: 'Open', onClick: openResult } }),
-			action: { label: 'Undo', onClick: run },
+			...(o.open === undefined ? {} : { cancel: { label: o.openLabel ?? 'Open', onClick: openResult } }),
+			action: { label: o.undoLabel ?? 'Undo', onClick: run },
 			onDismiss: () => end(false),
 			onAutoClose: () => end(false)
 		});

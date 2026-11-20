@@ -1,7 +1,9 @@
-// The state of the writing tools of one rich text field (### rich-text-field in DESIGN.md, "Writing
-// tools"). The product gives one function, run(request, signal); this module owns the rest: the states,
-// the numbering of the changes, the open, taken and left state of each change, and the diff of a whole
-// text. RichTextField.svelte creates one when the page gives `writing`, and it loads in the review chunk.
+// The state of the writing tools of one field (### rich-text-field in DESIGN.md, "Writing tools"). The
+// product gives one function, run(request, signal); this module owns the rest: the states, the numbering
+// of the changes, the open, taken and left state of each change, and the diff of a whole text. It runs on
+// a text model (TextModel of engine/types.ts), which gives the words as lines, finds and marks a change,
+// and makes a Take. RichTextField.svelte creates one on its engine when the page gives `writing`, and it
+// loads in the review chunk.
 // It is a .svelte.js file with its types in JSDoc, because the dev server of a product does not compile a
 // .svelte.ts file inside a package (scripts/rune-types.mjs).
 //
@@ -18,10 +20,15 @@
 //   it. When the page takes pending away, a request or a result that came from a pending ends, and one that
 //   the person started stays.
 // - editor.load() of the page ends the request and the result of the content before it (reset).
-// - A result that is not a WritingResult, or an error while the field shows it, fails the request.
+// - A result that the field does not take, or an error while the field shows it, fails the request.
+// - A whole text comes as html. A field that sets `plain` in its WritingField also takes it as plain
+//   (PlainResult of plain.ts), which becomes HTML with each line a line of its own, so the diff and Take
+//   all read it as the lines of a text with no format. A result that gives both takes html. The rich text
+//   field does not set `plain`, so a plain whole text fails there as before.
 // - A change that the person left stays in Left out, and Take after all takes it while its words stand.
 // - ondecide gives each decision to the product, for its log, after the field set the new state.
 import { untrack } from 'svelte';
+import { plainHtml } from './plain.js';
 import { WRITING_WORDS } from './words.js';
 
 /** @typedef {import('#lib/stack/rich-text.js').RichTextFailure} RichTextFailure */
@@ -33,9 +40,31 @@ import { WRITING_WORDS } from './words.js';
 /** @typedef {import('#lib/stack/rich-text.js').WritingRequest} WritingRequest */
 /** @typedef {import('#lib/stack/rich-text.js').WritingResult} WritingResult */
 /** @typedef {import('#lib/stack/rich-text.js').WritingWords} WritingWords */
-/** @typedef {import('../engine/types.js').Engine} Engine */
-/** @typedef {import('../engine/types.js').FoundChange} FoundChange */
-/** @typedef {NonNullable<RichTextWriting['pending']>} Pending */
+/** @typedef {import('./plain.js').PlainResult} PlainResult */
+/**
+ * @template R
+ * @typedef {import('../engine/types.js').FoundChange<R>} FoundChange
+ */
+/**
+ * @template R
+ * @typedef {import('../engine/types.js').TextModel<R>} TextModel
+ */
+
+/**
+ * A result that the writing tools take: a WritingResult, or a whole text as plain, which only a field
+ * with `plain` takes. It is no public type.
+ * @typedef {WritingResult | PlainResult} ReviewResult
+ */
+
+/**
+ * The writing prop of a field, with run() and pending that can give a ReviewResult. A RichTextWriting is
+ * one, so the rich text field gives its prop as it is.
+ * @typedef {Omit<RichTextWriting, 'run' | 'pending'> & {
+ *   run: (request: WritingRequest, signal: AbortSignal) => Promise<ReviewResult>;
+ *   pending?: { kind: WritingKind; asked?: { by: string; at: string } | undefined; result: Promise<ReviewResult> | ReviewResult } | undefined;
+ * }} ReviewWriting
+ */
+/** @typedef {NonNullable<ReviewWriting['pending']>} Pending */
 
 /**
  * A line of the diff of a whole text, as diff.ts gives it.
@@ -58,7 +87,7 @@ import { WRITING_WORDS } from './words.js';
  *   | { kind: 'stopped'; request: WritingRequest; asked: Asked }
  *   | { kind: 'failed'; request: WritingRequest; asked: Asked; words: string | null }
  *   | { kind: 'changes'; request: WritingRequest; asked: Asked; changes: readonly Change[]; note: string | null }
- *   | { kind: 'text'; request: WritingRequest; asked: Asked; html: string; title: string; note: string | null; lines: DiffLine[]; count: number }} WritingState
+ *   | { kind: 'text'; request: WritingRequest; asked: Asked; html: string; plain: string | null; title: string; note: string | null; lines: DiffLine[]; count: number }} WritingState
  */
 
 /**
@@ -68,6 +97,7 @@ import { WRITING_WORDS } from './words.js';
  * @property {(src: string) => boolean} picture
  * @property {() => boolean} readonly True while the page makes the text read-only.
  * @property {(words: string) => void} alert Shows the words of the page for a chunk that did not load, in the line with role="alert" above the text.
+ * @property {boolean} [plain] True when the field takes a whole text as plain (PlainResult), such as a field of a plain text. The rich text field takes html only.
  */
 
 /**
@@ -96,11 +126,13 @@ function isChange(c) {
 const optionalText = (t) => t === undefined || typeof t === 'string';
 
 /**
- * Why a result of the service is no WritingResult, or null for a result that the field can show.
+ * Why a result of the service is no result that the field takes, or null for a result that the field can
+ * show. A whole text as plain passes only when `plain` is true.
  * @param {unknown} result
+ * @param {boolean} plain
  * @returns {string | null}
  */
-function malformed(result) {
+function malformed(result, plain) {
 	if (!result || typeof result !== 'object') return 'The writing service gave no result object.';
 	const r = /** @type {Record<string, unknown>} */ (result);
 	if (!optionalText(r.note)) return 'The note of the result is not a string.';
@@ -109,8 +141,24 @@ function malformed(result) {
 		const bad = r.changes.findIndex((c) => !isChange(c));
 		return bad < 0 ? null : `Change ${bad} of the result needs block as a whole number from 0, and old, new, rule and reason as strings.`;
 	}
-	if (r.kind === 'text') return typeof r.html === 'string' && optionalText(r.title) ? null : 'A whole text needs html as a string, and its title is a string or undefined.';
+	if (r.kind === 'text') {
+		const text = typeof r.html === 'string' || (plain && r.html === undefined && typeof r.plain === 'string');
+		if (text && optionalText(r.title)) return null;
+		return plain ? 'A whole text needs html or plain as a string, and its title is a string or undefined.' : 'A whole text needs html as a string, and its title is a string or undefined.';
+	}
 	return 'The writing service gave a result that is neither changes nor a text.';
+}
+
+/**
+ * A whole text that malformed() passed, as HTML, and the plain text that the service gave, or null for a
+ * text that it gave as HTML. html wins when the result gives both.
+ * @param {Extract<ReviewResult, { kind: 'text' }>} result
+ * @returns {{ html: string; plain: string | null }}
+ */
+function wholeText(result) {
+	if ('html' in result && typeof result.html === 'string') return { html: result.html, plain: null };
+	const { plain } = /** @type {{ plain: string }} */ (result);
+	return { html: plainHtml(plain), plain };
 }
 
 /**
@@ -127,19 +175,23 @@ function numbered(list, words) {
 		.map(({ c }, i) => ({ block: c.block, old: c.old, new: c.new, rule: c.rule, reason: c.reason, n: i + 1, state: /** @type {const} */ ('open') }));
 }
 
+/**
+ * The writing tools on one text model.
+ * @template [R=unknown] The handle of a part of a line of the model, such as a DOM Range of the engine.
+ */
 export class Writing {
 	/** The state of the last request. */
 	state = $state.raw(/** @type {WritingState} */ ({ kind: 'idle' }));
 	/** The selected words that a rewrite or an instruction is for, or null for the whole text. */
 	scope = $state.raw(/** @type {TextRange | null} */ (null));
 	/** Where each change that is not taken stands in the text. A change that is not found is old. */
-	found = $state.raw(/** @type {ReadonlyMap<number, FoundChange>} */ (new Map()));
+	found = $state.raw(/** @type {ReadonlyMap<number, FoundChange<R>>} */ (new Map()));
 	/** The part that shows the diff of a whole text, from the chunk of the diff. */
 	Proposal = $state.raw(/** @type {ProposalPart | null} */ (null));
 
-	/** @type {Engine} */
-	#engine;
-	/** @type {() => RichTextWriting} */
+	/** @type {TextModel<R>} */
+	#model;
+	/** @type {() => ReviewWriting} */
 	#config;
 	/** @type {(failure: RichTextFailure) => string | null} */
 	#fail;
@@ -172,13 +224,13 @@ export class Writing {
 	#active = null;
 
 	/**
-	 * @param {Engine} engine
-	 * @param {() => RichTextWriting} config
+	 * @param {TextModel<R>} model
+	 * @param {() => ReviewWriting} config
 	 * @param {(failure: RichTextFailure) => string | null} fail
 	 * @param {WritingField} field
 	 */
-	constructor(engine, config, fail, field) {
-		this.#engine = engine;
+	constructor(model, config, fail, field) {
+		this.#model = model;
 		this.#config = config;
 		this.#fail = fail;
 		this.#field = field;
@@ -222,11 +274,11 @@ export class Writing {
 	 * @returns {boolean}
 	 */
 	run(kind, extra = {}) {
-		const e = this.#engine;
-		if (this.locks || this.#field.readonly() || e.empty()) return false;
+		const m = this.#model;
+		if (this.locks || this.#field.readonly() || m.empty()) return false;
 		const scope = kind === 'rewrite' || kind === 'instruction' ? this.scope : null;
 		/** @type {WritingRequest} */
-		const request = { kind, html: e.html(), words: e.words(), scope, ...extra };
+		const request = { kind, html: m.html(), words: m.words(), scope, ...extra };
 		this.#start(request, null, null, (signal) => this.#config().run(request, signal));
 		return true;
 	}
@@ -259,9 +311,9 @@ export class Writing {
 	/** @param {Pending} pending */
 	#adopt(pending) {
 		this.#started.add(pending);
-		const e = this.#engine;
+		const m = this.#model;
 		/** @type {WritingRequest} */
-		const request = { kind: pending.kind, html: e.html(), words: e.words(), scope: null };
+		const request = { kind: pending.kind, html: m.html(), words: m.words(), scope: null };
 		this.#start(request, pending.asked ?? null, pending, () => Promise.resolve(pending.result));
 	}
 
@@ -303,7 +355,7 @@ export class Writing {
 	destroy() {
 		this.#end();
 		this.#held = null;
-		this.#engine.mark([], null);
+		this.#model.mark([], null);
 	}
 
 	#end() {
@@ -321,12 +373,12 @@ export class Writing {
 	}
 
 	/**
-	 * Runs a request. A rejection of `get`, a result that is no WritingResult and an error while the field
+	 * Runs a request. A rejection of `get`, a result that the field does not take and an error while the field
 	 * shows the result each fail the request, with the kind writing, and unlock the text.
 	 * @param {WritingRequest} request
 	 * @param {Asked} asked
 	 * @param {Pending | null} from The pending object of the request, or null for a request of the person.
-	 * @param {(signal: AbortSignal) => Promise<WritingResult>} get
+	 * @param {(signal: AbortSignal) => Promise<ReviewResult>} get
 	 */
 	#start(request, asked, from, get) {
 		this.#end();
@@ -352,15 +404,15 @@ export class Writing {
 	 * @param {number} token
 	 * @param {WritingRequest} request
 	 * @param {Asked} asked
-	 * @param {WritingResult} result
+	 * @param {ReviewResult} result
 	 */
 	async #accept(token, request, asked, result) {
 		if (token !== this.#token) return;
-		const why = malformed(result);
+		const why = malformed(result, this.#field.plain === true);
 		if (why) throw new TypeError(why);
 		if (result.kind === 'changes') {
 			this.#abort = null;
-			this.#set({ kind: 'changes', request, asked, changes: numbered(result.changes, this.#engine.words()), note: result.note || null });
+			this.#set({ kind: 'changes', request, asked, changes: numbered(result.changes, this.#model.words()), note: result.note || null });
 			return;
 		}
 		// The request runs on while the chunk of the diff loads, so Stop keeps the focus until the diff shows.
@@ -379,11 +431,12 @@ export class Writing {
 			return;
 		}
 		if (token !== this.#token) return;
-		const { lines, count } = chunk.linesOf(this.#engine.html(), result.html, { preset: this.#field.preset, picture: this.#field.picture }, this.words);
+		const { html, plain } = wholeText(result);
+		const { lines, count } = chunk.linesOf(this.#model.html(), html, { preset: this.#field.preset, picture: this.#field.picture }, this.words);
 		this.#abort = null;
 		this.Proposal = chunk.Proposal;
 		const title = result.title || this.words.title[request.kind];
-		this.#set({ kind: 'text', request, asked, html: result.html, title, note: result.note || null, lines, count });
+		this.#set({ kind: 'text', request, asked, html, plain, title, note: result.note || null, lines, count });
 	}
 
 	// ---- The changes
@@ -393,7 +446,7 @@ export class Writing {
 		// The field calls it from its effects too, so it reads no state into them.
 		untrack(() => {
 			const spots = this.changes.filter((c) => c.state !== 'taken').map(({ n, block, old }) => ({ n, block, old }));
-			this.found = spots.length > 0 ? this.#engine.find(spots) : new Map();
+			this.found = spots.length > 0 ? this.#model.find(spots) : new Map();
 			this.#paint();
 		});
 	}
@@ -410,7 +463,7 @@ export class Writing {
 	#paint() {
 		const marks = this.changes.flatMap((c) => (c.state === 'open' ? (this.found.get(c.n)?.range ?? []) : []));
 		const active = this.#active !== null ? (this.found.get(this.#active)?.range ?? null) : null;
-		this.#engine.mark(marks, active);
+		this.#model.mark(marks, active);
 	}
 
 	/**
@@ -435,7 +488,7 @@ export class Writing {
 	 */
 	#make(ns, from) {
 		if (this.locks || this.#field.readonly()) return;
-		/** @type {{ range: Range; text: string }[]} */
+		/** @type {{ range: R; text: string }[]} */
 		const parts = [];
 		/** @type {{ line: number; from: number; to: number }[]} */
 		const spans = [];
@@ -451,7 +504,7 @@ export class Writing {
 			made.push(c.n);
 		}
 		if (parts.length === 0) return;
-		this.#engine.replace(parts);
+		this.#model.replace(parts);
 		this.#decide(made, 'taken', from === 'left');
 	}
 
@@ -481,7 +534,7 @@ export class Writing {
 			// The state goes back to idle before ondecide, so a second Take all of the same text does nothing,
 		// also when ondecide of the page throws.
 			if (this.#field.readonly()) return;
-			this.#engine.replaceAll(s.html);
+			this.#model.replaceAll(s.html, s.plain);
 			this.#set({ kind: 'idle' });
 			this.#config().ondecide?.({ request: s.request, change: 'text', taken: true });
 			return;
@@ -501,13 +554,15 @@ export class Writing {
 }
 
 /**
- * The writing tools of a field, on its engine, with the `writing` prop of the page and the onfailure of the field.
- * @param {Engine} engine
- * @param {() => RichTextWriting} config
+ * The writing tools of a field, on its text model, such as the engine of the rich text field, with the
+ * `writing` prop of the page and the onfailure of the field.
+ * @template R
+ * @param {TextModel<R>} model
+ * @param {() => ReviewWriting} config
  * @param {(failure: RichTextFailure) => string | null} fail
  * @param {WritingField} field
- * @returns {Writing}
+ * @returns {Writing<R>}
  */
-export function createWriting(engine, config, fail, field) {
-	return new Writing(engine, config, fail, field);
+export function createWriting(model, config, fail, field) {
+	return new Writing(model, config, fail, field);
 }

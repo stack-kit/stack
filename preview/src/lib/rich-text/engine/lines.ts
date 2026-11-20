@@ -10,6 +10,22 @@ export const ZWS = '​';
 type Piece = { node: Text; line: number; start: number; offsets: number[] };
 export type Lines = { lines: string[]; pieces: Piece[] };
 
+/** True when no content of its line follows the line break inside `root`, so that it starts no line after it. */
+export function trailing(br: Node, root: Node): boolean {
+	for (let n: Node = br; ; ) {
+		for (let s = n.nextSibling; s; s = s.nextSibling) {
+			if (s instanceof Text) {
+				if (s.data.replaceAll(ZWS, '') !== '') return false;
+				continue;
+			}
+			return s instanceof Element && LINE_BLOCK.test(s.nodeName);
+		}
+		const p = n.parentNode;
+		if (!p || p === root || (p instanceof Element && LINE_BLOCK.test(p.nodeName))) return true;
+		n = p;
+	}
+}
+
 /** The lines of the text and the place of each character. A zero-width space is no character, and a no-break space is a space. */
 export function readLines(root: HTMLElement): Lines {
 	const lines = [''];
@@ -20,22 +36,6 @@ export function readLines(root: HTMLElement): Lines {
 		pending = false;
 	};
 	const last = () => lines.length - 1;
-
-	/** True when no content follows the line break in its line, so that it makes no line. */
-	function trailing(br: Node): boolean {
-		for (let n: Node = br; ; ) {
-			for (let s = n.nextSibling; s; s = s.nextSibling) {
-				if (s instanceof Text) {
-					if (s.data.replaceAll(ZWS, '') !== '') return false;
-					continue;
-				}
-				return s instanceof Element && LINE_BLOCK.test(s.nodeName);
-			}
-			const p = n.parentNode;
-			if (!p || p === root || (p instanceof Element && LINE_BLOCK.test(p.nodeName))) return true;
-			n = p;
-		}
-	}
 
 	function walk(node: Node, pre: boolean) {
 		for (let child = node.firstChild; child; child = child.nextSibling) {
@@ -63,10 +63,9 @@ export function readLines(root: HTMLElement): Lines {
 				piece?.offsets.push(data.length);
 			} else if (child instanceof Element) {
 				if (child.nodeName === 'BR') {
-					if (!trailing(child)) {
-						if (pending) newLine();
-						pending = true;
-					}
+					// A line break alone in its line draws that line, also as the last line break of its block.
+					if (pending) newLine();
+					pending = true;
 				} else if (LINE_BLOCK.test(child.nodeName)) {
 					if (pending || lines[last()] !== '') newLine();
 					walk(child, pre || child.nodeName === 'PRE');

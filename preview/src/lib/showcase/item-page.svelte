@@ -22,20 +22,20 @@
 		'Check the photos of the goods before the refund. A damaged item gets a part of the amount only.'
 	];
 	const requests: Request[] = [
-		['REF-0311', 'Refund for order 8841', 'Harbour Studio', '1,240.00', '18 Nov 13:52', '2026-11-18T13:52', 'Open'],
-		['REF-0310', 'Two chairs returned unopened', 'Northwind Bakery', '312.00', '18 Nov 11:05', '2026-11-18T11:05', 'Open'],
-		['REF-0309', 'Wrong size of the desk lamps', 'Pine Street Dental', '86.50', '17 Nov 16:40', '2026-11-17T16:40', 'Waiting'],
-		['REF-0308', 'Parcel damaged on arrival, with photos of the box', 'Blue Fern Garden', '2,075.25', '17 Nov 09:12', '2026-11-17T09:12', 'Open'],
-		['REF-0307', 'Second charge for one order', 'Copper Kettle Cafe', '145.90', '16 Nov 15:30', '2026-11-16T15:30', 'Open'],
-		['REF-0306', 'Late delivery of the printer paper', 'Silver Birch Hotel', '58.00', '16 Nov 10:48', '2026-11-16T10:48', 'Waiting'],
-		['REF-0305', 'Return of a gift card', 'Linden Books', '50.00', '15 Nov 17:20', '2026-11-15T17:20', 'Open'],
-		['REF-0304', 'Missing part of a shelf', 'Quarry Lane Dental', '74.30', '15 Nov 08:55', '2026-11-15T08:55', 'Open'],
-		['REF-0303', 'Cancelled order of office chairs', 'Meridian Freight', '980.00', '14 Nov 14:05', '2026-11-14T14:05', 'Waiting'],
-		['REF-0302', 'Price changed after the order', 'Atlas Engineering', '42.10', '14 Nov 09:40', '2026-11-14T09:40', 'Open'],
-		['REF-0301', 'Coffee machine sent twice', 'Harbour Studio', '415.00', '13 Nov 16:15', '2026-11-13T16:15', 'Open'],
-		['REF-0300', 'Return of unused paint', 'Northwind Bakery', '67.80', '13 Nov 11:30', '2026-11-13T11:30', 'Waiting'],
-		['REF-0299', 'Wrong colour of the curtains', 'Pine Street Dental', '129.00', '12 Nov 15:50', '2026-11-12T15:50', 'Open'],
-		['REF-0298', 'Discount missing on the invoice', 'Blue Fern Garden', '35.00', '12 Nov 10:20', '2026-11-12T10:20', 'Open']
+		['REF-0311', 'Refund for order 8841', 'Harbour Studio', '1,240.00', '18 Nov, 13:52', '2026-11-18T13:52', 'Open'],
+		['REF-0310', 'Two chairs returned unopened', 'Northwind Bakery', '312.00', '18 Nov, 11:05', '2026-11-18T11:05', 'Open'],
+		['REF-0309', 'Wrong size of the desk lamps', 'Pine Street Dental', '86.50', '17 Nov, 16:40', '2026-11-17T16:40', 'Waiting'],
+		['REF-0308', 'Parcel damaged on arrival, with photos of the box', 'Blue Fern Garden', '2,075.25', '17 Nov, 09:12', '2026-11-17T09:12', 'Open'],
+		['REF-0307', 'Second charge for one order', 'Copper Kettle Cafe', '145.90', '16 Nov, 15:30', '2026-11-16T15:30', 'Open'],
+		['REF-0306', 'Late delivery of the printer paper', 'Silver Birch Hotel', '58.00', '16 Nov, 10:48', '2026-11-16T10:48', 'Waiting'],
+		['REF-0305', 'Return of a gift card', 'Linden Books', '50.00', '15 Nov, 17:20', '2026-11-15T17:20', 'Open'],
+		['REF-0304', 'Missing part of a shelf', 'Quarry Lane Dental', '74.30', '15 Nov, 08:55', '2026-11-15T08:55', 'Open'],
+		['REF-0303', 'Cancelled order of office chairs', 'Meridian Freight', '980.00', '14 Nov, 14:05', '2026-11-14T14:05', 'Waiting'],
+		['REF-0302', 'Price changed after the order', 'Atlas Engineering', '42.10', '14 Nov, 09:40', '2026-11-14T09:40', 'Open'],
+		['REF-0301', 'Coffee machine sent twice', 'Harbour Studio', '415.00', '13 Nov, 16:15', '2026-11-13T16:15', 'Open'],
+		['REF-0300', 'Return of unused paint', 'Northwind Bakery', '67.80', '13 Nov, 11:30', '2026-11-13T11:30', 'Waiting'],
+		['REF-0299', 'Wrong colour of the curtains', 'Pine Street Dental', '129.00', '12 Nov, 15:50', '2026-11-12T15:50', 'Open'],
+		['REF-0298', 'Discount missing on the invoice', 'Blue Fern Garden', '35.00', '12 Nov, 10:20', '2026-11-12T10:20', 'Open']
 	].map(([key, title, client, amount, received, datetime, status]) => ({ key, title, client, amount, received, datetime, status, text: [...said, ...said, ...said] }));
 
 	const uid = $props.id();

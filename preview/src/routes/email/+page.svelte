@@ -2,13 +2,14 @@
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import { html, text, SANS } from '#lib/email/email.js';
 	import { emailColors } from '#lib/email/design.js';
-	import { checkTemplate } from '#lib/email/guard.js';
+	import { checkRichText, checkTemplate } from '#lib/email/guard.js';
 	import { KINDS } from '#lib/email/samples.js';
 	import { view } from '#lib/preview/view.svelte.js';
 
 	// The template of "## Email" in DESIGN.md and email.ts must agree, as the component menu and
 	// the showcases must agree on the component page.
 	checkTemplate();
+	checkRichText();
 
 	const WIDTHS = [600, 375];
 	// Inter shows only where the device has it installed, so the second face is the stack without

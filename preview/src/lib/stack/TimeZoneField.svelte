@@ -65,7 +65,9 @@
 	// list holds more than 400 zones and the person searches it. The list comes from Intl, with UTC
 	// first and the current name of each renamed zone. Each offset is the offset on one date, because
 	// daylight saving time changes it. The search finds a zone by its name, its city and the old name
-	// of its city.
+	// of its city. The popover is fixed: Command.Root scrolls the chosen row into view before the popover
+	// has its place, and with the absolute place of a popover that scroll moves the page to its top, so
+	// the list then opens above the field.
 	let {
 		value = $bindable(),
 		label = 'Time zone',
@@ -147,8 +149,8 @@
 			{/if}
 			<ChevronsUpDownIcon class="text-muted-foreground" />
 		</Popover.Trigger>
-		<Popover.Content align="start" class="p-0" role="dialog" aria-label="Choose a time zone">
-			<Command.Root value={chosen?.id ?? ''}>
+		<Popover.Content align="start" strategy="fixed" class="p-0" role="dialog" aria-label="Choose a time zone">
+			<Command.Root value={chosen?.id ?? ''} vimBindings={false}>
 				<Command.Input placeholder="Search by zone or city" />
 				<Command.List>
 					<Command.Empty>No time zone matches.</Command.Empty>

@@ -1,6 +1,6 @@
 {
   "name": "@stack-kit/stack",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "description": "The shared design file, its themes and its checks.",
   "license": "MIT",
@@ -10,7 +10,8 @@
   },
   "type": "module",
   "bin": {
-    "stack-contrast": "scripts/contrast.mjs"
+    "stack-contrast": "scripts/contrast.mjs",
+    "stack-theme": "scripts/generate.mjs"
   },
   "files": [
     "DESIGN.md",
@@ -34,15 +35,20 @@
     "preview/src/lib/stack/",
     "preview/src/lib/rich-text/",
     "preview/src/lib/outside/",
+    "preview/src/lib/service-icons/",
     "preview/src/lib/email/email.ts",
     "preview/src/lib/print/chart-width.ts",
     "preview/src/lib/print/pattern-fills.ts",
     "preview/src/lib/print/marks.ts",
     "scripts/contrast.mjs",
+    "scripts/generate.mjs",
+    "scripts/theme.mjs",
     "scripts/lib/color.mjs",
     "scripts/lib/design.mjs",
+    "scripts/lib/design-front.json",
     "scripts/lib/email-roles.mjs",
     "scripts/lib/email-roles.d.mts",
+    "scripts/lib/generate.mjs",
     "scripts/lib/pairs.mjs"
   ],
   "imports": {
@@ -54,6 +60,7 @@
     "./behaviour/*": "./preview/src/lib/stack/behaviour/*.ts",
     "./outside/*": "./preview/src/lib/outside/*.svelte",
     "./outside/codes": "./preview/src/lib/outside/codes.ts",
+    "./service-icons/*": "./preview/src/lib/service-icons/*.svelte",
     "./utils": "./preview/src/lib/utils.ts",
     "./hooks/*": "./preview/src/lib/hooks/*.svelte.js",
     "./patterns": "./preview/src/lib/stack/patterns.ts",
@@ -86,9 +93,10 @@
     "parts": "node scripts/parts.mjs",
     "contract": "node scripts/contract.mjs",
     "frame": "node scripts/frame-height.mjs",
+    "service-icons": "node scripts/service-icons.mjs",
     "preversion": "node scripts/parts.mjs --release && node scripts/contract.mjs gate \"$npm_new_version\"",
-    "version": "node scripts/index.mjs && node scripts/component-lock.mjs && node scripts/contract.mjs write && git add DESIGN.index.md package.json preview/components.lock.json preview/contract.json",
-    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run && npm run parts && node --test scripts/parts.test.mjs scripts/rich-text-diff.test.mjs scripts/rich-text-writing.test.mjs scripts/keys.test.mjs scripts/rich-text-field.test.mjs && npm run frame && node --test scripts/frame-height.test.mjs"
+    "version": "node scripts/index.mjs && node scripts/theme.mjs --check && node scripts/component-lock.mjs && node scripts/contract.mjs write && git add DESIGN.index.md package.json preview/components.lock.json preview/contract.json",
+    "check": "npm run lint && npm run theme -- --check && npm run contrast && npm run contrast:examples && npm run generate -- --self-test && npm run names && npm run service-icons && npm run markers && npm run components && npm run lock -- --check && npm run keys && npm run index -- --dry-run && npm run parts && node --test scripts/parts.test.mjs scripts/rich-text-diff.test.mjs scripts/rich-text-writing.test.mjs scripts/keys.test.mjs scripts/rich-text-field.test.mjs scripts/html-frame.test.mjs scripts/frame-message.test.mjs scripts/fold.test.mjs scripts/thread-entries.test.mjs scripts/rich-text-markdown.test.mjs scripts/email.test.mjs scripts/service-icons.test.mjs && npm run frame && node --test scripts/frame-height.test.mjs"
   },
   "devDependencies": {
     "@google/design.md": "0.4.0",

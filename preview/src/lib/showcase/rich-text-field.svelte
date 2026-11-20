@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Field from '#lib/components/ui/field/index.js';
 	import ColorPicker from '#lib/rich-text/toolbar/ColorPicker.svelte';
-	import type { OnFailure, RichTextEditor, RichTextWriting, StoredPicture, TextRange, WritingChange, WritingMode, WritingRequest, WritingResult } from '#lib/stack/rich-text.js';
+	import type { OnFailure, RichTextEditor, RichTextQuote, RichTextWriting, StoredPicture, TextRange, WritingChange, WritingMode, WritingRequest, WritingResult } from '#lib/stack/rich-text.js';
 
 	// The field loads in a chunk of its own, and its engine in another, so the page chunk stays small.
 	const loading = import('#lib/stack/RichTextField.svelte');
@@ -83,6 +83,13 @@
 	let editor = $state<RichTextEditor | null>(null);
 	let changed = $state(0);
 	let selection = $state<TextRange | null>(null);
+
+	// A reply to a mail: the earlier mail stands under the words, folded, until the person moves it into the text.
+	const earlier: RichTextQuote = {
+		line: 'On 12 Nov 2026, Ana Turner wrote:',
+		body: ['Hello,', 'The shelves came today, and one bracket set is missing. Can you send it this week?\nThe order is SO-2291, and the delivery note is at https://example.com/orders/SO-2291/delivery-note-of-the-twelfth-of-november.', 'Kind regards,\nAna Turner']
+	};
+	let quoteEdited = $state(false);
 
 	// A draft whose new layout another person asked for: the result comes as pending, with who asked and when.
 	const draft = ['Delivery update', 'Hello team, the new shelves arrive on Thursday.', 'Two shelving units', 'One bracket set', 'Kind regards,', 'Sam']
@@ -175,6 +182,22 @@
 			</Field.Field>
 
 			<Field.Field>
+				<Field.Label id="rich-text-reply-label">A reply to a mail, with the quoted earlier mail under the words</Field.Label>
+				<RichTextField
+					bind:quoteEdited
+					html={'<div>Hello Ana,</div><div>The bracket set goes out tomorrow with the courier.</div>'}
+					quote={earlier}
+					aria-labelledby="rich-text-reply-label"
+					aria-describedby="rich-text-reply-help"
+					placeholder="Write the reply…"
+					class="max-w-3xl"
+				/>
+				<Field.Description id="rich-text-reply-help">
+					The quote stands under the words and outside the text, so the words that the page sends hold no quote. Edit the quoted text moves it into the text as one undo step, and the undo key gives the fold back. The quote is in the text: {quoteEdited ? 'yes' : 'no'}.
+				</Field.Description>
+			</Field.Field>
+
+			<Field.Field>
 				<Field.Label id="rich-text-layout-label">A new layout that another person asked for, with Take all and Leave all</Field.Label>
 				<RichTextField bind:editor={layoutEditor} html={draft} aria-labelledby="rich-text-layout-label" aria-describedby="rich-text-layout-help" writing={layoutWriting} class="max-w-3xl" />
 				<Field.Description id="rich-text-layout-help">
@@ -190,6 +213,14 @@
 			<Field.Field>
 				<Field.Label id="rich-text-locked-label">While a check of another person runs, read-only</Field.Label>
 				<RichTextField html={note} aria-labelledby="rich-text-locked-label" writing={locked} class="max-w-3xl" />
+			</Field.Field>
+
+			<Field.Field>
+				<Field.Label id="rich-text-markdown-label">Markdown as you type and the slash menu</Field.Label>
+				<RichTextField html={'<div>A plan for the new shelves.</div><div><br></div>'} aria-labelledby="rich-text-markdown-label" aria-describedby="rich-text-markdown-help" markdown slash {upload} {onfailure} class="max-w-3xl" />
+				<Field.Description id="rich-text-markdown-help">
+					At the start of a line, type # and a space for a heading, - and a space for a list, or --- for a divider. Put two stars around words for bold. Backspace gives the marks back. On an empty line or after a space, a slash opens the block commands, and letters filter them.
+				</Field.Description>
 			</Field.Field>
 
 			<Field.Field data-invalid="true">

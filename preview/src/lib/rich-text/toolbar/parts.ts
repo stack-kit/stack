@@ -36,3 +36,5 @@ export const menu = lazy(() => import('./Menu.svelte'));
 export const drawer = lazy(() => import('./MoreDrawer.svelte'));
 export const forms = lazy(() => import('./Forms.svelte'));
 export const selectionBar = lazy(() => import('./SelectionBar.svelte'));
+/** The slash menu, a menu of the field that no toolbar holds, in its own chunk too: a failed load reaches the page as a load of the toolbar. */
+export const slashMenu = lazy(() => import('../slash/SlashMenu.svelte'));

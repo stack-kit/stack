@@ -30,9 +30,11 @@
 // then opens by itself. A click or Enter on a row opens the item as a new entry of the history. On the
 // list, J and K move the focus between the rows. On the page, J and K show the next or the previous
 // item in the place of the entry, so the entry before it stays the list. close() goes back to that
-// entry, or else writes the address of the list. Each way back to the list, also the back button of
-// the browser, gives the list the scroll position that it had when the item opened, and moves the
-// focus to the row of the item, else to the empty state or the list column, as close() does.
+// entry, or else writes the address of the list. A second close() while the navigation of the first
+// still runs does nothing, so two quick presses of Esc, a held Esc or a double click on Back go back
+// once and never leave the list. Each way back to the list, also the back button of the browser, gives
+// the list the scroll position that it had when the item opened, and moves the focus to the row of the
+// item, else to the empty state or the list column, as close() does.
 //
 // Each write of the address is goto(url, { replace: true, reset: false }), so the focus, the scroll and
 // the length of the history stay. Only the page form opens an item, or writes the list again after a
@@ -108,7 +110,9 @@ export interface ItemInAddress {
 	 * item. With no row of the item in the list, it focuses the empty state in the list column of
 	 * ListSplit, else that list column. In the path form it writes the path of the list and the closed
 	 * mark in the history state. In the page form it goes back to the list, which gets back its scroll
-	 * position and focuses the row of the item, else the empty state or the list column.
+	 * position and focuses the row of the item, else the empty state or the list column. In the page
+	 * form, a call while the navigation of the call before it still runs does nothing, so the page goes
+	 * back one entry and never leaves the list.
 	 */
 	close(): Promise<void>;
 	/** Opens the item on its full page. false when the options give no href. */
@@ -218,9 +222,17 @@ export function itemInAddress(o: ItemInAddressOptions): ItemInAddress {
 	// them, and close() then writes the address of the list as a new entry. stepTo is the key that
 	// step() writes on the page, in the place of the entry, until its navigation ends. Only that write
 	// keeps fromList: a link from one item to another is a new entry, so the list is not before it.
+	// closing is the history state (page.state) of the page that close() left, until the navigation
+	// of that close ends. The address, the key and fromList change only when the navigation ends, so
+	// with no mark, each close before that moment goes back one more entry. afterNavigate ends
+	// the mark. A navigation that fails, or that a beforeNavigate of the page cancels, runs no
+	// afterNavigate, so its rejected complete ends the mark too. A move of the history to a shallow
+	// entry, such as an entry of pushState, also runs no afterNavigate: SvelteKit changes only
+	// page.state then, so a close from a new page.state counts as a first close.
 	let listScroll: number | null = null;
 	let fromList = false;
 	let stepTo: string | null = null;
+	let closing: typeof page.state | null = null;
 	/** True when the address is an address of this list or of one of its items. */
 	const ours = (url: URL, here: URL) => (path ? url.pathname === path() || url.pathname.startsWith(`${path()}/`) : url.pathname === here.pathname);
 	/** The scroll box of the list: the list column of ListSplit around the row of the key, or else around the first row. */
@@ -242,7 +254,9 @@ export function itemInAddress(o: ItemInAddressOptions): ItemInAddress {
 
 	// The page form keeps the scroll position of the list when an item opens from it: with a row, a
 	// link or the forward button of the browser. The list leaves the page then, and its box with it.
-	beforeNavigate(({ from, to }) => {
+	beforeNavigate((navigation) => {
+		if (closing !== null) void navigation.complete.catch(() => (closing = null));
+		const { from, to } = navigation;
 		if (!asPage() || !from?.url || !to?.url || !ours(to.url, from.url)) return;
 		const k = keyIn(to.url, false);
 		if (!keyIn(from.url, false) && k) listScroll = listBox(k)?.scrollTop ?? null;
@@ -254,6 +268,7 @@ export function itemInAddress(o: ItemInAddressOptions): ItemInAddress {
 	// column holds, so an address with no key later shows the first row of that moment. When the hook
 	// runs, page.state is the state of to.
 	afterNavigate(({ from, to }) => {
+		closing = null;
 		const n = to?.url ? keyIn(to.url, marked()) : null;
 		if (n !== null) held = null;
 		const k = n || null;
@@ -315,9 +330,16 @@ export function itemInAddress(o: ItemInAddressOptions): ItemInAddress {
 			const k = key();
 			if (asPage()) {
 				// afterNavigate gives the list its scroll position and focuses the row.
-				if (k === null) return;
+				if (k === null || closing === page.state) return;
+				closing = page.state;
 				if (fromList) history.back();
-				else await write('', true);
+				else {
+					try {
+						await write('', true);
+					} finally {
+						closing = null;
+					}
+				}
 				return;
 			}
 			await write('');

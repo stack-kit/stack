@@ -8,7 +8,9 @@
 // FRAME_HEIGHT_SCRIPT. It also fails when the script holds a character that makes the value of the
 // string differ from the text in the file (a backslash, a backtick or a dollar sign), a character that
 // is not ASCII, a carriage return, or a text that ends or opens an element in an HTML page, and when
-// the script does not hold the two type tags of the module. The script reads the module as text,
+// the script does not hold the two type tags of the module or each attribute of <html> that it reads.
+// It fails when the script names a way to parse a text as HTML or as code, such as innerHTML or eval,
+// and when it calls postMessage in more than one place. The script reads the module as text,
 // because the root check runs before the install of the preview and has no TypeScript, as
 // scripts/keys.mjs reads keys.ts.
 import { createHash } from 'node:crypto';
@@ -17,6 +19,28 @@ import { readSource } from './lib/design.mjs';
 
 export const MODULE = 'preview/src/lib/stack/frame-height.ts';
 export const DESIGN = 'DESIGN.md';
+
+/** The attributes of <html> that the server of the host writes and the script reads (### html-frame in DESIGN.md). */
+export const ATTRIBUTES = ['data-stack-frame-state', 'data-stack-frame-remote', 'data-stack-frame-fold', 'data-stack-frame-unfold', 'data-stack-frame-fit'];
+
+/**
+ * The ways to parse a text as HTML or as code. The script sets each word of a page with textContent,
+ * so a word that holds HTML stays text.
+ */
+export const SINKS = [
+  ['innerHTML', /innerHTML/],
+  ['outerHTML', /outerHTML/],
+  ['insertAdjacentHTML', /insertAdjacentHTML/],
+  ['setHTMLUnsafe', /setHTMLUnsafe/],
+  ['parseHTMLUnsafe', /parseHTMLUnsafe/],
+  ['createContextualFragment', /createContextualFragment/],
+  ['DOMParser', /DOMParser/],
+  ['srcdoc', /srcdoc/i],
+  ['document.write', /document\s*\.\s*write/],
+  ['eval', /\beval\b/],
+  ['Function(', /\bFunction\s*\(/],
+  ['a timer with a string', /\bset(?:Timeout|Interval)\s*\(\s*['"]/]
+];
 
 /** The source for script-src of a script text: the SHA-256 of its UTF-8 bytes in base64, with its quotes. */
 export function hashOf(script) {
@@ -49,6 +73,10 @@ export function check(moduleText, designText) {
   for (const [name, tag] of [['FRAME_HEIGHT_TYPE', height], ['FRAME_MODE_TYPE', mode]]) {
     if (tag && !script.includes(`'${tag}'`)) problems.push(`FRAME_HEIGHT_SCRIPT does not hold '${tag}', the value of ${name}`);
   }
+  for (const name of ATTRIBUTES) if (!script.includes(`'${name}'`)) problems.push(`FRAME_HEIGHT_SCRIPT does not hold '${name}', an attribute of <html> that ### html-frame names`);
+  for (const [name, re] of SINKS) if (re.test(script)) problems.push(`FRAME_HEIGHT_SCRIPT names ${name}, which parses a text as HTML or as code. Set a word with textContent`);
+  const posts = script.split('postMessage').length - 1;
+  if (posts !== 1) problems.push(`FRAME_HEIGHT_SCRIPT calls postMessage in ${posts} places, and the script posts its one message in one place`);
   if (hash !== undefined && hash !== want) problems.push(`FRAME_HEIGHT_HASH of ${MODULE} is ${hash}, and the hash of the script is ${want}`);
   const published = [...designText.matchAll(/'sha256-[A-Za-z0-9+/=]*'/g)].map((m) => m[0]);
   if (published.length === 0) problems.push(`${DESIGN} publishes no hash of the script, such as ${want} in ### html-frame`);

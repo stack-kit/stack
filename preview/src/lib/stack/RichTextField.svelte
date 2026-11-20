@@ -19,7 +19,9 @@
 	- The text is a contenteditable element with role="textbox" and aria-multiline. It takes the reading
 	  step from 768 px and 16 px below, so that a phone does not zoom on focus. It has contain: paint and
 	  scrolls a wide content inside itself. The page sets each of its attributes through the field, because
-	  the engine hears each change of the text and would count it as an input of the person.
+	  the engine hears each change of the text and would count it as an input of the person. lang and dir go
+	  on the text and not on the root, so the toolbar, the bars and the rows keep the language and the
+	  direction of the page. dir is auto by default, as a field of free text asks.
 	- A field with a color tool keeps its text on the roles rich-text-paper, rich-text-ink and
 	  rich-text-link in both modes, because a content color keeps its value in every mode. A link takes
 	  rich-text-link. In light the rest of the content keeps the roles of the theme. In dark the paper stays
@@ -56,6 +58,27 @@
 	  read-only. A failed request calls onfailure with the kind writing. A new pending never aborts a
 	  request of the person and never drops open changes or a waiting whole text, and editor.load() ends
 	  the request and the result of the content before it.
+	- Markdown as you type (markdown): after each typed character, the engine turns a mark at the start of
+	  a plain line, or a pair of marks around words, into the format of a tool of the preset, in one undo
+	  step after the typed text (rich-text/engine/markdown.ts). Backspace right after the change gives the
+	  typed text back. A paste and text in code stay as they are. With markdown off, the full preset keeps
+	  the two lists of v2.4.0 that the engine makes of "* " and "1. ".
+	- The slash menu (slash): a slash at the start of an empty line or after a space opens a list box of
+	  the block commands of the preset at the caret (rich-text/slash/SlashMenu.svelte). It loads in a chunk
+	  of its own when a person first uses the field, mounts then, and listens to the document and the
+	  window only while it shows. key() gives it the keys of the text first.
+	- The quote of a reply (quote): the quoted earlier mail stands in a row under the text (rich-text-quote),
+	  on the paper of the text and outside the editable element, folded behind "Show the quoted text". So
+	  it is not in html(), words(), the undo history or a request of the writing tools, and no key of the
+	  text reaches it. The line and each paragraph render as text nodes, never as HTML. "Edit the quoted
+	  text" in the open quote moves it into the text after the words, as one undo step: the field builds
+	  the elements and text nodes, and the engine takes their HTML through the load list. quoteEdited is
+	  then true, and the row goes. The field keeps the HTML just before and just after the move, and when
+	  an undo or a redo makes the text equal one of the two again, it sets quoteEdited to false or to
+	  true, so the undo key gives the fold back. editor.load() changes neither the quote nor the flag. In
+	  the moved quote, a blockquote with type="cite", the engine takes Enter, Backspace and Delete: Enter
+	  splits the quote at the caret for a reply inline, and the other two move no words over its edge
+	  (rich-text/engine/engine.ts).
 	- The focus never falls to the page. A row of a change moves it to the next row (review/Changes.svelte).
 	  When Take all, Leave all, a writing tool, Stop or a control of the page in toolbarEnd leaves with the
 	  focus, or a whole text hides the text that holds it, the focus goes to Stop while a request runs, else
@@ -65,7 +88,7 @@
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import type { OnFailure, RichTextCommand, RichTextEditor, RichTextFailure, RichTextPaper, RichTextPreset, RichTextWriting, StoredPicture, TextRange } from './rich-text.js';
+	import type { OnFailure, RichTextCommand, RichTextEditor, RichTextFailure, RichTextPaper, RichTextPreset, RichTextQuote, RichTextSlash, RichTextWriting, StoredPicture, TextRange } from './rich-text.js';
 
 	/** @behaviour escape:kept escape:dismiss escape:deselect tab:list-level tab:to-bar */
 	export type RichTextFieldProps = Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class' | 'onchange'> & {
@@ -90,6 +113,16 @@
 		'aria-label'?: string | undefined;
 		'aria-labelledby'?: string | undefined;
 		'aria-describedby'?: string | undefined;
+		/**
+		 * The language of the text, a BCP 47 tag such as "de", for a text in another language than the page. It goes
+		 * on the text itself, and the toolbar, the bars and the rows keep the language of the page.
+		 */
+		lang?: string | null | undefined;
+		/**
+		 * The direction of the text, on the text itself: `auto` by default, so that the first letter with a direction
+		 * sets it. Give `rtl` for a language that writes from right to left. null leaves the direction of the page.
+		 */
+		dir?: 'ltr' | 'rtl' | 'auto' | null | undefined;
 		/**
 		 * True for each picture address that the field keeps. By default defaultPicture of @stack-kit/stack/rich-text,
 		 * which keeps only the data address of a PNG, JPEG, GIF or WebP picture. A page that shows pictures from a
@@ -126,6 +159,29 @@
 		 * no writing tool, and their chunk does not load.
 		 */
 		writing?: RichTextWriting | undefined;
+		/**
+		 * Markdown as you type: a mark that a person types at the start of a plain line or around words, such
+		 * as "# " or **words**, turns into its format when the preset holds the tool, and any other mark stays
+		 * text. Backspace right after the change, or the undo key, gives the typed text back. Off by default.
+		 */
+		markdown?: boolean | undefined;
+		/**
+		 * The slash menu: a slash at the start of an empty line or after a space opens a list of the block
+		 * commands of the preset at the caret. true, or the options of the menu with its words. Off by default.
+		 */
+		slash?: boolean | RichTextSlash | undefined;
+		/**
+		 * The quoted earlier mail under the words of a reply: the line before it and its paragraphs as text. It
+		 * stands under the text and outside it, folded, so html() and words() hold the words of the person only.
+		 * "Edit the quoted text" moves it into the text as one undo step, and quoteEdited is then true.
+		 */
+		quote?: RichTextQuote | undefined;
+		/**
+		 * True once the quote is in the text: the person chose "Edit the quoted text", and an undo of that step
+		 * sets it to false again. While it is false, the page sends the words with the id of the earlier mail.
+		 * A page that loads a draft that holds the moved quote gives no quote and sets it to true. False by default.
+		 */
+		quoteEdited?: boolean | undefined;
 		/** The controls of the page at the end of the toolbar, before the writing tools. */
 		toolbarEnd?: Snippet | undefined;
 		/** A bar of the page between the toolbar and the text. */
@@ -138,6 +194,7 @@
 <script lang="ts">
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import { onMount, untrack } from 'svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import * as InputGroup from '#lib/components/ui/input-group/index.js';
 	import { cn } from '#lib/utils.js';
 	import { dev } from '$app/env';
@@ -147,16 +204,17 @@
 	import type PictureType from '#lib/rich-text/picture/Picture.svelte';
 	import type { Writing } from '#lib/rich-text/review/writing.svelte.js';
 	import type SelectionBarType from '#lib/rich-text/toolbar/SelectionBar.svelte';
-	import { forms, menu, selectionBar as selectionBarPart } from '#lib/rich-text/toolbar/parts.js';
+	import type SlashMenuType from '#lib/rich-text/slash/SlashMenu.svelte';
+	import { forms, menu, selectionBar as selectionBarPart, slashMenu as slashMenuPart } from '#lib/rich-text/toolbar/parts.js';
 	import type FormsType from '#lib/rich-text/toolbar/Forms.svelte';
 	import Toolbar from '#lib/rich-text/toolbar/Toolbar.svelte';
 	import type ToolsType from '#lib/rich-text/toolbar/Tools.svelte';
 	import { PROBE, paperWarning, readPaper, weakPairs } from '#lib/rich-text/paper.js';
 	import { tool, type ToolId } from '#lib/rich-text/tools/commands.js';
 	import { NATIVE_KEYS, claimKeys, isKey, sharedKeysWarning, usable } from '#lib/rich-text/tools/keys.js';
-	import { PRESET_TOOLS, TOOL_ORDER } from '#lib/rich-text/tools/presets.js';
+	import { PRESET_TOOLS, SLASH_TOOLS, TOOL_ORDER } from '#lib/rich-text/tools/presets.js';
 	import RichTextView from './RichTextView.svelte';
-	import { RICH_TEXT_KEYS, defaultPicture } from './rich-text.js';
+	import { RICH_TEXT_KEYS, defaultPicture, richTextFragment, type QuoteWords, type SlashCommand } from './rich-text.js';
 
 	let {
 		editor = $bindable(null),
@@ -170,6 +228,8 @@
 		'aria-label': ariaLabel,
 		'aria-labelledby': ariaLabelledby,
 		'aria-describedby': ariaDescribedby,
+		lang,
+		dir = 'auto',
 		picture = defaultPicture,
 		upload,
 		paper,
@@ -177,6 +237,10 @@
 		onchange,
 		onselection,
 		keys,
+		markdown = false,
+		slash = false,
+		quote,
+		quoteEdited = $bindable(false),
 		writing: writingProp,
 		toolbarEnd: toolbarEndProp,
 		bar,
@@ -292,6 +356,32 @@
 
 	/** The tools that are on, in the order of the toolbar. */
 	const toolOrder = $derived(TOOL_ORDER.filter((id) => tools.includes(id)));
+
+	// ---- The slash menu. Its chunk loads when a person first uses a field with slash and a block command,
+	// and the menu mounts then. Until a slash opens it, it adds no listener.
+	/** The block commands of the slash menu that are on; none while slash is off. */
+	const slashCommands = $derived<SlashCommand[]>(slash ? SLASH_TOOLS.filter((id) => tools.includes(id)) : []);
+	let SlashPart = $state.raw<typeof SlashMenuType | null>(null);
+	let slashMenu = $state<ReturnType<typeof SlashMenuType>>();
+	/** A slash that came while the chunk of the menu loaded. */
+	let slashWaits = $state.raw<Range | null>(null);
+
+	function openSlash(at: Range) {
+		if (locked || slashCommands.length === 0) return;
+		if (slashMenu) slashMenu.open(at);
+		else slashWaits = at;
+	}
+
+	/** Takes a command of the slash menu: the slash and its filter go, and the command runs on the line. */
+	function takeSlash(command: SlashCommand, typed: Range) {
+		const e = engine;
+		if (!e || locked || !tools.includes(command)) return;
+		if (command === 'picture') {
+			e.take(typed, null);
+			chooser?.click();
+		} else e.take(typed, command);
+		refresh();
+	}
 	/**
 	 * The keys of each command that is on: the keys of the page, else the default keys, with no key of
 	 * characters alone. When two commands get one key, the move to the toolbar takes it first, then the tool
@@ -312,6 +402,8 @@
 
 	/** The keys of the text. A command of the field takes its key: the move to the toolbar, then the tools in the order of the toolbar. */
 	function key(e: KeyboardEvent): boolean {
+		// An open slash menu takes its keys first: the arrow keys, Enter and Esc.
+		if (slashMenu?.key(e)) return true;
 		if (e.key === 'Escape' && !e.isComposing && selectionBar?.dismiss()) return true;
 		const hits = (command: RichTextCommand) => keysOf(command).some((k) => isKey(e, k));
 		if (!bare && hits('toolbar')) {
@@ -457,6 +549,87 @@
 		});
 	});
 
+	// ---- The quote of a reply. It stands under the text and outside it until the person moves it in.
+	const QUOTE_WORDS: QuoteWords = {
+		show: 'Show the quoted text',
+		hide: 'Hide the quoted text',
+		edit: 'Edit the quoted text',
+		readonly: 'The quoted text cannot change now.'
+	};
+	const qw = $derived<QuoteWords>({ ...QUOTE_WORDS, ...quote?.words });
+	/** The quote shows open. It starts folded, and it folds again when it moves into the text. */
+	let quoteOpen = $state(false);
+	/** Why Edit cannot act: while the text is read-only, also before the engine loaded. */
+	const editOff = $derived(locked || !engine ? qw.readonly : undefined);
+	/** The HTML of the text just before and just after the move, through the load list, until editor.load() starts a new undo history. */
+	let moved: { before: string; after: string } | null = null;
+	/** True when the last change left a step to redo: an undo ran, so the next change can be a redo. */
+	let redoable = false;
+	/** The row of the quote while it shows. */
+	let quoteRow = $state<HTMLDivElement | null>(null);
+
+	// The row goes when the page sets quoteEdited or clears quote. A button of the row that holds the focus
+	// would leave it to the page, so the text takes the focus before the row goes.
+	$effect.pre(() => {
+		if (quote && !quoteEdited) return;
+		untrack(() => {
+			if (quoteRow?.contains(document.activeElement)) engine?.focus();
+		});
+	});
+
+	/** A line of the moved quote: a div with the words as a text node, or with a line break when it is empty. */
+	function quoteLine(words: string): HTMLDivElement {
+		const div = document.createElement('div');
+		div.append(words ? document.createTextNode(words) : document.createElement('br'));
+		return div;
+	}
+
+	/**
+	 * "Edit the quoted text": the quote moves into the text after the words, as one undo step. The field
+	 * builds the elements and text nodes, so no value of the quote joins a string of HTML, and the engine
+	 * takes their HTML through the load list. The caret goes to the start of the line before the quote.
+	 */
+	function editQuote() {
+		const e = engine;
+		const q = quote;
+		if (!e || !q || locked || quoteEdited) return;
+		const before = e.html();
+		const lines = e.words().split('\n').length;
+		const box = document.createElement('div');
+		box.append(richTextFragment(before, { list: 'load', preset: kind, picture }), quoteLine(''), quoteLine(q.line));
+		const cite = document.createElement('blockquote');
+		// The mark of a quoted earlier mail, which the mail apps of the recipients read.
+		cite.setAttribute('type', 'cite');
+		q.body.forEach((paragraph, i) => {
+			if (i > 0) cite.append(quoteLine(''));
+			for (const words of paragraph.split('\n')) cite.append(quoteLine(words));
+		});
+		box.append(cite);
+		e.replaceAll(box.innerHTML);
+		moved = { before, after: e.html() };
+		redoable = false;
+		quoteOpen = false;
+		quoteEdited = true;
+		e.caret(lines + 1, 0);
+		e.focus();
+		refresh();
+	}
+
+	/**
+	 * After a change: when an undo or a redo makes the text equal the text just before or just after the
+	 * move, the flag follows. Only a change that comes with a step to redo, or right after one, can be an
+	 * undo or a redo, so a typed character reads no HTML.
+	 */
+	function followQuote(e: Engine) {
+		const now = editorState?.canRedo === true;
+		const look = redoable || now;
+		redoable = now;
+		if (!moved || !look) return;
+		const html = e.html();
+		if (html === moved.before) quoteEdited = false;
+		else if (html === moved.after) quoteEdited = true;
+	}
+
 	// ---- Pictures. Each file goes up in its order, and goes in at the caret at most the line wide.
 	let adding = $state(0);
 	const PICTURE = /^image\/(?:png|jpeg|gif|webp)$/;
@@ -524,7 +697,7 @@
 		import('../rich-text/engine/engine.js')
 			.then(({ createEngine }) => {
 				if (gone || !text) return;
-				live = createEngine(text, { preset: kind, picture });
+				live = createEngine(text, { preset: kind, picture, markdown: () => markdown });
 				const e = live;
 				const settle = () => {
 					empty = e.empty();
@@ -533,6 +706,7 @@
 				};
 				e.on('change', () => {
 					settle();
+					followQuote(e);
 					onchange?.();
 				});
 				e.on('state', refresh);
@@ -551,6 +725,9 @@
 					load: (next) => {
 						// Another content ends the request and the result of the writing tools for the content before it.
 						writer?.reset();
+						// The new undo history holds no move of the quote. The quote and quoteEdited stay as the page gave them.
+						moved = null;
+						redoable = false;
 						e.load(next);
 						settle();
 					},
@@ -644,6 +821,35 @@
 		}, toolbarFailed);
 	});
 
+	// The engine reports a typed slash only while the slash menu has a command, so a field with no slash
+	// menu asks nothing at a slash.
+	$effect(() => {
+		const e = engine;
+		if (!e || slashCommands.length === 0) return;
+		return e.onSlash(openSlash);
+	});
+
+	// The slash menu loads when a person first uses a field with a block command in it.
+	let slashLoading = false;
+	$effect(() => {
+		if (!armed || slashCommands.length === 0 || !engine || slashLoading) return;
+		slashLoading = true;
+		slashMenuPart.load().then((part) => {
+			if (!gone) SlashPart = part;
+		}, toolbarFailed);
+	});
+
+	// A slash that came while the chunk loaded opens the menu once it mounted.
+	$effect(() => {
+		const m = slashMenu;
+		const at = slashWaits;
+		if (!m || !at) return;
+		untrack(() => {
+			slashWaits = null;
+			openSlash(at);
+		});
+	});
+
 	// A field with no toolbar mounts the forms itself when one first opens, and keeps them, so that the
 	// popover closes with its animation.
 	let formsLoading = false;
@@ -682,6 +888,8 @@
 		e.setAttribute('aria-invalid', invalid ? 'true' : null);
 		e.setAttribute('aria-required', required ? 'true' : null);
 		e.setAttribute('aria-placeholder', placeholder ?? null);
+		e.setAttribute('lang', lang ?? null);
+		e.setAttribute('dir', dir ?? null);
 	});
 
 </script>
@@ -762,13 +970,13 @@
 				class={cn('w-full overflow-auto px-3 py-2.5 text-base outline-none contain-paint md:text-md', kind === 'simple' ? 'min-h-24' : 'min-h-40')}
 			/>
 			{#if failed}
-				<RichTextView {html} preset={kind} {picture} {paper} class={cn('rounded-none bg-transparent px-3 py-2.5 text-inherit', kind === 'simple' ? 'min-h-24' : 'min-h-40')} />
+				<RichTextView {html} preset={kind} {picture} {paper} {lang} {dir} class={cn('rounded-none bg-transparent px-3 py-2.5 text-inherit', kind === 'simple' ? 'min-h-24' : 'min-h-40')} />
 			{/if}
 			{#if kind === 'full'}<span id="{uid}-keys" class="sr-only">In a list, Tab indents. Esc, then Tab, moves the focus out.</span>{/if}
 			<span bind:this={probe} aria-hidden="true" class={PROBE}></span>
 			{#if engine && empty && placeholder}
-				<!-- In dark mode the paper stays light, so the placeholder takes the ink at 70% there, and in both modes on a paper of the page. -->
-				<span aria-hidden="true" class={cn('pointer-events-none absolute top-2.5 left-3 text-base text-muted-foreground md:text-md', onPaper && 'dark:text-rich-text-ink/70', paper !== undefined && 'text-rich-text-ink/70')}>{placeholder}</span>
+				<!-- In dark mode the paper stays light, so the placeholder takes the ink at 70% there, and in both modes on a paper of the page. A text from right to left starts at the right. -->
+				<span aria-hidden="true" class={cn('pointer-events-none absolute top-2.5 text-base text-muted-foreground md:text-md', dir === 'rtl' ? 'right-3' : 'left-3', onPaper && 'dark:text-rich-text-ink/70', paper !== undefined && 'text-rich-text-ink/70')}>{placeholder}</span>
 			{/if}
 			<!-- The bars over the text mount when a person first uses the field. -->
 			{#if armed && engine && text && host && upload && PicturePart}
@@ -776,6 +984,28 @@
 			{/if}
 			{#if armed && engine && text && host && SelectionBarPart}
 				<SelectionBarPart bind:this={selectionBar} {text} {host} />
+			{/if}
+			{#if armed && engine && text && host && SlashPart && slashCommands.length > 0}
+				<SlashPart bind:this={slashMenu} {text} {host} commands={slashCommands} words={typeof slash === 'object' ? slash.words : undefined} ontake={takeSlash} />
+			{/if}
+			{#if quote && !quoteEdited}
+				<!-- The quote of a reply: under the text, on its paper, outside the editable element, and the next Tab stop after the text. The line and each paragraph are text nodes. -->
+				<div bind:this={quoteRow} data-slot="rich-text-quote" class={cn('flex flex-col items-start gap-2 px-3 pb-2.5 text-muted-foreground', onPaper && 'quote-paper', paper !== undefined && 'quote-ink')}>
+					<div class="flex flex-wrap items-start gap-2">
+						<Button variant="ghost" size="xs" aria-expanded={quoteOpen} aria-controls="{uid}-quote" onclick={() => (quoteOpen = !quoteOpen)}>{quoteOpen ? qw.hide : qw.show}</Button>
+						{#if quoteOpen}
+							<!-- While the text is read-only, Edit takes aria-disabled and names its reason, a line beside it, as a ReasonButton with describedby does. -->
+							<Button variant="ghost" size="xs" class="aria-disabled:cursor-not-allowed aria-disabled:opacity-50" aria-disabled={editOff ? 'true' : undefined} aria-describedby={editOff ? `${uid}-quote-off` : undefined} onclick={editQuote}>{qw.edit}</Button>
+							{#if editOff}<span id="{uid}-quote-off" class="self-center text-xs">{editOff}</span>{/if}
+						{/if}
+					</div>
+					<div id="{uid}-quote" class={cn('w-full min-w-0 flex-col gap-2 text-md whitespace-pre-line wrap-break-word', quoteOpen ? 'flex' : 'hidden')}>
+						<p>{quote.line}</p>
+						<blockquote lang={quote.lang} dir={quote.dir ?? 'auto'} class="flex flex-col gap-3 border-s border-border ps-3">
+							{#each quote.body as p, i (i)}<p>{p}</p>{/each}
+						</blockquote>
+					</div>
+				</div>
 			{/if}
 		</div>
 		{#if writer && review && w}
@@ -853,5 +1083,18 @@
 	}
 	:global(::highlight(stack-change-active)) {
 		background-color: color-mix(in oklab, var(--color-diff-removed) 60%, transparent);
+	}
+	/*
+	 * The quote row stands on the paper of the text. In dark mode the paper stays light, and a paper of the
+	 * page can have any color, so there the row takes its muted ink, its edge, the ground and the ink of a
+	 * button and the focus ring from the ink, as a quote of the content does (rich-text/Content.svelte).
+	 */
+	:global(.dark) .quote-paper,
+	.quote-ink {
+		--foreground: var(--rich-text-ink, var(--color-rich-text-ink));
+		--muted-foreground: color-mix(in oklab, var(--rich-text-ink, var(--color-rich-text-ink)) 70%, transparent);
+		--muted: color-mix(in oklab, var(--rich-text-ink, var(--color-rich-text-ink)) 6%, transparent);
+		--border: color-mix(in oklab, var(--rich-text-ink, var(--color-rich-text-ink)) 20%, transparent);
+		--ring: var(--rich-text-ink, var(--color-rich-text-ink));
 	}
 </style>
